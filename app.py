@@ -16,6 +16,7 @@ import cv2
 import numpy as np
 import time
 import colorsys
+from streamlit_plotly_events import plotly_events
 
 # OpenAI API 키 설정 (Streamlit Cloud의 secrets에서 가져옴)
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -175,7 +176,8 @@ def create_donut_chart(data, title, used_colors):
     colors = generate_colors(len(labels), used_colors)
     used_colors.update(colors)
     
-    fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3, marker_colors=colors)])
+    fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3, marker_colors=colors,
+                                 textinfo='value', hoverinfo='label+percent')])
     fig.update_layout(title_text=title)
     return fig, used_colors
 
@@ -198,9 +200,11 @@ def generate_colors(n, used_colors):
 def show_images_for_category(option, value, images):
     st.write(f"{option}: {value}")
     cols = st.columns(5)
-    for i, img in enumerate(images[:5]):
-        with cols[i]:
+    for i, img in enumerate(images):
+        with cols[i % 5]:
             st.image(img, use_column_width=True)
+        if (i + 1) % 5 == 0:
+            st.write("")  # 새 줄 추가
 
 # 메인 앱 로직
 def main():
@@ -302,21 +306,31 @@ def main():
                         st.markdown("<h3 style='text-align: center;'><span class='emoji'>📊</span> 분석 결과</h3>", unsafe_allow_html=True)
                         col1, col2 = st.columns(2)
                         used_colors = set()
+                        
                         for i, (option, results) in enumerate(aggregated_results.items()):
                             if results:
                                 fig, used_colors = create_donut_chart(results, option, used_colors)
                                 if i % 2 == 0:
                                     with col1:
-                                        st.plotly_chart(fig, use_container_width=True)
-                                        for value, count in results.items():
-                                            show_images_for_category(option, value, image_categories[option][value])
+                                        selected_point = plotly_events(fig, click_event=True)
+                                        if selected_point:
+                                            value = selected_point[0]['label']
+                                            st.session_state[f'{option}_selected'] = value
                                 else:
                                     with col2:
-                                        st.plotly_chart(fig, use_container_width=True)
-                                        for value, count in results.items():
-                                            show_images_for_category(option, value, image_categories[option][value])
+                                        selected_point = plotly_events(fig, click_event=True)
+                                        if selected_point:
+                                            value = selected_point[0]['label']
+                                            st.session_state[f'{option}_selected'] = value
                             else:
                                 st.write(f"{option}에 대한 데이터가 없습니다.")
+                        
+                        # 선택된 항목에 대한 이미지 표시
+                        for option in selected_options:
+                            if f'{option}_selected' in st.session_state:
+                                value = st.session_state[f'{option}_selected']
+                                st.markdown(f"### {option}: {value} 이미지")
+                                show_images_for_category(option, value, image_categories[option][value])
                         
                         # 사용량 추적
                         if "image_count" not in st.session_state:
