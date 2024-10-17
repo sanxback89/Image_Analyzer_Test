@@ -43,7 +43,7 @@ def authenticate_user():
                 return False
     return st.session_state.authenticated
 
-# 분석 항목 정의 (복종별로 구분)
+# 분석 항목 정의 (수정됨)
 analysis_options = {
     "Top": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Oversized"],
