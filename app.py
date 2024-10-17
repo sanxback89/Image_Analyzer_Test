@@ -42,78 +42,56 @@ def authenticate_user():
                 return False
     return st.session_state.authenticated
 
-# 엑셀에서 이미지 추출 및 ZIP 생성 함수
-def extract_images_from_excel(uploaded_file):
-    # 메모리에서 엑셀 파일 열기
-    wb = openpyxl.load_workbook(io.BytesIO(uploaded_file.getvalue()))
-    sheet = wb.active
-    image_loader = SheetImageLoader(sheet)
-    
-    # 이미지 추출
-    images = []
-    for row in sheet.iter_rows():
-        for cell in row:
-            try:
-                if image_loader.image_in(cell.coordinate):
-                    image = image_loader.get(cell.coordinate)
-                    images.append(image)
-            except Exception as e:
-                # 'I/O operation on closed file' 오류는 무시
-                if "I/O operation on closed file" not in str(e):
-                    st.warning(f"셀 {cell.coordinate}에서 이미지를 추출하는 중 오류가 발생했습니다: {str(e)}")
-                continue
-    
-    return images
-
-def enhance_image(image, scale_factor=2):
-    # PIL Image를 OpenCV 형식으로 변환
-    cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-    
-    # 이미지 크기 조정
-    height, width = cv_image.shape[:2]
-    resized = cv2.resize(cv_image, (width*scale_factor, height*scale_factor), interpolation=cv2.INTER_CUBIC)
-    
-    # 언샤프 마스크 필터 적용
-    gaussian = cv2.GaussianBlur(resized, (0, 0), 3.0)
-    sharpened = cv2.addWeighted(resized, 1.5, gaussian, -0.5, 0, resized)
-    
-    # 노이즈 제거
-    denoised = cv2.fastNlMeansDenoisingColored(sharpened, None, 10, 10, 7, 21)
-    
-    # OpenCV 형식을 다시 PIL Image로 변환
-    return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
-
-# 이미지 분석 관련 함수
-def encode_image(image_file):
-    return base64.b64encode(image_file.getvalue()).decode('utf-8')
-
-def preprocess_response(response):
-    json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
-    if json_match:
-        return json_match.group(1)
-    return response
-
-# 분석 항목 정의 (확장됨)
+# 분석 항목 정의 (복종별로 구분)
 analysis_options = {
-    "Category": ["Top", "Bottom", "Dress", "Outerwear", "Accessories"],
-    "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Oversized", "Skinny", "Straight", "Bootcut", "Flare"],
-    "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Polo Collar", "Shirt Collar"],
-    "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Puff Sleeves"],
-    "Length": ["Crop", "Regular", "Long", "Mini", "Midi", "Maxi"],
-    "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
-    "Pattern": ["Solid", "Striped", "Polka Dot", "Floral", "Plaid", "Checkered", "Animal Print"],
-    "Material": ["Cotton", "Polyester", "Denim", "Leather", "Silk", "Wool", "Linen"],
-    "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué", "Fringe", "Cutouts", "Draping", "Gathering", "Buttons", "Zippers", "Pockets"]
+    "Top": {
+        "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Oversized"],
+        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
+        "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Puff Sleeves"],
+        "Length": ["Crop", "Regular", "Long"],
+        "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
+        "Pattern": ["Solid", "Striped", "Polka Dot", "Floral", "Plaid", "Checkered", "Animal Print"],
+        "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
+        "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué", "Buttons", "Zippers", "Pockets"]
+    },
+    "Bottom": {
+        "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Skinny", "Straight", "Bootcut", "Flare", "Wide Leg"],
+        "Length": ["Short", "Knee Length", "Ankle Length", "Full Length"],
+        "Rise": ["Low Rise", "Mid Rise", "High Rise"],
+        "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
+        "Pattern": ["Solid", "Striped", "Polka Dot", "Plaid", "Checkered"],
+        "Material": ["Denim", "Cotton", "Polyester", "Wool", "Leather"],
+        "Details": ["Distressed", "Ripped", "Embroidery", "Pockets", "Belt Loops", "Pleats"]
+    },
+    "Dress": {
+        "Fit": ["Bodycon", "A-Line", "Shift", "Wrap", "Sheath", "Empire Waist"],
+        "Neckline": ["V-Neck", "Scoop Neck", "Halter Neck", "Off-Shoulder", "Sweetheart"],
+        "Sleeves": ["Sleeveless", "Short Sleeves", "Long Sleeves", "Cap Sleeves", "Puff Sleeves"],
+        "Length": ["Mini", "Midi", "Maxi"],
+        "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
+        "Pattern": ["Solid", "Floral", "Polka Dot", "Striped", "Animal Print"],
+        "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
+        "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Belt", "Pockets"]
+    },
+    "Outerwear": {
+        "Type": ["Jacket", "Coat", "Blazer", "Cardigan", "Vest"],
+        "Fit": ["Slim Fit", "Regular Fit", "Oversized"],
+        "Length": ["Cropped", "Hip Length", "Knee Length", "Long"],
+        "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
+        "Material": ["Leather", "Denim", "Wool", "Cotton", "Polyester"],
+        "Details": ["Pockets", "Buttons", "Zippers", "Hood", "Fur Trim", "Quilted"]
+    }
 }
 
-def analyze_image(image, options):
+# 이미지 분석 함수
+def analyze_image(image, category, options):
     base64_image = encode_image(image)
     
-    prompt = "이미지에 있는 패션 아이템을 분석하고 다음 측면에 대한 자세한 정보를 제공해주세요:\n\n"
+    prompt = f"이미지에 있는 {category} 의류 아이템을 분석하고 다음 측면에 대한 정보를 제공해주세요. 각 옵션에 대해 가장 적합한 하나의 선택지만 선택해주세요:\n\n"
     for option in options:
-        prompt += f"{option}: 이미지에서 가장 적절한 옵션을 선택하거나, 해당되는 경우 새로운 값을 제안해주세요.\n"
+        prompt += f"{option}: {', '.join(analysis_options[category][option])}\n"
     
-    prompt += "\n결과를 선택된 측면을 키로 하고 감지된 옵션을 값으로 하는 JSON 객체로 제공해주세요. 여러 옵션이 감지되면 신뢰도 순으로 나열해주세요."
+    prompt += "\n결과를 선택된 측면을 키로 하고 감지된 옵션을 값으로 하는 JSON 객체로 제공해주세요. 각 키에 대해 하나의 값만 선택해야 합니다."
 
     try:
         response = client.chat.completions.create(
@@ -127,7 +105,7 @@ def analyze_image(image, options):
                     ]
                 }
             ],
-            max_tokens=500
+            max_tokens=300
         )
         
         result = response.choices[0].message.content.strip()
@@ -136,120 +114,93 @@ def analyze_image(image, options):
         st.error(f"이미지 분석 중 오류 발생: {e}")
         return ""
 
-def generate_sophisticated_colors(n, used_colors=None):
-    if used_colors is None:
-        used_colors = set()
-    colors = []
-    hue_step = 1.0 / n
-    for i in range(n):
-        attempts = 0
-        while attempts < 100:
-            hue = (i * hue_step + random.random() * 0.5 * hue_step) % 1.0
-            saturation = 0.6 + random.random() * 0.2
-            lightness = 0.5 + random.random() * 0.2
-            r, g, b = [int(x * 255) for x in colorsys.hls_to_rgb(hue, lightness, saturation)]
-            color = f"rgb({r},{g},{b})"
-            if color not in used_colors:
-                colors.append(color)
-                used_colors.add(color)
-                break
-            attempts += 1
-        if attempts == 100:
-            colors.append(f"rgb({random.randint(0, 255)},{random.randint(0, 255)},{random.randint(0, 255)})")
-    return colors, used_colors
+# 이미지 인코딩 함수
+def encode_image(image_file):
+    return base64.b64encode(image_file.getvalue()).decode('utf-8')
 
-def create_donut_chart(data, title, used_colors=None):
-    labels = list(data.keys())
-    values = list(data.values())
+# 응답 전처리 함수
+def preprocess_response(response):
+    json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
+    if json_match:
+        return json_match.group(1)
+    return response
+
+# 엑셀에서 이미지 추출 함수
+def extract_images_from_excel(uploaded_file):
+    wb = openpyxl.load_workbook(io.BytesIO(uploaded_file.getvalue()))
+    sheet = wb.active
+    image_loader = SheetImageLoader(sheet)
     
-    is_color_category = title.lower() == "color"
-    if is_color_category:
-        colors = []
-        for color in labels:
-            if color.lower() == "white":
-                colors.append("rgb(248, 248, 248)")
-            else:
-                colors.append(color)
-    else:
-        colors, used_colors = generate_sophisticated_colors(len(labels), used_colors)
-
-    # 텍스트 색상 결정
-    text_colors = []
-    for color in colors:
-        if is_color_category and color == "rgb(248, 248, 248)":
-            text_color = 'black'
-        elif is_color_category:
-            text_color = 'white' if color.lower() in ['black', 'navy', 'dark blue', 'dark green'] else 'black'
-        else:
-            r, g, b = map(int, color.strip('rgb()').split(','))
-            brightness = (r * 299 + g * 587 + b * 114) / 1000
-            text_color = 'white' if brightness < 128 else 'black'
-        text_colors.append(text_color)
-
-    fig = go.Figure(data=[go.Pie(
-        labels=labels,
-        values=values, 
-        hole=.4,
-        marker=dict(colors=colors, line=dict(color='#FFFFFF', width=0)),
-        textposition='inside',
-        textinfo='percent',
-        hoverinfo='label+value',
-        hovertemplate='%{label}<br>Count: %{value}<extra></extra>',
-        textfont=dict(size=12, color=text_colors),
-        insidetextorientation='radial'
-    )])
+    images = []
+    for row in sheet.iter_rows():
+        for cell in row:
+            try:
+                if image_loader.image_in(cell.coordinate):
+                    image = image_loader.get(cell.coordinate)
+                    images.append(image)
+            except Exception as e:
+                if "I/O operation on closed file" not in str(e):
+                    st.warning(f"셀 {cell.coordinate}에서 이미지를 추출하는 중 오류가 발생했습니다: {str(e)}")
+                continue
     
-    fig.update_layout(
-        title=dict(
-            text=title.capitalize(),
-            font=dict(size=31),
-            y=0.95,
-            x=0.5,
-            xanchor='center',
-            yanchor='top'
-        ),
-        font=dict(family="Arial", size=14),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        height=470,
-        margin=dict(l=20, r=20, t=60, b=20),
-        showlegend=True,
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.2,
-            xanchor="center",
-            x=0.5
-        )
-    )
-    return fig, used_colors
+    return images
 
-def process_zip_file(zip_file):
-    image_files = []
-    with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+# ZIP 파일 처리 함수
+def process_zip_file(uploaded_file):
+    with zipfile.ZipFile(io.BytesIO(uploaded_file.getvalue()), 'r') as zip_ref:
         for file_name in zip_ref.namelist():
             if file_name.lower().endswith(('.png', '.jpg', '.jpeg')):
                 with zip_ref.open(file_name) as file:
-                    image_files.append((file_name, io.BytesIO(file.read())))
-    return image_files
+                    yield file_name, file.read()
 
-# 이미지 처리 함수 수정 (단순화)
+# 이미지 처리 함수
 def process_images(images):
-    processed_images = []
-    for image in images:
-        # 필요한 이미지 처리 로직 추가
-        # 예: image = some_processing_function(image)
-        processed_images.append(image)
-    return processed_images
+    return [enhance_image(img) for img in images]
 
-def show_images_for_category(category, value, images):
-    with st.expander(f"{category}: {value} (클릭하여 이미지 보기)", expanded=False):
-        cols = st.columns(4)
-        for i, img in enumerate(images):
-            with cols[i % 4]:
-                st.image(img, use_column_width=True)
-                if st.button(f"전체 크기로 보기 {i+1}", key=f"{category}_{value}_{i}"):
-                    st.image(img, use_column_width=True)
+# 이미지 향상 함수
+def enhance_image(image, scale_factor=2):
+    cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    height, width = cv_image.shape[:2]
+    resized = cv2.resize(cv_image, (width*scale_factor, height*scale_factor), interpolation=cv2.INTER_CUBIC)
+    gaussian = cv2.GaussianBlur(resized, (0, 0), 3.0)
+    sharpened = cv2.addWeighted(resized, 1.5, gaussian, -0.5, 0, resized)
+    denoised = cv2.fastNlMeansDenoisingColored(sharpened, None, 10, 10, 7, 21)
+    return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
+
+# 도넛 차트 생성 함수
+def create_donut_chart(data, title, used_colors):
+    labels = list(data.keys())
+    values = list(data.values())
+    
+    colors = generate_colors(len(labels), used_colors)
+    used_colors.update(colors)
+    
+    fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3, marker_colors=colors)])
+    fig.update_layout(title_text=title)
+    return fig, used_colors
+
+# 색상 생성 함수
+def generate_colors(n, used_colors):
+    colors = []
+    for _ in range(n):
+        while True:
+            hue = random.random()
+            saturation = 0.5 + random.random() * 0.5
+            lightness = 0.4 + random.random() * 0.2
+            rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
+            hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
+            if hex_color not in used_colors:
+                colors.append(hex_color)
+                break
+    return colors
+
+# 카테고리별 이미지 표시 함수
+def show_images_for_category(option, value, images):
+    st.write(f"{option}: {value}")
+    cols = st.columns(5)
+    for i, img in enumerate(images[:5]):
+        with cols[i]:
+            st.image(img, use_column_width=True)
 
 # 메인 앱 로직
 def main():
@@ -257,22 +208,17 @@ def main():
     
     st.set_page_config(layout="wide")
     
-    # CSS를 사용하여 이모지 크기 조절
     st.markdown("""
     <style>
-    .emoji-title {
-        font-size: 2.4em;
-    }
-    .emoji {
-        font-size: 0.8em;
-    }
+    .emoji-title { font-size: 2.4em; }
+    .emoji { font-size: 0.8em; }
     </style>
     """, unsafe_allow_html=True)
     
     st.markdown("<h1 class='emoji-title'>패션 이미지 분석기</h1>", unsafe_allow_html=True)
     
     if authenticate_user():
-        progress_bar = st.progress(0)
+        progress_bar = st.empty()
         status_text = st.empty()
         
         step1 = st.empty()
@@ -286,7 +232,7 @@ def main():
             step2.markdown("<h3><span class='emoji'>🖼️</span> 2단계: 이미지 처리</h3>", unsafe_allow_html=True)
             
             images = []
-            if uploaded_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" or uploaded_file.type == "application/vnd.ms-excel":
+            if uploaded_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
                 try:
                     images = extract_images_from_excel(uploaded_file)
                     if images:
@@ -303,11 +249,18 @@ def main():
                 
                 processed_images = process_images(images)
                 
-                st.markdown("<h3><span class='emoji'>🔍</span> 3단계: 분석 결과</h3>", unsafe_allow_html=True)
+                st.markdown("<h3><span class='emoji'>👚</span> 3단계: 의상 복종 선택</h3>", unsafe_allow_html=True)
+                
+                selected_category = st.selectbox(
+                    "의상 복종을 선택하세요",
+                    options=list(analysis_options.keys())
+                )
+                
+                st.markdown("<h3><span class='emoji'>🔍</span> 4단계: 분석 항목 선택</h3>", unsafe_allow_html=True)
                 
                 selected_options = st.multiselect(
                     label="분석할 항목 선택",
-                    options=list(analysis_options.keys()),
+                    options=list(analysis_options[selected_category].keys()),
                     key="analysis_options"
                 )
                 
@@ -333,19 +286,12 @@ def main():
                             img_byte_arr = img_byte_arr.getvalue()
                             
                             try:
-                                result = analyze_image(io.BytesIO(img_byte_arr), selected_options)
+                                result = analyze_image(io.BytesIO(img_byte_arr), selected_category, selected_options)
                                 if result:
                                     analysis_results = json.loads(result)
                                     for option, detected in analysis_results.items():
-                                        if isinstance(detected, list):
-                                            aggregated_results[option].update(detected)
-                                            for value in detected:
-                                                image_categories[option][value].append(image)
-                                        elif isinstance(detected, str):
-                                            aggregated_results[option][detected] += 1
-                                            image_categories[option][detected].append(image)
-                                        else:
-                                            st.warning(f"이미지 {i+1}의 {option}에 대해 예상치 못한 결과 형식입니다: {detected}")
+                                        aggregated_results[option][detected] += 1
+                                        image_categories[option][detected].append(image)
                             except Exception as e:
                                 st.error(f"이미지 {i+1} 처리 중 오류 발생: {str(e)}")
                                 continue
@@ -379,9 +325,6 @@ def main():
                         st.write(f"총 분석된 이미지 수: {st.session_state.image_count}")
             else:
                 st.markdown("<p><span class='emoji'>⚠️</span> 업로드된 파일에서 이미지를 찾을 수 없습니다.</p>", unsafe_allow_html=True)
-    
-    progress_bar.empty()
-    status_text.empty()
 
 if __name__ == "__main__":
     main()
