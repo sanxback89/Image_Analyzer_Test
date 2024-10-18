@@ -293,7 +293,8 @@ def main():
     .emoji-title { font-size: 2.4em; }
     .emoji { font-size: 0.8em; }
     .results-container { display: flex; flex-wrap: wrap; justify-content: space-between; }
-    .chart-container { width: 40%; margin-bottom: 10px; }
+    .chart-container { width: 48%; margin-bottom: 20px; }
+    .fullwidth { width: 100vw; position: relative; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; }
     </style>
     """, unsafe_allow_html=True)
     
@@ -367,6 +368,7 @@ def main():
                         status_text.empty()
                         
                         # 분석 결과 표시 부분을 전체 화면으로 전환
+                        st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
                         st.markdown("<hr>", unsafe_allow_html=True)
                         st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
                         st.markdown("<div class='results-container'>", unsafe_allow_html=True)
@@ -400,7 +402,7 @@ def main():
                             if (i + 1) % 2 == 0:
                                 st.markdown("</div><div class='results-container'>", unsafe_allow_html=True)
                         
-                        st.markdown("</div>", unsafe_allow_html=True)
+                        st.markdown("</div></div>", unsafe_allow_html=True)
             else:
                 st.markdown("<p><span class='emoji'>⚠️</span> No Images Found in the Uploaded File.</p>", unsafe_allow_html=True)
 
