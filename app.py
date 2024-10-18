@@ -215,7 +215,7 @@ def create_donut_chart(data, title):
         hole=.3,
         marker_colors=colors,
         textinfo='percent',
-        textfont=dict(size=14, weight='bold'),  # 퍼센트 텍스트 크기 증가 및 볼드 처리
+        textfont=dict(size=14, color='#808080', weight='bold'),  # 그래프 내 텍스트 스타일 통일
         hoverinfo='label+percent+text',
         text=[f'Count: {v}' for v in values],
         hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
@@ -224,21 +224,23 @@ def create_donut_chart(data, title):
     fig.update_layout(
         title=dict(
             text=f'<b>{title}</b>',
-            font=dict(size=24),  # 텍스트 크기 축소
-            x=0.5,
+            font=dict(size=24),
+            x=0.5,  # 타이틀을 중앙에 위치
             y=0.95
         ),
         legend=dict(
             orientation='h',
             yanchor='bottom',
-            y=-0.05,  # 마진 축소
+            y=-0.2,  # 범례 위치 조정
             xanchor='center',
             x=0.5,
-            font=dict(size=10)
+            font=dict(size=13, weight='bold'),  # 범례 텍스트 크기 증가 및 볼드체
+            itemsizing='constant',
+            itemwidth=30  # 범례 간격 조정
         ),
-        width=500,  # 너비 축소
-        height=400,  # 높이 축소
-        margin=dict(t=40, b=40, l=10, r=10)  # 마진 축소
+        width=500,
+        height=450,  # 높이 증가로 마진 확보
+        margin=dict(t=60, b=80, l=20, r=20)  # 상단 마진 증가
     )
     
     return fig
@@ -353,9 +355,9 @@ def main():
                                 st.plotly_chart(fig, use_container_width=True)
                                 
                                 # 세부 결과를 토글 형태로 표시
-                                with st.expander(f"{option}"):  # 항목 이름만 표시
+                                with st.expander(f"{option}"):
                                     for value, count in results.items():
-                                        st.write(f"**{value}** (Count: {count})")
+                                        st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
                                         if option in image_categories and value in image_categories[option]:
                                             images = image_categories[option][value]
                                             cols = st.columns(5)
@@ -363,10 +365,10 @@ def main():
                                                 with cols[i % 5]:
                                                     st.image(img, use_column_width=True)
                                                 if (i + 1) % 5 == 0:
-                                                    st.write("")  # 새 줄 추가
+                                                    st.write("")
                                         else:
                                             st.write("해당하는 이미지가 없습니다.")
-                                        st.write("---")  # 구분선 추가
+                                        st.write("---")
                             else:
                                 st.write(f"{option}에 대한 데이터가 없습니다.")
             else:
@@ -403,7 +405,7 @@ st.markdown("""
         background-color: transparent !important;
     }
     .stExpander > div:first-child > div:first-child > p {
-        font-size: 18px !important;  /* 세부 결과 텍스트 크기 축소 */
+        font-size: 21px !important;  /* 세부 결과 텍스트 크기 20% 증가 */
         font-weight: bold;
     }
     .stButton > button {
