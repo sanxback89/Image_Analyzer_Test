@@ -199,7 +199,7 @@ def enhance_image(image, scale_factor=2):
     denoised = cv2.fastNlMeansDenoisingColored(sharpened, None, 10, 10, 7, 21)
     return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
 
-# 도넛 차트 생성 함수
+# 도넛 차트 생성 함수 수정
 def create_donut_chart(data, title):
     labels = list(data.keys())
     values = list(data.values())
@@ -229,10 +229,10 @@ def create_donut_chart(data, title):
         ),
         legend=dict(
             orientation='h',
-            yanchor='top',
+            yanchor='bottom',
             y=-0.1,
             xanchor='center',
-            x=0.2,
+            x=0.5,
             font=dict(size=12)
         ),
         width=600,
@@ -242,13 +242,13 @@ def create_donut_chart(data, title):
     
     return fig
 
-# 색상 매핑 함수
+# 색상 매핑 함수 수정
 def get_color(label):
     color_map = {
         'Red': '#FF0000', 'Blue': '#0000FF', 'Green': '#00FF00',
         'Yellow': '#FFFF00', 'Purple': '#800080', 'Orange': '#FFA500',
         'Pink': '#FFC0CB', 'Brown': '#A52A2A', 'Black': '#000000',
-        'White': '#E0E0E0', 'Gray': '#808080', 'Multicolor': '#FFFFFF'
+        'White': '#FFFFFF', 'Gray': '#808080', 'Multicolor': '#FFFFFF'
     }
     return color_map.get(label, '#000000')
 
@@ -264,7 +264,7 @@ def generate_colors(n):
         colors.append(hex_color)
     return colors
 
-# 메인 앱 로직
+# 메인 앱 로직 수정 (이미지 리스트업 부분)
 def main():
     st.set_page_config(layout="centered")
     
@@ -351,20 +351,21 @@ def main():
                                 fig = create_donut_chart(results, option)
                                 st.plotly_chart(fig, use_container_width=True)
                                 
-                                # 토글 형태로 이미지 표시
-                                with st.expander(f"{option} 세부 결과"):
-                                    for value, count in results.items():
-                                        if st.button(f"{value} (Count: {count})", key=f"{option}_{value}"):
-                                            if option in image_categories and value in image_categories[option]:
-                                                images = image_categories[option][value]
-                                                cols = st.columns(5)
-                                                for i, img in enumerate(images):
-                                                    with cols[i % 5]:
-                                                        st.image(img, use_column_width=True)
-                                                    if (i + 1) % 5 == 0:
-                                                        st.write("")  # 새 줄 추가
-                                            else:
-                                                st.write("해당하는 이미지가 없습니다.")
+                                # 이미지 리스트업
+                                st.write(f"### {option} 세부 결과")
+                                for value, count in results.items():
+                                    st.write(f"**{value}** (Count: {count})")
+                                    if option in image_categories and value in image_categories[option]:
+                                        images = image_categories[option][value]
+                                        cols = st.columns(5)
+                                        for i, img in enumerate(images):
+                                            with cols[i % 5]:
+                                                st.image(img, use_column_width=True)
+                                            if (i + 1) % 5 == 0:
+                                                st.write("")  # 새 줄 추가
+                                    else:
+                                        st.write("해당하는 이미지가 없습니다.")
+                                    st.write("---")  # 구분선 추가
                             else:
                                 st.write(f"{option}에 대한 데이터가 없습니다.")
             else:
