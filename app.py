@@ -298,7 +298,10 @@ def main():
     
     st.markdown("""
     <style>
-    .emoji-title { font-size: 2.4em; }
+    .emoji-title { 
+        font-size: 2.4em; 
+        text-align: center;
+    }
     .emoji { font-size: 0.8em; }
     .results-container { display: flex; flex-wrap: wrap; justify-content: space-between; }
     .chart-container { width: 48%; margin-bottom: 20px; }
@@ -306,7 +309,7 @@ def main():
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown("<h1 class='emoji-title'> YAKJIN Fashion Image Analyzer</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='emoji-title'>Yakjin Fashion Image Analyzer</h1>", unsafe_allow_html=True)
     
     if authenticate_user():
         st.markdown("<h3><span class='emoji'>👚</span> Step 1: Select Clothing Category</h3>", unsafe_allow_html=True)
