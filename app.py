@@ -24,12 +24,12 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 progress_bar = None
 status_text = None
 
-# 허용된 이메일 리스트
-ALLOWED_EMAILS = [
-    "baekdoo28@gmail.com",
-    "jesssieyun@yakjin.com",
-    "jake@yakjin.com"
-]
+# Allowed users dictionary (email: password)
+ALLOWED_USERS = {
+    "baekdoo28@gmail.com": "Yakjin135#",
+    "jesssieyun@yakjin.com": "Yakjin135#",
+    "jake@yakjin.com": "Yakjin135#"
+}
 
 # User authentication and usage tracking
 def authenticate_user():
@@ -37,15 +37,16 @@ def authenticate_user():
         st.session_state.authenticated = False
     
     if not st.session_state.authenticated:
-        email = st.text_input("이메일 주소를 입력하세요")
-        if st.button("인증"):
-            if email in ALLOWED_EMAILS:
+        email = st.text_input("Enter your email address")
+        password = st.text_input("Enter your password", type="password")
+        if st.button("Authentication"):
+            if email in ALLOWED_USERS and ALLOWED_USERS[email] == password:
                 st.session_state.authenticated = True
                 st.session_state.email = email
-                st.success("인증에 성공했습니다.")
+                st.success("Authentication succeeded.")
                 return True
             else:
-                st.error("인증되지 않은 이메일 주소입니다. 접근이 거부되었습니다.")
+                st.error("This is an unverified email address or incorrect password. Access denied.")
                 return False
     return st.session_state.authenticated
 
@@ -305,7 +306,7 @@ def main():
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown("<h1 class='emoji-title'> Fashion Image Analyzer</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='emoji-title'> Yakjin Fashion Image Analyzer</h1>", unsafe_allow_html=True)
     
     if authenticate_user():
         st.markdown("<h3><span class='emoji'>👚</span> Step 1: Select Clothing Category</h3>", unsafe_allow_html=True)
