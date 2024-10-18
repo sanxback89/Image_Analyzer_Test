@@ -17,32 +17,32 @@ import numpy as np
 import time
 import colorsys
 
-# OpenAI API 키 설정 (Streamlit Cloud의 secrets에서 가져옴)
+# OpenAI API key setup (fetched from Streamlit Cloud secrets)
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# 프로그레스 바 및 상태 메시지를 위한 전역 변수
+# Global variables for progress bar and status message
 progress_bar = None
 status_text = None
 
-# 사용자 인증 및 사용량 추적
+# User authentication and usage tracking
 def authenticate_user():
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
     
     if not st.session_state.authenticated:
-        email = st.text_input("이메일 주소를 입력하세요")
-        if st.button("인증"):
+        email = st.text_input("Enter Your Email Address")
+        if st.button("Authenticate"):
             if email.endswith("@yakjin.com"):
                 st.session_state.authenticated = True
                 st.session_state.email = email
-                st.success("인증되었습니다.")
+                st.success("Authentication Successful.")
                 return True
             else:
-                st.error("허용되지 않은 이메일 주소입니다. @yakjin.com 도메인의 이메일만 사용 가능합니다.")
+                st.error("Unauthorized email address. Only @yakjin.com domain emails are allowed.")
                 return False
     return st.session_state.authenticated
 
-# 분석 항목 정의 (수정됨)
+# Analysis options definition (modified)
 analysis_options = {
     "Top": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Oversized"],
@@ -83,16 +83,16 @@ analysis_options = {
     }
 }
 
-# 개별 이미지 분석 함수 (캐싱 적용)
+# Individual image analysis function (with caching)
 @st.cache_data
 def analyze_single_image(image, category, options):
     base64_image = encode_image(image)
     
-    prompt = f"이미지에 있는 {category} 의류 아이템을 분석하고 다음 측면에 대한 정보를 제공해주세요. 각 옵션에 대해 가장 적합한 하나의 선택지만 선택해주세요:\n\n"
+    prompt = f"Analyze the {category} clothing item in the image and provide information on the following aspects. Choose only the most appropriate option for each:\n\n"
     for option in options:
         prompt += f"{option}: {', '.join(analysis_options[category][option])}\n"
     
-    prompt += "\n결과를 선택된 측면을 키로 하고 감지된 옵션을 값으로 하는 JSON 객체로 제공해주세요. 각 키에 대해 하나의 값만 선택해야 합니다."
+    prompt += "\nProvide the result as a JSON object with the selected aspects as keys and the detected options as values. Choose only one value for each key."
 
     try:
         response = client.chat.completions.create(
@@ -112,37 +112,37 @@ def analyze_single_image(image, category, options):
         result = response.choices[0].message.content.strip()
         processed_result = preprocess_response(result)
         
-        # JSON 파싱 시도
+        # Attempt JSON parsing
         try:
             return json.loads(processed_result)
         except json.JSONDecodeError:
-            st.error(f"JSON 파싱 오류: {processed_result}")
+            st.error(f"JSON Parsing Error: {processed_result}")
             return {}
     except Exception as e:
-        st.error(f"이미지 분석 중 오류 발생: {e}")
+        st.error(f"Error Occurred During Image Analysis: {e}")
         return {}
 
-# 이미지 인코딩 함수
+# Image encoding function
 def encode_image(image):
     if isinstance(image, Image.Image):
-        # PIL Image 객체인 경우
+        # If it's a PIL Image object
         buffered = io.BytesIO()
         image.save(buffered, format="PNG")
         return base64.b64encode(buffered.getvalue()).decode('utf-8')
     elif hasattr(image, 'getvalue'):
-        # BytesIO 또는 파일 객체인 경우
+        # If it's a BytesIO or file object
         return base64.b64encode(image.getvalue()).decode('utf-8')
     else:
-        raise ValueError("Unsupported image type")
+        raise ValueError("Unsupported Image Type")
 
-# 응답 전처리 함수
+# Response preprocessing function
 def preprocess_response(response):
     json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
     if json_match:
         return json_match.group(1)
     return response
 
-# 엑셀에서 이미지 추출 함수
+# Function to extract images from Excel
 def extract_images_from_excel(uploaded_file):
     wb = openpyxl.load_workbook(io.BytesIO(uploaded_file.getvalue()))
     sheet = wb.active
@@ -157,12 +157,12 @@ def extract_images_from_excel(uploaded_file):
                     images.append(image)
             except Exception as e:
                 if "I/O operation on closed file" not in str(e):
-                    st.warning(f"셀 {cell.coordinate}에서 이미지를 추출하는 중 오류가 발생했습니다: {str(e)}")
+                    st.warning(f"Error Extracting Image from Cell {cell.coordinate}: {str(e)}")
                 continue
     
     return images
 
-# ZIP 파일 처리 함수
+# ZIP file processing function
 def process_zip_file(uploaded_file):
     with zipfile.ZipFile(io.BytesIO(uploaded_file.getvalue()), 'r') as zip_ref:
         for file_name in zip_ref.namelist():
@@ -170,7 +170,7 @@ def process_zip_file(uploaded_file):
                 with zip_ref.open(file_name) as file:
                     yield file_name, file.read()
 
-# 이미지 처리 
+# Image processing
 def process_images(images):
     processed_images = []
     progress_bar = st.progress(0)
@@ -180,16 +180,16 @@ def process_images(images):
         processed_img = enhance_image(img)
         processed_images.append(processed_img)
         
-        # 진행 상황 업데이트
+        # Update progress
         progress = (i + 1) / len(images)
         progress_bar.progress(progress)
-        status_text.text(f"이미지 처리 중: {i+1}/{len(images)}")
+        status_text.text(f"Processing Images: {i+1}/{len(images)}")
     
     progress_bar.empty()
     status_text.empty()
     return processed_images
 
-# 이미지 향상 함수
+# Image enhancement function
 def enhance_image(image, scale_factor=2):
     cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     height, width = cv_image.shape[:2]
@@ -199,14 +199,14 @@ def enhance_image(image, scale_factor=2):
     denoised = cv2.fastNlMeansDenoisingColored(sharpened, None, 10, 10, 7, 21)
     return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
 
-# 도넛 차 생성 함수 수정
+# Modified donut chart creation function
 def create_donut_chart(data, title):
     labels = list(data.keys())
     values = list(data.values())
     
     if title.lower() == 'color':
         colors = [get_color(label) for label in labels]
-        # 흰색을 아주 연한 회색으로 변경
+        # Change white to very light gray
         colors = ['#F0F0F0' if color == '#FFFFFF' else color for color in colors]
     else:
         colors = generate_colors(len(labels))
@@ -236,25 +236,25 @@ def create_donut_chart(data, title):
         legend=dict(
             orientation='h',
             yanchor='bottom',
-            y=-0.2,
+            y=-0.3,
             xanchor='center',
             x=0.5,
-            font=dict(size=13),
+            font=dict(size=15),
             itemsizing='constant',
             itemwidth=30
         ),
         width=500,
         height=450,
-        margin=dict(t=80, b=80, l=20, r=20),  # 상단 마진을 늘림
+        margin=dict(t=80, b=80, l=20, r=20),  # Increased top margin
         annotations=[
             dict(
                 text=f'<b>{title}</b>',
-                x=0.5,  # x 위치를 중앙으로 설정
-                y=1.12,  # y 위치를 그래프 위로 설정
+                x=0.5,  # Set x position to center
+                y=1.15,  # Set y position above the chart
                 xref='paper',
                 yref='paper',
                 showarrow=False,
-                font=dict(size=24, color='black'),  # 타이틀 색상을 검정색으로 변경
+                font=dict(size=28, color='black'),  # Changed title color to black
                 align='center'
             )
         ]
@@ -262,7 +262,7 @@ def create_donut_chart(data, title):
     
     return fig
 
-# 색상 매핑 함수 수정
+# Modified color mapping function
 def get_color(label):
     color_map = {
         'Red': '#FF0000', 'Blue': '#0000FF', 'Green': '#00FF00',
@@ -272,7 +272,7 @@ def get_color(label):
     }
     return color_map.get(label, '#000000')
 
-# 색상 생성 함수
+# Color generation function
 def generate_colors(n):
     colors = []
     for _ in range(n):
@@ -284,7 +284,7 @@ def generate_colors(n):
         colors.append(hex_color)
     return colors
 
-# 메인 앱 로직 수정 (이미지 리스트 부분)
+# Modified main app logic (image list part)
 def main():
     st.set_page_config(layout="centered")
     
@@ -292,54 +292,62 @@ def main():
     <style>
     .emoji-title { font-size: 2.4em; }
     .emoji { font-size: 0.8em; }
+    .results-container { display: flex; flex-wrap: wrap; justify-content: space-between; }
+    .chart-container { width: 48%; margin-bottom: 20px; }
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown("<h1 class='emoji-title'>패션 이미지 분석기</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='emoji-title'>📊 Fashion Image Analyzer</h1>", unsafe_allow_html=True)
     
     if authenticate_user():
-        st.markdown("<h3><span class='emoji'>👚</span> 1단계: 의상 복종 선택</h3>", unsafe_allow_html=True)
+        st.markdown("<h3><span class='emoji'>👚</span> Step 1: Select Clothing Category</h3>", unsafe_allow_html=True)
         selected_category = st.selectbox(
-            "의상 복종을 선택하세요",
+            "Choose a Clothing Category",
             options=list(analysis_options.keys())
         )
         
-        st.markdown("<h3><span class='emoji'>🔍</span> 2단계: 분석 항목 선택</h3>", unsafe_allow_html=True)
+        st.markdown("<h3><span class='emoji'>🔍</span> Step 2: Select Analysis Items</h3>", unsafe_allow_html=True)
         selected_options = st.multiselect(
-            label="분석할 항목 선택",
+            label="Choose Analysis Items",
             options=list(analysis_options[selected_category].keys()),
             key="analysis_options"
         )
         
-        st.markdown("<h3><span class='emoji'>📁</span> 3단계: 파일 업로드</h3>", unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("파일 선택", type=["xlsx", "xls", "png", "jpg", "jpeg", "zip"])
+        st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload File</h3>", unsafe_allow_html=True)
+        uploaded_file = st.file_uploader("Choose File", type=["xlsx", "xls", "png", "jpg", "jpeg", "zip"])
         
         if uploaded_file is not None:
-            st.markdown("<h3><span class='emoji'>🖼️</span> 4단계: 이미지 처리</h3>", unsafe_allow_html=True)
+            st.markdown("<h3><span class='emoji'>🖼️</span> Step 4: Image Processing</h3>", unsafe_allow_html=True)
             
             images = []
             if uploaded_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
                 try:
                     images = extract_images_from_excel(uploaded_file)
                     if images:
-                        images = images[1:]  # 첫 번째 이미지(로고) 제외
+                        images = images[1:]  # Exclude the first image (logo)
                 except Exception as e:
-                    st.error(f"엑셀 파일에서 이미지를 추출하는 중 오류가 발생했습니다: {str(e)}")
+                    st.error(f"Error Occurred While Extracting Images from Excel File: {str(e)}")
             elif uploaded_file.type.startswith('image/'):
                 images = [Image.open(uploaded_file)]
             elif uploaded_file.type == 'application/zip':
                 images = [Image.open(io.BytesIO(img_data)) for _, img_data in process_zip_file(uploaded_file)]
             
             if images:
-                with st.spinner('이미지 처리 중...'):
+                with st.spinner('Processing Images...'):
                     processed_images = process_images(images)
                 
-                st.success(f"{len(processed_images)}개의 이미지가 처리되었습니다.")
+                st.success(f"{len(processed_images)} Images Processed Successfully.")
                 
-                if st.button("🚀 5단계: 분석 시작", key="start_analysis"):
+                if st.button("🚀 Step 5: Start Analysis", key="start_analysis"):
                     if not selected_options:
-                        st.markdown("<p><span class='emoji'>⚠️</span> 분석할 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
+                        st.markdown("<p><span class='emoji'>⚠️</span> Please Select at Least One Analysis Item.</p>", unsafe_allow_html=True)
                     else:
+                        # 분석 결과 표시 부분을 전체 화면으로 전환
+                        st.markdown("<hr>", unsafe_allow_html=True)
+                        st.markdown("<h2 style='text-align: center;'>Analysis Results</h2>", unsafe_allow_html=True)
+                        st.markdown("<div class='results-container'>", unsafe_allow_html=True)
+                        
+                        # 분석 로직 (기존 코드 유지)
                         progress_bar = st.progress(0)
                         status_text = st.empty()
                         
@@ -348,53 +356,58 @@ def main():
                         
                         for i, image in enumerate(processed_images):
                             result = analyze_single_image(image, selected_category, selected_options)
-                            if result and isinstance(result, dict):  # 결과가 존재하고 딕셔너리인지 확인
+                            if result and isinstance(result, dict):
                                 for option, detected in result.items():
-                                    if option in selected_options:  # 선택된 옵션에 대해서만 처리
+                                    if option in selected_options:
                                         aggregated_results[option][detected] += 1
                                         image_categories[option][detected].append(image)
                             else:
-                                st.warning(f"이미지 {i+1}의 분석 결과가 유효하지 않습니다.")
+                                st.warning(f"Invalid Analysis Result for Image {i+1}.")
                             
-                            # 진행 상황 업데이트
                             progress = (i + 1) / len(processed_images)
                             progress_bar.progress(progress)
-                            status_text.text(f"이미지 분석 중: {i+1}/{len(processed_images)}")
+                            status_text.text(f"Analyzing Images: {i+1}/{len(processed_images)}")
                         
                         progress_bar.empty()
                         status_text.empty()
                         
-                        st.markdown("<h3 style='text-align: center;'><span class='emoji'>📊</span> 분석 결과</h3>", unsafe_allow_html=True)
-                        
-                        for option, results in aggregated_results.items():
+                        # 결과 표시 (2열 레이아웃)
+                        for i, (option, results) in enumerate(aggregated_results.items()):
                             if results:
+                                st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
                                 fig = create_donut_chart(results, option)
                                 st.plotly_chart(fig, use_container_width=True)
                                 
-                                # 세부 결과를 토글 형태로 표시
-                                with st.expander(f"{option}"):
+                                with st.expander(f"{option} Details"):
                                     for value, count in results.items():
                                         st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
                                         if option in image_categories and value in image_categories[option]:
                                             images = image_categories[option][value]
                                             cols = st.columns(5)
-                                            for i, img in enumerate(images):
-                                                with cols[i % 5]:
+                                            for j, img in enumerate(images):
+                                                with cols[j % 5]:
                                                     st.image(img, use_column_width=True)
-                                                if (i + 1) % 5 == 0:
+                                                if (j + 1) % 5 == 0:
                                                     st.write("")
                                         else:
-                                            st.write("해당하는 이미지가 없습니다.")
+                                            st.write("No Matching Images Found.")
                                         st.write("---")
+                                st.markdown("</div>", unsafe_allow_html=True)
                             else:
-                                st.write(f"{option}에 대한 데이터가 없습니다.")
+                                st.write(f"No Data Available for {option}.")
+                            
+                            # 2개의 차트마다 새 줄 시작
+                            if (i + 1) % 2 == 0:
+                                st.markdown("</div><div class='results-container'>", unsafe_allow_html=True)
+                        
+                        st.markdown("</div>", unsafe_allow_html=True)
             else:
-                st.markdown("<p><span class='emoji'>⚠️</span> 업로드된 파일에서 이미지를 찾을 수 없습니다.</p>", unsafe_allow_html=True)
+                st.markdown("<p><span class='emoji'>⚠️</span> No Images Found in the Uploaded File.</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
 
-# Streamlit 테마 설정을 위한 CSS
+# CSS for Streamlit theme settings
 st.markdown("""
 <style>
     .stMultiSelect [data-baseweb="tag"] {
@@ -422,8 +435,8 @@ st.markdown("""
         background-color: transparent !important;
     }
     .stExpander > div:first-child > div:first-child > p {
-        font-size: 25px !important;  /* 21px에서 20% 증가 */
-        font-weight: bold;  /* 이미 bold로 설정되어 있지만, 확실히 하기 위해 다시 명시 */
+        font-size: 25px !important;
+        font-weight: bold;
     }
     .stButton > button {
         width: 100%;
