@@ -254,7 +254,7 @@ def create_donut_chart(data, title):
                 xref='paper',
                 yref='paper',
                 showarrow=False,
-                font=dict(size=28, color='black'),  # Changed title color to black
+                font=dict(size=32, color='black'),  # Changed title color to black
                 align='center'
             )
         ]
@@ -342,11 +342,6 @@ def main():
                     if not selected_options:
                         st.markdown("<p><span class='emoji'>⚠️</span> Please Select at Least One Analysis Item.</p>", unsafe_allow_html=True)
                     else:
-                        # 분석 결과 표시 부분을 전체 화면으로 전환
-                        st.markdown("<hr>", unsafe_allow_html=True)
-                        st.markdown("<h2 style='text-align: center;'>Analysis Results</h2>", unsafe_allow_html=True)
-                        st.markdown("<div class='results-container'>", unsafe_allow_html=True)
-                        
                         # 분석 로직 (기존 코드 유지)
                         progress_bar = st.progress(0)
                         status_text = st.empty()
@@ -370,6 +365,11 @@ def main():
                         
                         progress_bar.empty()
                         status_text.empty()
+                        
+                        # 분석 결과 표시 부분을 전체 화면으로 전환
+                        st.markdown("<hr>", unsafe_allow_html=True)
+                        st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
+                        st.markdown("<div class='results-container'>", unsafe_allow_html=True)
                         
                         # 결과 표시 (2열 레이아웃)
                         for i, (option, results) in enumerate(aggregated_results.items()):
