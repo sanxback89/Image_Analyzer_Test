@@ -54,7 +54,33 @@ analysis_options = {
         "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué", "Buttons", "Zippers", "Pockets"]
     },
-    # ... (다른 카테고리들)
+    "Bottom": {
+        "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Skinny", "Straight", "Bootcut", "Flare", "Wide Leg"],
+        "Length": ["Short", "Knee Length", "Ankle Length", "Full Length"],
+        "Rise": ["Low Rise", "Mid Rise", "High Rise"],
+        "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
+        "Pattern": ["Solid", "Striped", "Polka Dot", "Plaid", "Checkered"],
+        "Material": ["Denim", "Cotton", "Polyester", "Wool", "Leather"],
+        "Details": ["Distressed", "Ripped", "Embroidery", "Pockets", "Belt Loops", "Pleats"]
+    },
+    "Dress": {
+        "Fit": ["Bodycon", "A-Line", "Shift", "Wrap", "Sheath", "Empire Waist"],
+        "Neckline": ["V-Neck", "Scoop Neck", "Halter Neck", "Off-Shoulder", "Sweetheart"],
+        "Sleeves": ["Sleeveless", "Short Sleeves", "Long Sleeves", "Cap Sleeves", "Puff Sleeves"],
+        "Length": ["Mini", "Midi", "Maxi"],
+        "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
+        "Pattern": ["Solid", "Floral", "Polka Dot", "Striped", "Animal Print"],
+        "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
+        "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Belt", "Pockets"]
+    },
+    "Outerwear": {
+        "Type": ["Jacket", "Coat", "Blazer", "Cardigan", "Vest"],
+        "Fit": ["Slim Fit", "Regular Fit", "Oversized"],
+        "Length": ["Cropped", "Hip Length", "Knee Length", "Long"],
+        "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
+        "Material": ["Leather", "Denim", "Wool", "Cotton", "Polyester"],
+        "Details": ["Pockets", "Buttons", "Zippers", "Hood", "Fur Trim", "Quilted"]
+    }
 }
 
 # 개별 이미지 분석 함수 (캐싱 적용)
@@ -90,8 +116,17 @@ def analyze_single_image(image, category, options):
         return ""
 
 # 이미지 인코딩 함수
-def encode_image(image_file):
-    return base64.b64encode(image_file.getvalue()).decode('utf-8')
+def encode_image(image):
+    if isinstance(image, Image.Image):
+        # PIL Image 객체인 경우
+        buffered = io.BytesIO()
+        image.save(buffered, format="PNG")
+        return base64.b64encode(buffered.getvalue()).decode('utf-8')
+    elif hasattr(image, 'getvalue'):
+        # BytesIO 또는 파일 객체인 경우
+        return base64.b64encode(image.getvalue()).decode('utf-8')
+    else:
+        raise ValueError("Unsupported image type")
 
 # 응답 전처리 함수
 def preprocess_response(response):
@@ -128,7 +163,7 @@ def process_zip_file(uploaded_file):
                 with zip_ref.open(file_name) as file:
                     yield file_name, file.read()
 
-# 이미지 처리 함수
+# 이미지 처리 ���
 def process_images(images):
     processed_images = []
     progress_bar = st.progress(0)
@@ -224,8 +259,6 @@ def generate_colors(n):
 
 # 메인 앱 로직
 def main():
-    global progress_bar, status_text
-    
     st.set_page_config(layout="centered")
     
     st.markdown("""
@@ -238,18 +271,24 @@ def main():
     st.markdown("<h1 class='emoji-title'>패션 이미지 분석기</h1>", unsafe_allow_html=True)
     
     if authenticate_user():
-        progress_bar = st.empty()
-        status_text = st.empty()
+        st.markdown("<h3><span class='emoji'>👚</span> 1단계: 의상 복종 선택</h3>", unsafe_allow_html=True)
+        selected_category = st.selectbox(
+            "의상 복종을 선택하세요",
+            options=list(analysis_options.keys())
+        )
         
-        step1 = st.empty()
-        step1.markdown("<h3><span class='emoji'>📁</span> 1단계: 파일 업로드</h3>", unsafe_allow_html=True)
+        st.markdown("<h3><span class='emoji'>🔍</span> 2단계: 분석 항목 선택</h3>", unsafe_allow_html=True)
+        selected_options = st.multiselect(
+            label="분석할 항목 선택",
+            options=list(analysis_options[selected_category].keys()),
+            key="analysis_options"
+        )
+        
+        st.markdown("<h3><span class='emoji'>📁</span> 3단계: 파일 업로드</h3>", unsafe_allow_html=True)
         uploaded_file = st.file_uploader("파일 선택", type=["xlsx", "xls", "png", "jpg", "jpeg", "zip"])
         
         if uploaded_file is not None:
-            step1.empty()
-            
-            step2 = st.empty()
-            step2.markdown("<h3><span class='emoji'>🖼️</span> 2단계: 이미지 처리</h3>", unsafe_allow_html=True)
+            st.markdown("<h3><span class='emoji'>🖼️</span> 4단계: 이미지 처리</h3>", unsafe_allow_html=True)
             
             images = []
             if uploaded_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
@@ -265,29 +304,12 @@ def main():
                 images = [Image.open(io.BytesIO(img_data)) for _, img_data in process_zip_file(uploaded_file)]
             
             if images:
-                st.markdown("<h3><span class='emoji'>🖼️</span> 2단계: 이미지 처리</h3>", unsafe_allow_html=True)
-                
                 with st.spinner('이미지 처리 중...'):
                     processed_images = process_images(images)
                 
                 st.success(f"{len(processed_images)}개의 이미지가 처리되었습니다.")
                 
-                st.markdown("<h3><span class='emoji'>👚</span> 3단계: 의상 복종 선택</h3>", unsafe_allow_html=True)
-                
-                selected_category = st.selectbox(
-                    "의상 복종을 선택하세요",
-                    options=list(analysis_options.keys())
-                )
-                
-                st.markdown("<h3><span class='emoji'>🔍</span> 4단계: 분석 항목 선택</h3>", unsafe_allow_html=True)
-                
-                selected_options = st.multiselect(
-                    label="분석할 항목 선택",
-                    options=list(analysis_options[selected_category].keys()),
-                    key="analysis_options"
-                )
-                
-                if st.button("🚀 분석 시작"):
+                if st.button("🚀 5단계: 분석 시작"):
                     if not selected_options:
                         st.markdown("<p><span class='emoji'>⚠️</span> 분석할 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
                     else:
