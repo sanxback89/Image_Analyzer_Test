@@ -325,32 +325,34 @@ def main():
             key="analysis_options"
         )
         
-        st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload File</h3>", unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("Choose File", type=["xlsx", "xls", "png", "jpg", "jpeg", "zip"])
+    st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload File</h3>", unsafe_allow_html=True)
+    uploaded_files = st.file_uploader("Choose File(s)", type=["xlsx", "xls", "png", "jpg", "jpeg", "zip"], accept_multiple_files=True)
+    
+    if uploaded_files:
+        st.markdown("<h3><span class='emoji'>🖼️</span> Step 4: Image Processing</h3>", unsafe_allow_html=True)
         
-        if uploaded_file is not None:
-            st.markdown("<h3><span class='emoji'>🖼️</span> Step 4: Image Processing</h3>", unsafe_allow_html=True)
-            
-            images = []
+        images = []
+        for uploaded_file in uploaded_files:
             if uploaded_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
                 try:
-                    images = extract_images_from_excel(uploaded_file)
-                    if images:
-                        images = images[1:]  # Exclude the first image (logo)
+                    excel_images = extract_images_from_excel(uploaded_file)
+                    if excel_images:
+                        images.extend(excel_images[1:])  # 첫 번째 이미지(로고) 제외
                 except Exception as e:
-                    st.error(f"Error Occurred While Extracting Images from Excel File: {str(e)}")
+                    st.error(f"Excel 파일에서 이미지 추출 중 오류 발생: {str(e)}")
             elif uploaded_file.type.startswith('image/'):
-                images = [Image.open(uploaded_file)]
+                images.append(Image.open(uploaded_file))
             elif uploaded_file.type == 'application/zip':
-                images = [Image.open(io.BytesIO(img_data)) for _, img_data in process_zip_file(uploaded_file)]
+                zip_images = [Image.open(io.BytesIO(img_data)) for _, img_data in process_zip_file(uploaded_file)]
+                images.extend(zip_images)
+        
+        if images:
+            with st.spinner('이미지 처리 중...'):
+                processed_images = process_images(images)
             
-            if images:
-                with st.spinner('Processing Images...'):
-                    processed_images = process_images(images)
-                
-                st.success(f"{len(processed_images)} Images Processed Successfully.")
-                
-                if st.button("🚀 Step 5: Start Analysis", key="start_analysis"):
+            st.success(f"{len(processed_images)}개의 이미지가 성공적으로 처리되었습니다.")
+            
+            if st.button("🚀 Step 5: Start analysing", key="start_analysis"):
                     if not selected_options:
                         st.markdown("<p><span class='emoji'>⚠️</span> Please Select at Least One Analysis Item.</p>", unsafe_allow_html=True)
                     else:
