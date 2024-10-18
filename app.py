@@ -191,17 +191,22 @@ def create_donut_chart(data, title):
     fig.update_layout(
         title=dict(
             text=f'<b>{title}</b>',
-            font=dict(size=24),
+            font=dict(size=31),  # 텍스트 크기 130% 증가
             x=0.5,
             y=0.95
         ),
         legend=dict(
             orientation='h',
             yanchor='top',
-            y=-0.1,
+            y=-0.05,  # 범례를 그래프에 더 가깝게 이동
             xanchor='center',
-            x=0.5
-        )
+            x=0.5,
+            font=dict(size=12),
+            itemsizing='constant'
+        ),
+        width=800,  # 그래프 너비 조정
+        height=600,  # 그래프 높이 조정
+        margin=dict(t=100, b=100, l=20, r=20)  # 마진 조정
     )
     
     return fig
@@ -232,7 +237,7 @@ def generate_colors(n):
 def main():
     global progress_bar, status_text
     
-    st.set_page_config(layout="wide")
+    st.set_page_config(layout="centered")  # 레이아웃을 중앙 정렬로 변경
     
     st.markdown("""
     <style>
@@ -375,6 +380,26 @@ st.markdown("""
     .stSelectbox label, .stMultiSelect label, .stFileUploader label {
         font-size: 16px !important;
         color: rgba(49, 51, 63, 0.6) !important;
+    }
+    .stExpander {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .stExpander > div:first-child {
+        border-radius: 0 !important;
+        background-color: transparent !important;
+    }
+    .stButton > button {
+        width: 100%;
+        text-align: left;
+        padding: 0.5rem;
+        background-color: #f0f2f6;
+        border: none;
+        border-radius: 0.3rem;
+        margin-bottom: 0.5rem;
+    }
+    .stButton > button:hover {
+        background-color: #e0e2e6;
     }
 </style>
 """, unsafe_allow_html=True)
