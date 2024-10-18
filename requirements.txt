@@ -1,8 +1,6 @@
 streamlit
 openai
-pillow
-plotly
-streamlit-plotly-events
+Pillow
 openpyxl
 openpyxl-image-loader
 opencv-python-headless
