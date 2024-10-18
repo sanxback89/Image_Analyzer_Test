@@ -83,8 +83,9 @@ analysis_options = {
     }
 }
 
-# 이미지 분석 함수
-def analyze_image(image, category, options):
+# 개별 이미지 분석 함수 (캐싱 적용)
+@st.cache_data
+def analyze_single_image(image, category, options):
     base64_image = encode_image(image)
     
     prompt = f"이미지에 있는 {category} 의류 아이템을 분석하고 다음 측면에 대한 정보를 제공해주세요. 각 옵션에 대해 가장 적합한 하나의 선택지만 선택해주세요:\n\n"
@@ -155,7 +156,22 @@ def process_zip_file(uploaded_file):
 
 # 이미지 처리 함수
 def process_images(images):
-    return [enhance_image(img) for img in images]
+    processed_images = []
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    for i, img in enumerate(images):
+        processed_img = enhance_image(img)
+        processed_images.append(processed_img)
+        
+        # 진행 상황 업데이트
+        progress = (i + 1) / len(images)
+        progress_bar.progress(progress)
+        status_text.text(f"이미지 처리 중: {i+1}/{len(images)}")
+    
+    progress_bar.empty()
+    status_text.empty()
+    return processed_images
 
 # 이미지 향상 함수
 def enhance_image(image, scale_factor=2):
@@ -191,22 +207,21 @@ def create_donut_chart(data, title):
     fig.update_layout(
         title=dict(
             text=f'<b>{title}</b>',
-            font=dict(size=31),  # 텍스트 크기 130% 증가
+            font=dict(size=31),  # 텍스트 크기 조정
             x=0.5,
             y=0.95
         ),
         legend=dict(
             orientation='h',
             yanchor='top',
-            y=-0.05,  # 범례를 그래프에 더 가깝게 이동
+            y=-0.1,  # 범례 위치 조정
             xanchor='center',
-            x=0.5,
-            font=dict(size=12),
-            itemsizing='constant'
+            x=0.2,
+            font=dict(size=12)
         ),
-        width=800,  # 그래프 너비 조정
-        height=600,  # 그래프 높이 조정
-        margin=dict(t=100, b=100, l=20, r=20)  # 마진 조정
+        width=600,  # 그래프 너비 조정
+        height=450,  # 그래프 높이 조정
+        margin=dict(t=80, b=80, l=20, r=20)  # 마진 조정
     )
     
     return fig
@@ -276,9 +291,12 @@ def main():
                 images = [Image.open(io.BytesIO(img_data)) for _, img_data in process_zip_file(uploaded_file)]
             
             if images:
-                st.markdown(f"<p><span class='emoji'>✅</span> {len(images)}개의 이미지가 처리되었습니다.</p>", unsafe_allow_html=True)
+                st.markdown("<h3><span class='emoji'>🖼️</span> 2단계: 이미지 처리</h3>", unsafe_allow_html=True)
                 
-                processed_images = process_images(images)
+                with st.spinner('이미지 처리 중...'):
+                    processed_images = process_images(images)
+                
+                st.success(f"{len(processed_images)}개의 이미지가 처리되었습니다.")
                 
                 st.markdown("<h3><span class='emoji'>👚</span> 3단계: 의상 복종 선택</h3>", unsafe_allow_html=True)
                 
@@ -299,65 +317,57 @@ def main():
                     if not selected_options:
                         st.markdown("<p><span class='emoji'>⚠️</span> 분석할 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
                     else:
-                        step2.empty()
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
                         
                         aggregated_results = {option: Counter() for option in selected_options}
                         image_categories = defaultdict(lambda: defaultdict(list))
                         
-                        progress_bar = st.progress(0)
-                        status_text = st.empty()
-                        
                         for i, image in enumerate(processed_images):
+                            result = analyze_single_image(image, selected_category, selected_options)
+                            if result:
+                                for option, detected in result.items():
+                                    aggregated_results[option][detected] += 1
+                                    image_categories[option][detected].append(image)
+                            
+                            # 진행 상황 업데이트
                             progress = (i + 1) / len(processed_images)
                             progress_bar.progress(progress)
                             status_text.text(f"이미지 분석 중: {i+1}/{len(processed_images)}")
-                            
-                            img_byte_arr = io.BytesIO()
-                            image.save(img_byte_arr, format='PNG')
-                            img_byte_arr = img_byte_arr.getvalue()
-                            
-                            try:
-                                result = analyze_image(io.BytesIO(img_byte_arr), selected_category, selected_options)
-                                if result:
-                                    analysis_results = json.loads(result)
-                                    for option, detected in analysis_results.items():
-                                        aggregated_results[option][detected] += 1
-                                        image_categories[option][detected].append(image)
-                            except json.JSONDecodeError:
-                                st.error(f"이미지 {i+1} 처리 중 오류 발생: 분석하고자 하는 카테고리 항목이 일치하지 않아 이미지 정보를 불러올 수 없습니다.")
-                                continue
-                            except Exception as e:
-                                st.error(f"이미지 {i+1} 처리 중 오류 발생: {str(e)}")
-                                continue
                         
                         progress_bar.empty()
                         status_text.empty()
                         
-                        st.markdown("<h3 style='text-align: center;'><span class='emoji'>📊</span> 분석 결과</h3>", unsafe_allow_html=True)
-                        
-                        for option, results in aggregated_results.items():
-                            if results:
-                                fig = create_donut_chart(results, option)
-                                st.plotly_chart(fig, use_container_width=True)
-                                
-                                # 토글 형태로 이미지 표시
-                                with st.expander(f"{option} 세부 결과"):
-                                    for value, count in results.items():
-                                        if st.button(f"{value} (Count: {count})", key=f"{option}_{value}"):
-                                            if option in image_categories and value in image_categories[option]:
-                                                images = image_categories[option][value]
-                                                cols = st.columns(5)
-                                                for i, img in enumerate(images):
-                                                    with cols[i % 5]:
-                                                        st.image(img, use_column_width=True)
-                                                    if (i + 1) % 5 == 0:
-                                                        st.write("")  # 새 줄 추가
-                                            else:
-                                                st.write("해당하는 이미지가 없습니다.")
-                            else:
-                                st.write(f"{option}에 대한 데이터가 없습니다.")
+                        display_results(aggregated_results, image_categories)
             else:
                 st.markdown("<p><span class='emoji'>⚠️</span> 업로드된 파일에서 이미지를 찾을 수 없습니다.</p>", unsafe_allow_html=True)
+
+def display_results(aggregated_results, image_categories):
+    st.markdown("<h3 style='text-align: center;'><span class='emoji'>📊</span> 분석 결과</h3>", unsafe_allow_html=True)
+    
+    for option, results in aggregated_results.items():
+        if results:
+            fig = create_donut_chart(results, option)
+            st.plotly_chart(fig, use_container_width=True)
+            
+            st.markdown(f"<h4>{option}</h4>", unsafe_allow_html=True)
+            for value, count in results.items():
+                with st.expander(f"{value} (Count: {count})"):
+                    if option in image_categories and value in image_categories[option]:
+                        images = image_categories[option][value]
+                        display_images(images)
+                    else:
+                        st.write("해당하는 이미지가 없습니다.")
+        else:
+            st.write(f"{option}에 대한 데이터가 없습니다.")
+
+def display_images(images):
+    cols = st.columns(3)  # 한 행에 3개의 이미지 표시
+    for i, img in enumerate(images):
+        with cols[i % 3]:
+            st.image(img, use_column_width=True)
+            if st.button(f"전체 크기로 보기 {i+1}", key=f"full_size_{i}"):
+                st.image(img, use_column_width=False)
 
 if __name__ == "__main__":
     main()
@@ -382,24 +392,20 @@ st.markdown("""
         color: rgba(49, 51, 63, 0.6) !important;
     }
     .stExpander {
-        border: none !important;
-        box-shadow: none !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 4px !important;
+        margin-bottom: 10px !important;
     }
     .stExpander > div:first-child {
-        border-radius: 0 !important;
-        background-color: transparent !important;
+        border-radius: 4px !important;
+        background-color: #f9f9f9 !important;
+    }
+    .stExpander > div:first-child > div:first-child {
+        font-weight: bold !important;
     }
     .stButton > button {
         width: 100%;
-        text-align: left;
-        padding: 0.5rem;
-        background-color: #f0f2f6;
-        border: none;
-        border-radius: 0.3rem;
-        margin-bottom: 0.5rem;
-    }
-    .stButton > button:hover {
-        background-color: #e0e2e6;
+        margin-top: 5px;
     }
 </style>
 """, unsafe_allow_html=True)
