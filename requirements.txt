@@ -1,6 +1,8 @@
 streamlit
 openai
 Pillow
+plotly
+pandas
 openpyxl
 openpyxl-image-loader
 opencv-python-headless
