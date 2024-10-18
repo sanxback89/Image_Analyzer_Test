@@ -306,7 +306,7 @@ def main():
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown("<h1 class='emoji-title'> Yakjin Fashion Image Analyzer</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='emoji-title'> YAKJIN Fashion Image Analyzer</h1>", unsafe_allow_html=True)
     
     if authenticate_user():
         st.markdown("<h3><span class='emoji'>👚</span> Step 1: Select Clothing Category</h3>", unsafe_allow_html=True)
