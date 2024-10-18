@@ -209,13 +209,23 @@ def create_donut_chart(data, title):
     else:
         colors = generate_colors(len(labels))
     
+    # 텍스트 색상을 결정하는 함수
+    def get_text_color(background_color):
+        if background_color == '#000000':  # 배경이 검은색일 경우
+            return '#FFFFFF'  # 흰색 텍스트
+        else:
+            return '#000000'  # 검은색 텍스트
+    
+    # 각 섹션별 텍스트 색상 결정
+    text_colors = [get_text_color(color) for color in colors]
+    
     fig = go.Figure(data=[go.Pie(
         labels=labels,
         values=values,
         hole=.3,
         marker_colors=colors,
         textinfo='percent',
-        textfont=dict(size=14, color='#808080', weight='bold'),  # 그래프 내 텍스트 스타일 통일
+        textfont=dict(size=14, color=text_colors, weight='bold'),
         hoverinfo='label+percent+text',
         text=[f'Count: {v}' for v in values],
         hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
@@ -225,7 +235,7 @@ def create_donut_chart(data, title):
         title=dict(
             text=f'<b>{title}</b>',
             font=dict(size=24),
-            x=0.5,  # 타이틀을 중앙에 위치
+            x=0.2,  # 타이틀을 중앙에 위치
             y=0.95
         ),
         legend=dict(
@@ -236,7 +246,7 @@ def create_donut_chart(data, title):
             x=0.5,
             font=dict(size=13, weight='bold'),  # 범례 텍스트 크기 증가 및 볼드체
             itemsizing='constant',
-            itemwidth=30  # 범례 간격 조정
+            itemwidth=20  # 범례 간격 조정
         ),
         width=500,
         height=450,  # 높이 증가로 마진 확보
@@ -405,8 +415,8 @@ st.markdown("""
         background-color: transparent !important;
     }
     .stExpander > div:first-child > div:first-child > p {
-        font-size: 21px !important;  /* 세부 결과 텍스트 크기 20% 증가 */
-        font-weight: bold;
+        font-size: 25px !important;  /* 21px에서 20% 증가 */
+        font-weight: bold;  /* 이미 bold로 설정되어 있지만, 확실히 하기 위해 다시 명시 */
     }
     .stButton > button {
         width: 100%;
