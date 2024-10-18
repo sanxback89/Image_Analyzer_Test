@@ -250,7 +250,7 @@ def create_donut_chart(data, title):
             dict(
                 text=f'<b>{title}</b>',
                 x=0.5,  # Set x position to center
-                y=1.15,  # Set y position above the chart
+                y=1.2,  # Set y position above the chart
                 xref='paper',
                 yref='paper',
                 showarrow=False,
@@ -293,11 +293,11 @@ def main():
     .emoji-title { font-size: 2.4em; }
     .emoji { font-size: 0.8em; }
     .results-container { display: flex; flex-wrap: wrap; justify-content: space-between; }
-    .chart-container { width: 48%; margin-bottom: 20px; }
+    .chart-container { width: 40%; margin-bottom: 10px; }
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown("<h1 class='emoji-title'>📊 Fashion Image Analyzer</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='emoji-title'> Fashion Image Analyzer</h1>", unsafe_allow_html=True)
     
     if authenticate_user():
         st.markdown("<h3><span class='emoji'>👚</span> Step 1: Select Clothing Category</h3>", unsafe_allow_html=True)
