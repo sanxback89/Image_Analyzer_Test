@@ -96,7 +96,7 @@ def analyze_single_image(image, category, options):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4-vision-preview",
             messages=[
                 {
                     "role": "user",
@@ -110,10 +110,17 @@ def analyze_single_image(image, category, options):
         )
         
         result = response.choices[0].message.content.strip()
-        return preprocess_response(result)
+        processed_result = preprocess_response(result)
+        
+        # JSON 파싱 시도
+        try:
+            return json.loads(processed_result)
+        except json.JSONDecodeError:
+            st.error(f"JSON 파싱 오류: {processed_result}")
+            return {}
     except Exception as e:
         st.error(f"이미지 분석 중 오류 발생: {e}")
-        return ""
+        return {}
 
 # 이미지 인코딩 함수
 def encode_image(image):
@@ -163,7 +170,7 @@ def process_zip_file(uploaded_file):
                 with zip_ref.open(file_name) as file:
                     yield file_name, file.read()
 
-# 이미지 처리 ���
+# 이미지 처리 
 def process_images(images):
     processed_images = []
     progress_bar = st.progress(0)
@@ -321,10 +328,13 @@ def main():
                         
                         for i, image in enumerate(processed_images):
                             result = analyze_single_image(image, selected_category, selected_options)
-                            if result:
+                            if result and isinstance(result, dict):  # 결과가 존재하고 딕셔너리인지 확인
                                 for option, detected in result.items():
-                                    aggregated_results[option][detected] += 1
-                                    image_categories[option][detected].append(image)
+                                    if option in selected_options:  # 선택된 옵션에 대해서만 처리
+                                        aggregated_results[option][detected] += 1
+                                        image_categories[option][detected].append(image)
+                            else:
+                                st.warning(f"이미지 {i+1}의 분석 결과가 유효하지 않습니다.")
                             
                             # 진행 상황 업데이트
                             progress = (i + 1) / len(processed_images)
