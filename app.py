@@ -16,8 +16,6 @@ import cv2
 import numpy as np
 import time
 import colorsys
-from streamlit_plotly_events import plotly_events
-from urllib.parse import urlencode
 
 # OpenAI API 키 설정 (Streamlit Cloud의 secrets에서 가져옴)
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -170,15 +168,14 @@ def enhance_image(image, scale_factor=2):
     return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
 
 # 도넛 차트 생성 함수 수정
-def create_donut_chart(data, title, used_colors):
+def create_donut_chart(data, title):
     labels = list(data.keys())
     values = list(data.values())
-    total = sum(values)
     
-    colors = generate_colors(len(labels), used_colors, title)
-    used_colors.update(colors)
-    
-    text_colors = ['black' if color != '#000000' else 'white' for color in colors]
+    if title.lower() == 'color':
+        colors = [get_color(label) for label in labels]
+    else:
+        colors = generate_colors(len(labels))
     
     fig = go.Figure(data=[go.Pie(
         labels=labels,
@@ -187,7 +184,6 @@ def create_donut_chart(data, title, used_colors):
         marker_colors=colors,
         textinfo='percent',
         hoverinfo='label+percent+text',
-        textfont=dict(color=text_colors),
         text=[f'Count: {v}' for v in values],
         hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
     )])
@@ -201,55 +197,36 @@ def create_donut_chart(data, title, used_colors):
         ),
         legend=dict(
             orientation='h',
-            yanchor='bottom',
-            y=1.02,
-            xanchor='right',
-            x=1
-        ),
-        annotations=[dict(
-            text=title,
-            font=dict(size=18, weight='bold'),
-            showarrow=False,
-            x=0.5,
-            y=0.5
-        )]
+            yanchor='top',
+            y=-0.1,
+            xanchor='center',
+            x=0.5
+        )
     )
     
-    return fig, used_colors
+    return fig
 
-# 색상 생성 함수 수정
-def generate_colors(n, used_colors, title):
+# 색상 매핑 함수
+def get_color(label):
+    color_map = {
+        'Red': '#FF0000', 'Blue': '#0000FF', 'Green': '#00FF00',
+        'Yellow': '#FFFF00', 'Purple': '#800080', 'Orange': '#FFA500',
+        'Pink': '#FFC0CB', 'Brown': '#A52A2A', 'Black': '#000000',
+        'White': '#E0E0E0', 'Gray': '#808080', 'Multicolor': '#FFFFFF'
+    }
+    return color_map.get(label, '#000000')
+
+# 색상 생성 함수
+def generate_colors(n):
     colors = []
-    if title.lower() == 'color':
-        color_map = {
-            'Red': '#FF0000', 'Blue': '#0000FF', 'Green': '#00FF00',
-            'Yellow': '#FFFF00', 'Purple': '#800080', 'Orange': '#FFA500',
-            'Pink': '#FFC0CB', 'Brown': '#A52A2A', 'Black': '#000000',
-            'White': '#E0E0E0', 'Gray': '#808080', 'Multicolor': '#FFFFFF'
-        }
-        return [color_map.get(label, '#000000') for label in used_colors]
-    
     for _ in range(n):
-        while True:
-            hue = random.random()
-            saturation = 0.5 + random.random() * 0.5
-            lightness = 0.4 + random.random() * 0.2
-            rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
-            hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
-            if hex_color not in used_colors and hex_color not in colors:
-                colors.append(hex_color)
-                break
+        hue = random.random()
+        saturation = 0.5 + random.random() * 0.5
+        lightness = 0.4 + random.random() * 0.2
+        rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
+        hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
+        colors.append(hex_color)
     return colors
-
-# 카테고리별 이미지 표시 함수
-def show_images_for_category(option, value, images):
-    st.write(f"{option}: {value}")
-    cols = st.columns(5)
-    for i, img in enumerate(images):
-        with cols[i % 5]:
-            st.image(img, use_column_width=True)
-        if (i + 1) % 5 == 0:
-            st.write("")  # 새 줄 추가
 
 # 메인 앱 로직
 def main():
@@ -352,57 +329,28 @@ def main():
                         status_text.empty()
                         
                         st.markdown("<h3 style='text-align: center;'><span class='emoji'>📊</span> 분석 결과</h3>", unsafe_allow_html=True)
-                        col1, col2 = st.columns(2)
-                        used_colors = set()
                         
-                        if 'page' not in st.session_state:
-                            st.session_state.page = 'main'
-                        
-                        if st.session_state.page == 'main':
-                            for i, (option, results) in enumerate(aggregated_results.items()):
-                                if results:
-                                    fig, used_colors = create_donut_chart(results, option, used_colors)
-                                    if i % 2 == 0:
-                                        with col1:
-                                            selected_point = plotly_events(fig, click_event=True)
-                                            if selected_point:
-                                                value = selected_point[0]['label']
-                                                st.experimental_set_query_params(category=option, value=value)
-                                                st.session_state.page = 'images'
-                                                st.experimental_rerun()
-                                    else:
-                                        with col2:
-                                            selected_point = plotly_events(fig, click_event=True)
-                                            if selected_point:
-                                                value = selected_point[0]['label']
-                                                st.experimental_set_query_params(category=option, value=value)
-                                                st.session_state.page = 'images'
-                                                st.experimental_rerun()
-                                else:
-                                    st.write(f"{option}에 대한 데이터가 없습니다.")
-                        
-                        elif st.session_state.page == 'images':
-                            # 이미지 페이지 로직
-                            params = st.experimental_get_query_params()
-                            category = params.get('category', [''])[0]
-                            value = params.get('value', [''])[0]
-                            
-                            st.title(f"{category}: {value} 이미지")
-                            
-                            if category in image_categories and value in image_categories[category]:
-                                images = image_categories[category][value]
-                                cols = st.columns(5)
-                                for i, img in enumerate(images):
-                                    with cols[i % 5]:
-                                        st.image(img, use_column_width=True)
-                                    if (i + 1) % 5 == 0:
-                                        st.write("")  # 새 줄 추가
+                        for option, results in aggregated_results.items():
+                            if results:
+                                fig = create_donut_chart(results, option)
+                                st.plotly_chart(fig, use_container_width=True)
+                                
+                                # 토글 형태로 이미지 표시
+                                with st.expander(f"{option} 세부 결과"):
+                                    for value, count in results.items():
+                                        if st.button(f"{value} (Count: {count})", key=f"{option}_{value}"):
+                                            if option in image_categories and value in image_categories[option]:
+                                                images = image_categories[option][value]
+                                                cols = st.columns(5)
+                                                for i, img in enumerate(images):
+                                                    with cols[i % 5]:
+                                                        st.image(img, use_column_width=True)
+                                                    if (i + 1) % 5 == 0:
+                                                        st.write("")  # 새 줄 추가
+                                            else:
+                                                st.write("해당하는 이미지가 없습니다.")
                             else:
-                                st.write("해당하는 이미지가 없습니다.")
-                            
-                            if st.button("분석 페이지로 돌아가기"):
-                                st.session_state.page = 'main'
-                                st.experimental_rerun()
+                                st.write(f"{option}에 대한 데이터가 없습니다.")
             else:
                 st.markdown("<p><span class='emoji'>⚠️</span> 업로드된 파일에서 이미지를 찾을 수 없습니다.</p>", unsafe_allow_html=True)
 
