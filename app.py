@@ -73,8 +73,8 @@ analysis_options = {
     },
     "Dress": {
         "Fit": ["Bodycon", "A-Line", "Shift", "Wrap", "Sheath", "Empire Waist"],
-        "Neckline": ["V-Neck", "Scoop Neck", "Halter Neck", "Off-Shoulder", "Sweetheart"],
-        "Sleeves": ["Sleeveless", "Short Sleeves", "Long Sleeves", "Cap Sleeves", "Puff Sleeves"],
+        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
+        "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Puff Sleeves"],
         "Length": ["Mini", "Midi", "Maxi"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
         "Pattern": ["Solid", "Floral", "Polka Dot", "Striped", "Animal Print"],
