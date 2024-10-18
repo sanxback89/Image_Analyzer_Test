@@ -225,7 +225,7 @@ def create_donut_chart(data, title):
         hole=.3,
         marker_colors=colors,
         textinfo='percent',
-        textfont=dict(size=14, color=text_colors, weight='bold'),
+        textfont=dict(size=14, color=text_colors),
         hoverinfo='label+percent+text',
         text=[f'Count: {v}' for v in values],
         hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
@@ -239,7 +239,7 @@ def create_donut_chart(data, title):
             y=-0.2,
             xanchor='center',
             x=0.5,
-            font=dict(size=13, weight='bold'),
+            font=dict(size=13),
             itemsizing='constant',
             itemwidth=30
         ),
@@ -250,7 +250,7 @@ def create_donut_chart(data, title):
             dict(
                 text=f'<b>{title}</b>',
                 x=0.5,  # x 위치를 중앙으로 설정
-                y=1.05,  # y 위치를 그래프 위로 설정
+                y=1.1,  # y 위치를 그래프 위로 설정
                 xref='paper',
                 yref='paper',
                 showarrow=False,
@@ -295,7 +295,7 @@ def main():
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown("<h1 class='emoji-title'>패션 이미지 분석기</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='emoji-title'>패션 이미지 ���석기</h1>", unsafe_allow_html=True)
     
     if authenticate_user():
         st.markdown("<h3><span class='emoji'>👚</span> 1단계: 의상 복종 선택</h3>", unsafe_allow_html=True)
@@ -397,6 +397,7 @@ if __name__ == "__main__":
 # Streamlit 테마 설정을 위한 CSS
 st.markdown("""
 <style>
+    /* 기존 스타일 유지 */
     .stMultiSelect [data-baseweb="tag"] {
         background-color: #007AFF !important;
     }
@@ -422,18 +423,21 @@ st.markdown("""
         background-color: transparent !important;
     }
     .stExpander > div:first-child > div:first-child > p {
-        font-size: 25px !important;  /* 21px에서 20% 증가 */
-        font-weight: bold;  /* 이미 bold로 설정되어 있지만, 확실히 하기 위해 다시 명시 */
+        font-size: 25px !important;
+        font-weight: bold;
     }
+    
+    /* 버튼 스타일 수정 */
     .stButton > button {
         width: 100%;
-        text-align: left;
+        text-align: center;  /* 왼쪽 정렬에서 중앙 정렬로 변경 */
         padding: 0.5rem;
         background-color: #f0f2f6;
         border: none;
         border-radius: 0.3rem;
         margin-bottom: 0.5rem;
-        font-weight: bold;
+        font-weight: bold;  /* 모든 버튼 텍스트를 볼드체로 */
+        font-size: 16px;  /* 버튼 텍스트 크기 조정 (필요에 따라) */
     }
     .stButton > button:hover {
         background-color: #e0e2e6;
