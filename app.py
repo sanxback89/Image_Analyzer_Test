@@ -24,21 +24,28 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 progress_bar = None
 status_text = None
 
+# 허용된 이메일 리스트
+ALLOWED_EMAILS = [
+    "baekdoo28@gmail.com",
+    "jesssieyun@yakjin.com",
+    "jake@yakjin.com"
+]
+
 # User authentication and usage tracking
 def authenticate_user():
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
     
     if not st.session_state.authenticated:
-        email = st.text_input("Enter Your Email Address")
-        if st.button("Authenticate"):
-            if email.endswith("@yakjin.com"):
+        email = st.text_input("이메일 주소를 입력하세요")
+        if st.button("인증"):
+            if email in ALLOWED_EMAILS:
                 st.session_state.authenticated = True
                 st.session_state.email = email
-                st.success("Authentication Successful.")
+                st.success("인증에 성공했습니다.")
                 return True
             else:
-                st.error("Unauthorized email address. Only @yakjin.com domain emails are allowed.")
+                st.error("인증되지 않은 이메일 주소입니다. 접근이 거부되었습니다.")
                 return False
     return st.session_state.authenticated
 
