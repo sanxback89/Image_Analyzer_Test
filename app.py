@@ -206,6 +206,8 @@ def create_donut_chart(data, title):
     
     if title.lower() == 'color':
         colors = [get_color(label) for label in labels]
+        # 흰색을 아주 연한 회색으로 변경
+        colors = ['#F0F0F0' if color == '#FFFFFF' else color for color in colors]
     else:
         colors = generate_colors(len(labels))
     
@@ -243,19 +245,19 @@ def create_donut_chart(data, title):
         ),
         width=500,
         height=450,
-        margin=dict(t=60, b=80, l=60, r=20)  # 왼쪽 마진을 늘림
-    )
-    
-    # 타이틀을 주석으로 추가
-    fig.add_annotation(
-        text=f'<b>{title}</b>',
-        x=0.2,  # x 위치를 0.2로 설정
-        y=1.05,  # y 위치를 그래프 위로 설정
-        xref='paper',
-        yref='paper',
-        showarrow=False,
-        font=dict(size=24),
-        align='left'
+        margin=dict(t=80, b=80, l=20, r=20),  # 상단 마진을 늘림
+        annotations=[
+            dict(
+                text=f'<b>{title}</b>',
+                x=0.5,  # x 위치를 중앙으로 설정
+                y=1.05,  # y 위치를 그래프 위로 설정
+                xref='paper',
+                yref='paper',
+                showarrow=False,
+                font=dict(size=24, color='black'),  # 타이틀 색상을 검정색으로 변경
+                align='center'
+            )
+        ]
     )
     
     return fig
