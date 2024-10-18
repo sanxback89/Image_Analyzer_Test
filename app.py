@@ -199,7 +199,7 @@ def enhance_image(image, scale_factor=2):
     denoised = cv2.fastNlMeansDenoisingColored(sharpened, None, 10, 10, 7, 21)
     return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
 
-# 도넛 차트 생성 함수 수정
+# 도넛 차 생성 함수 수정
 def create_donut_chart(data, title):
     labels = list(data.keys())
     values = list(data.values())
@@ -209,14 +209,12 @@ def create_donut_chart(data, title):
     else:
         colors = generate_colors(len(labels))
     
-    # 텍스트 색상을 결정하는 함수
     def get_text_color(background_color):
-        if background_color == '#000000':  # 배경이 검은색일 경우
-            return '#FFFFFF'  # 흰색 텍스트
+        if background_color == '#000000':
+            return '#FFFFFF'
         else:
-            return '#000000'  # 검은색 텍스트
+            return '#000000'
     
-    # 각 섹션별 텍스트 색상 결정
     text_colors = [get_text_color(color) for color in colors]
     
     fig = go.Figure(data=[go.Pie(
@@ -232,25 +230,32 @@ def create_donut_chart(data, title):
     )])
     
     fig.update_layout(
-        title=dict(
-            text=f'<b>{title}</b>',
-            font=dict(size=24),
-            x=0.2,  # 타이틀을 중앙에 위치
-            y=0.95
-        ),
+        showlegend=True,
         legend=dict(
             orientation='h',
             yanchor='bottom',
-            y=-0.2,  # 범례 위치 조정
+            y=-0.2,
             xanchor='center',
             x=0.5,
-            font=dict(size=13, weight='bold'),  # 범례 텍스트 크기 증가 및 볼드체
+            font=dict(size=13, weight='bold'),
             itemsizing='constant',
-            itemwidth=20  # 범례 간격 조정
+            itemwidth=30
         ),
         width=500,
-        height=450,  # 높이 증가로 마진 확보
-        margin=dict(t=60, b=80, l=20, r=20)  # 상단 마진 증가
+        height=450,
+        margin=dict(t=60, b=80, l=60, r=20)  # 왼쪽 마진을 늘림
+    )
+    
+    # 타이틀을 주석으로 추가
+    fig.add_annotation(
+        text=f'<b>{title}</b>',
+        x=0.2,  # x 위치를 0.2로 설정
+        y=1.05,  # y 위치를 그래프 위로 설정
+        xref='paper',
+        yref='paper',
+        showarrow=False,
+        font=dict(size=24),
+        align='left'
     )
     
     return fig
@@ -277,7 +282,7 @@ def generate_colors(n):
         colors.append(hex_color)
     return colors
 
-# 메인 앱 로직 수정 (이미지 리스트업 부분)
+# 메인 앱 로직 수정 (이미지 리스트 부분)
 def main():
     st.set_page_config(layout="centered")
     
@@ -308,7 +313,7 @@ def main():
         uploaded_file = st.file_uploader("파일 선택", type=["xlsx", "xls", "png", "jpg", "jpeg", "zip"])
         
         if uploaded_file is not None:
-            st.markdown("<h3><span class='emoji'>🖼️</span> 4단계: 이미지 처리</h3>", unsafe_allow_html=True)
+            st.markdown("<h3><span class='emoji'>🖼️</span> 4계: 이미지 처리</h3>", unsafe_allow_html=True)
             
             images = []
             if uploaded_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
@@ -329,7 +334,7 @@ def main():
                 
                 st.success(f"{len(processed_images)}개의 이미지가 처리되었습니다.")
                 
-                if st.button("🚀 5단계: 분석 시작"):
+                if st.button("🚀 5단계: 분석 시작", key="start_analysis"):
                     if not selected_options:
                         st.markdown("<p><span class='emoji'>⚠️</span> 분석할 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
                     else:
@@ -426,6 +431,7 @@ st.markdown("""
         border: none;
         border-radius: 0.3rem;
         margin-bottom: 0.5rem;
+        font-weight: bold;
     }
     .stButton > button:hover {
         background-color: #e0e2e6;
