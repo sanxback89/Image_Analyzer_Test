@@ -92,7 +92,7 @@ analysis_options = {
 }
 
 # Individual image analysis function (with caching)
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def analyze_single_image(image, category, options):
     base64_image = encode_image(image)
     
@@ -207,17 +207,16 @@ def enhance_image(image, scale_factor=2):
     denoised = cv2.fastNlMeansDenoisingColored(sharpened, None, 10, 10, 7, 21)
     return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
 
-# Modified donut chart creation function
+# 수정된 도넛 차트 생성 함수
 def create_donut_chart(data, title):
     labels = list(data.keys())
     values = list(data.values())
     
     if title.lower() == 'color':
         colors = [get_color(label) for label in labels]
-        # Change white to very light gray
         colors = ['#F0F0F0' if color == '#FFFFFF' else color for color in colors]
     else:
-        colors = generate_colors(len(labels))
+        colors = generate_distinct_colors(len(labels))
     
     def get_text_color(background_color):
         if background_color == '#000000':
@@ -244,7 +243,7 @@ def create_donut_chart(data, title):
         legend=dict(
             orientation='h',
             yanchor='bottom',
-            y=-0.3,
+            y=-0.4,  # 범례 위치를 아래로 10% 이동
             xanchor='center',
             x=0.5,
             font=dict(size=15),
@@ -252,23 +251,34 @@ def create_donut_chart(data, title):
             itemwidth=30
         ),
         width=500,
-        height=450,
-        margin=dict(t=80, b=80, l=20, r=20),  # Increased top margin
+        height=500,  # 전체 높이를 늘려 범례와 차트 간 간격 확보
+        margin=dict(t=80, b=100, l=20, r=20),  # 하단 여백 증가
         annotations=[
             dict(
                 text=f'<b>{title}</b>',
-                x=0.5,  # Set x position to center
-                y=1.2,  # Set y position above the chart
+                x=0.5,
+                y=1.2,
                 xref='paper',
                 yref='paper',
                 showarrow=False,
-                font=dict(size=32, color='black'),  # Changed title color to black
+                font=dict(size=32, color='black'),
                 align='center'
             )
         ]
     )
     
     return fig
+
+# 구분되는 색상 생성 함수
+def generate_distinct_colors(n):
+    distinct_colors = [
+        '#FF4136', '#FF851B', '#FFDC00', '#2ECC40', '#0074D9', '#B10DC9',
+        '#01FF70', '#39CCCC', '#7FDBFF', '#F012BE', '#85144b', '#3D9970'
+    ]
+    if n <= len(distinct_colors):
+        return distinct_colors[:n]
+    else:
+        return distinct_colors + generate_colors(n - len(distinct_colors))
 
 # Modified color mapping function
 def get_color(label):
@@ -325,32 +335,34 @@ def main():
             key="analysis_options"
         )
         
-        st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload File</h3>", unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("Choose File", type=["xlsx", "xls", "png", "jpg", "jpeg", "zip"])
+    st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload File</h3>", unsafe_allow_html=True)
+    uploaded_files = st.file_uploader("Choose File(s)", type=["xlsx", "xls", "png", "jpg", "jpeg", "zip"], accept_multiple_files=True)
+    
+    if uploaded_files:
+        st.markdown("<h3><span class='emoji'>🖼️</span> Step 4: Image Processing</h3>", unsafe_allow_html=True)
         
-        if uploaded_file is not None:
-            st.markdown("<h3><span class='emoji'>🖼️</span> Step 4: Image Processing</h3>", unsafe_allow_html=True)
-            
-            images = []
+        images = []
+        for uploaded_file in uploaded_files:
             if uploaded_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
                 try:
-                    images = extract_images_from_excel(uploaded_file)
-                    if images:
-                        images = images[1:]  # Exclude the first image (logo)
+                    excel_images = extract_images_from_excel(uploaded_file)
+                    if excel_images:
+                        images.extend(excel_images[1:])  # 첫 번째 이미지(로고) 제외
                 except Exception as e:
-                    st.error(f"Error Occurred While Extracting Images from Excel File: {str(e)}")
+                    st.error(f"Excel 파일에서 이미지 추출 중 오류 발생: {str(e)}")
             elif uploaded_file.type.startswith('image/'):
-                images = [Image.open(uploaded_file)]
+                images.append(Image.open(uploaded_file))
             elif uploaded_file.type == 'application/zip':
-                images = [Image.open(io.BytesIO(img_data)) for _, img_data in process_zip_file(uploaded_file)]
+                zip_images = [Image.open(io.BytesIO(img_data)) for _, img_data in process_zip_file(uploaded_file)]
+                images.extend(zip_images)
+        
+        if images:
+            with st.spinner('이미지 처리 중...'):
+                processed_images = process_images(images)
             
-            if images:
-                with st.spinner('Processing Images...'):
-                    processed_images = process_images(images)
-                
-                st.success(f"{len(processed_images)} Images Processed Successfully.")
-                
-                if st.button("🚀 Step 5: Start Analysis", key="start_analysis"):
+            st.success(f"{len(processed_images)}개의 이미지가 성공적으로 처리되습니다.")
+            
+            if st.button("🚀 Step 5: Start analysing", key="start_analysis"):
                     if not selected_options:
                         st.markdown("<p><span class='emoji'>⚠️</span> Please Select at Least One Analysis Item.</p>", unsafe_allow_html=True)
                     else:
@@ -362,7 +374,8 @@ def main():
                         image_categories = defaultdict(lambda: defaultdict(list))
                         
                         for i, image in enumerate(processed_images):
-                            result = analyze_single_image(image, selected_category, selected_options)
+                            with st.spinner(f"Analyzing Image {i+1}/{len(processed_images)}"):
+                                result = analyze_single_image(image, selected_category, selected_options)
                             if result and isinstance(result, dict):
                                 for option, detected in result.items():
                                     if option in selected_options:
