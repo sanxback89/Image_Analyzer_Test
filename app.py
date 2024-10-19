@@ -207,8 +207,26 @@ def enhance_image(image, scale_factor=2):
     denoised = cv2.fastNlMeansDenoisingColored(sharpened, None, 10, 10, 7, 21)
     return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
 
-# 수정된 도넛 차트 생성 함수
-def create_donut_chart(data, title):
+# 고유한 색상 세트를 생성하는 함수
+def generate_unique_color_sets(num_sets, colors_per_set):
+    all_colors = []
+    for _ in range(num_sets):
+        set_colors = []
+        for _ in range(colors_per_set):
+            while True:
+                hue = random.random()
+                saturation = 0.5 + random.random() * 0.5
+                lightness = 0.4 + random.random() * 0.2
+                rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
+                hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
+                if hex_color not in all_colors:
+                    set_colors.append(hex_color)
+                    all_colors.append(hex_color)
+                    break
+        yield set_colors
+
+# 수정된 create_donut_chart 함수
+def create_donut_chart(data, title, color_set):
     labels = list(data.keys())
     values = list(data.values())
     
@@ -216,13 +234,12 @@ def create_donut_chart(data, title):
         colors = [get_color(label) for label in labels]
         colors = ['#F0F0F0' if color == '#FFFFFF' else color for color in colors]
     else:
-        colors = generate_distinct_colors(len(labels))
+        colors = color_set[:len(labels)]
     
     def get_text_color(background_color):
-        if background_color == '#000000':
-            return '#FFFFFF'
-        else:
-            return '#000000'
+        r, g, b = int(background_color[1:3], 16), int(background_color[3:5], 16), int(background_color[5:7], 16)
+        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        return '#000000' if luminance > 0.5 else '#FFFFFF'
     
     text_colors = [get_text_color(color) for color in colors]
     
@@ -238,12 +255,13 @@ def create_donut_chart(data, title):
         hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
     )])
     
+    # 레이아웃 설정 (이전과 동일)
     fig.update_layout(
         showlegend=True,
         legend=dict(
             orientation='h',
             yanchor='bottom',
-            y=-0.3,  # 범례 위치를 아래로 10% 이동
+            y=-0.3,
             xanchor='center',
             x=0.5,
             font=dict(size=15),
@@ -251,13 +269,13 @@ def create_donut_chart(data, title):
             itemwidth=30
         ),
         width=500,
-        height=500,  # 전체 높이를 늘려 범례와 차트 간 간격 확보
-        margin=dict(t=80, b=100, l=20, r=20),  # 하단 여백 증가
+        height=450,
+        margin=dict(t=70, b=90, l=20, r=20),
         annotations=[
             dict(
                 text=f'<b>{title}</b>',
                 x=0.5,
-                y=1.2,
+                y=1.1,
                 xref='paper',
                 yref='paper',
                 showarrow=False,
@@ -268,17 +286,6 @@ def create_donut_chart(data, title):
     )
     
     return fig
-
-# 구분되는 색상 생성 함수
-def generate_distinct_colors(n):
-    distinct_colors = [
-        '#FF4136', '#FF851B', '#FFDC00', '#2ECC40', '#0074D9', '#B10DC9',
-        '#01FF70', '#39CCCC', '#7FDBFF', '#F012BE', '#85144b', '#3D9970'
-    ]
-    if n <= len(distinct_colors):
-        return distinct_colors[:n]
-    else:
-        return distinct_colors + generate_colors(n - len(distinct_colors))
 
 # Modified color mapping function
 def get_color(label):
@@ -364,7 +371,7 @@ def main():
                 
                 if st.button("🚀 Step 5: Start analysing", key="start_analysis"):
                     if not selected_options:
-                        st.markdown("<p><span class='emoji'>⚠️</span> 분�� 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
+                        st.markdown("<p><span class='emoji'>⚠️</span> 분석 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
                     else:
                         progress_bar = st.progress(0)
                         status_text = st.empty()
@@ -391,17 +398,19 @@ def main():
                         progress_bar.empty()
                         status_text.empty()
                         
-                        # 분석 결과 표시 부분을 전체 화면으로 전환
+                        # 결과 표시
                         st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
                         st.markdown("<hr>", unsafe_allow_html=True)
                         st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
                         st.markdown("<div class='results-container'>", unsafe_allow_html=True)
                         
-                        # 결과 표시 (2열 레이아웃)
+                        # 각 분석 항목에 대한 고유한 색상 세트 생성
+                        color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최대 카테고리 수
+                        
                         for i, (option, results) in enumerate(aggregated_results.items()):
                             if results:
                                 st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
-                                fig = create_donut_chart(results, option)
+                                fig = create_donut_chart(results, option, color_sets[i])
                                 st.plotly_chart(fig, use_container_width=True)
                                 
                                 with st.expander(f"{option} Details"):
