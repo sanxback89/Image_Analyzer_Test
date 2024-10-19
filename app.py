@@ -243,7 +243,7 @@ def create_donut_chart(data, title):
         legend=dict(
             orientation='h',
             yanchor='bottom',
-            y=-0.2,  # 범례 위치를 위로 20% 이동 (기존 -0.4에서 변경)
+            y=-0.3,  # 범례 위치를 아래로 10% 이동
             xanchor='center',
             x=0.5,
             font=dict(size=15),
@@ -251,13 +251,13 @@ def create_donut_chart(data, title):
             itemwidth=30
         ),
         width=500,
-        height=450,  # 전체 높이를 10% 줄임 (기존 500에서 변경)
-        margin=dict(t=70, b=90, l=20, r=20),  # 상단과 하단 여백을 각각 10% 줄임
+        height=500,  # 전체 높이를 늘려 범례와 차트 간 간격 확보
+        margin=dict(t=80, b=100, l=20, r=20),  # 하단 여백 증가
         annotations=[
             dict(
                 text=f'<b>{title}</b>',
                 x=0.5,
-                y=1.1,  # 제목 위치를 아래로 10% 이동 (기존 1.2에서 변경)
+                y=1.2,
                 xref='paper',
                 yref='paper',
                 showarrow=False,
@@ -364,7 +364,7 @@ def main():
                 
                 if st.button("🚀 Step 5: Start analysing", key="start_analysis"):
                     if not selected_options:
-                        st.markdown("<p><span class='emoji'>⚠️</span> 분 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
+                        st.markdown("<p><span class='emoji'>⚠️</span> 분�� 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
                     else:
                         progress_bar = st.progress(0)
                         status_text = st.empty()
