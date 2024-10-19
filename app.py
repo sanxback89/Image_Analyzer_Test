@@ -243,7 +243,7 @@ def create_donut_chart(data, title):
         legend=dict(
             orientation='h',
             yanchor='bottom',
-            y=-0.4,  # 범례 위치를 아래로 10% 이동
+            y=-0.2,  # 범례 위치를 위로 20% 이동 (기존 -0.4에서 변경)
             xanchor='center',
             x=0.5,
             font=dict(size=15),
@@ -251,13 +251,13 @@ def create_donut_chart(data, title):
             itemwidth=30
         ),
         width=500,
-        height=500,  # 전체 높이를 늘려 범례와 차트 간 간격 확보
-        margin=dict(t=80, b=100, l=20, r=20),  # 하단 여백 증가
+        height=450,  # 전체 높이를 10% 줄임 (기존 500에서 변경)
+        margin=dict(t=70, b=90, l=20, r=20),  # 상단과 하단 여백을 각각 10% 줄임
         annotations=[
             dict(
                 text=f'<b>{title}</b>',
                 x=0.5,
-                y=1.2,
+                y=1.1,  # 제목 위치를 아래로 10% 이동 (기존 1.2에서 변경)
                 xref='paper',
                 yref='paper',
                 showarrow=False,
@@ -335,58 +335,58 @@ def main():
             key="analysis_options"
         )
         
-    st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload File</h3>", unsafe_allow_html=True)
-    uploaded_files = st.file_uploader("Choose File(s)", type=["xlsx", "xls", "png", "jpg", "jpeg", "zip"], accept_multiple_files=True)
-    
-    if uploaded_files:
-        st.markdown("<h3><span class='emoji'>🖼️</span> Step 4: Image Processing</h3>", unsafe_allow_html=True)
+        st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload File</h3>", unsafe_allow_html=True)
+        uploaded_files = st.file_uploader("Choose File(s)", type=["xlsx", "xls", "png", "jpg", "jpeg", "zip"], accept_multiple_files=True)
         
-        images = []
-        for uploaded_file in uploaded_files:
-            if uploaded_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
-                try:
-                    excel_images = extract_images_from_excel(uploaded_file)
-                    if excel_images:
-                        images.extend(excel_images[1:])  # 첫 번째 이미지(로고) 제외
-                except Exception as e:
-                    st.error(f"Excel 파일에서 이미지 추출 중 오류 발생: {str(e)}")
-            elif uploaded_file.type.startswith('image/'):
-                images.append(Image.open(uploaded_file))
-            elif uploaded_file.type == 'application/zip':
-                zip_images = [Image.open(io.BytesIO(img_data)) for _, img_data in process_zip_file(uploaded_file)]
-                images.extend(zip_images)
-        
-        if images:
-            with st.spinner('이미지 처리 중...'):
-                processed_images = process_images(images)
+        if uploaded_files:
+            st.markdown("<h3><span class='emoji'>🖼️</span> Step 4: Image Processing</h3>", unsafe_allow_html=True)
             
-            st.success(f"{len(processed_images)}개의 이미지가 성공적으로 처리되습니다.")
+            images = []
+            for uploaded_file in uploaded_files:
+                if uploaded_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
+                    try:
+                        excel_images = extract_images_from_excel(uploaded_file)
+                        if excel_images:
+                            images.extend(excel_images[1:])  # 첫 번째 이미지(로고) 제외
+                    except Exception as e:
+                        st.error(f"Excel 파일에서 이미지 추출 중 오류 발생: {str(e)}")
+                elif uploaded_file.type.startswith('image/'):
+                    images.append(Image.open(uploaded_file))
+                elif uploaded_file.type == 'application/zip':
+                    zip_images = [Image.open(io.BytesIO(img_data)) for _, img_data in process_zip_file(uploaded_file)]
+                    images.extend(zip_images)
             
-            if st.button("🚀 Step 5: Start analysing", key="start_analysis"):
+            if images:
+                with st.spinner('이미지 처리 중...'):
+                    processed_images = process_images(images)
+                
+                st.success(f"{len(processed_images)}개의 이미지가 성공적으로 처리되습니다.")
+                
+                if st.button("🚀 Step 5: Start analysing", key="start_analysis"):
                     if not selected_options:
-                        st.markdown("<p><span class='emoji'>⚠️</span> Please Select at Least One Analysis Item.</p>", unsafe_allow_html=True)
+                        st.markdown("<p><span class='emoji'>⚠️</span> 분 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
                     else:
-                        # 분석 로직 (기존 코드 유지)
                         progress_bar = st.progress(0)
                         status_text = st.empty()
                         
                         aggregated_results = {option: Counter() for option in selected_options}
                         image_categories = defaultdict(lambda: defaultdict(list))
                         
+                        total_images = len(processed_images)
+                        
                         for i, image in enumerate(processed_images):
-                            with st.spinner(f"Analyzing Image {i+1}/{len(processed_images)}"):
-                                result = analyze_single_image(image, selected_category, selected_options)
+                            result = analyze_single_image(image, selected_category, selected_options)
                             if result and isinstance(result, dict):
                                 for option, detected in result.items():
                                     if option in selected_options:
                                         aggregated_results[option][detected] += 1
                                         image_categories[option][detected].append(image)
                             else:
-                                st.warning(f"Invalid Analysis Result for Image {i+1}.")
+                                st.warning(f"이미지 {i+1}에 대한 분석 결과가 유효하지 않습니다.")
                             
-                            progress = (i + 1) / len(processed_images)
+                            progress = (i + 1) / total_images
                             progress_bar.progress(progress)
-                            status_text.text(f"Analyzing Images: {i+1}/{len(processed_images)}")
+                            status_text.text(f"이미지 분석 중: {i+1}/{total_images}")
                         
                         progress_bar.empty()
                         status_text.empty()
@@ -429,6 +429,8 @@ def main():
                         st.markdown("</div></div>", unsafe_allow_html=True)
             else:
                 st.markdown("<p><span class='emoji'>⚠️</span> No Images Found in the Uploaded File.</p>", unsafe_allow_html=True)
+    else:
+        st.info("로그인이 필요합니다. 위의 인증 정보를 입력해주세요.")
 
 if __name__ == "__main__":
     main()
