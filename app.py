@@ -27,6 +27,8 @@ status_text = None
 # Allowed users dictionary (email: password)
 ALLOWED_USERS = {
     "baekdoo28@gmail.com": "Yakjin135#",
+    "jenna.lee@yakjin.com": "Yakjin135#",
+    "cielito@yakjin.com": "Yakjin135#",
     "jesssieyun@yakjin.com": "Yakjin135#",
     "jake@yakjin.com": "Yakjin135#"
 }
