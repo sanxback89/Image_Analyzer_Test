@@ -16,8 +16,6 @@ import cv2
 import numpy as np
 import time
 import colorsys
-import csv
-from datetime import datetime
 
 # OpenAI API key setup (fetched from Streamlit Cloud secrets)
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -438,42 +436,13 @@ def main():
                                 st.markdown("</div><div class='results-container'>", unsafe_allow_html=True)
                         
                         st.markdown("</div></div>", unsafe_allow_html=True)
-                        
-                        # 분석 완료 후 사용자의 분석 이미지 수 업데이트
-                        update_user_analysis_count(st.session_state.email, len(processed_images))
-
-                        st.success(f"{len(processed_images)}개의 이미지가 성공적으로 분석되었습니다.")
             else:
                 st.markdown("<p><span class='emoji'>⚠️</span> No Images Found in the Uploaded File.</p>", unsafe_allow_html=True)
     else:
         st.info("로그인이 필요합니다. 위의 인증 정보를 입력해주세요.")
 
-# 사용량 통계 표시 함수
-def show_usage_statistics():
-    st.markdown("## 사용량 통계")
-    with open('user_access_log.csv', 'r', newline='', encoding='utf-8') as file:
-        reader = csv.reader(file)
-        data = list(reader)
-    
-    df = pd.DataFrame(data, columns=['접속 시간', '이메일', '분석한 이미지 수'])
-    st.dataframe(df)
-
-# 관리자 페이지
-def admin_page():
-    st.title("관리자 페이지")
-    admin_password = st.text_input("관리자 비밀번호를 입력하세요", type="password")
-    if admin_password == "admin_password":  # 실제 사용 시 더 안전한 인증 방식을 사용해야 합니다
-        show_usage_statistics()
-    else:
-        st.error("잘못된 비밀번호입니다.")
-
-# 메인 앱 로직 수정
 if __name__ == "__main__":
-    page = st.sidebar.selectbox("페이지 선택", ["메인 앱", "관리자 페이지"])
-    if page == "메인 앱":
-        main()
-    elif page == "관리자 페이지":
-        admin_page()
+    main()
 
 # CSS for Streamlit theme settings
 st.markdown("""
@@ -521,28 +490,3 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
-def log_user_access(email):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open('user_access_log.csv', 'a', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        writer.writerow([timestamp, email, 0])  # 초기 이미지 분석 수는 0
-
-def update_user_analysis_count(email, count):
-    rows = []
-    updated = False
-    with open('user_access_log.csv', 'r', newline='', encoding='utf-8') as file:
-        reader = csv.reader(file)
-        for row in reader:
-            if row[1] == email:
-                row[2] = str(int(row[2]) + count)
-                updated = True
-            rows.append(row)
-    
-    if not updated:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        rows.append([timestamp, email, str(count)])
-    
-    with open('user_access_log.csv', 'w', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        writer.writerows(rows)
