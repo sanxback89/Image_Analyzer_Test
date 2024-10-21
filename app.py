@@ -275,7 +275,7 @@ def create_donut_chart(data, title, color_set):
             dict(
                 text=f'<b>{title}</b>',
                 x=0.5,
-                y=1.1,
+                y=1.2,
                 xref='paper',
                 yref='paper',
                 showarrow=False,
