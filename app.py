@@ -56,8 +56,9 @@ def authenticate_user():
 analysis_options = {
     "Top": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Oversized"],
-        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
-        "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Puff Sleeves"],
+        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Henley Neck" "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
+        "Sleeve ": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Puff Sleeves"],
+        "Sleeves Construction": ["Set-In", "Raglan", "Drop Shoulder"],
         "Length": ["Crop", "Regular", "Long"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
         "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversationl Print", "Plaid/Check", "Heart & Dot", "Conversationl Print", "Unspecified"],
@@ -75,8 +76,9 @@ analysis_options = {
     },
     "Dress": {
         "Fit": ["Bodycon", "A-Line", "Shift", "Wrap", "Sheath", "Empire Waist"],
-        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
+        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
         "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Puff Sleeves"],
+        "Sleeves Construction": ["Set-In", "Raglan", "Drop Shoulder"],
         "Length": ["Mini", "Midi", "Maxi"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
         "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversationl Print", "Plaid/Check", "Heart & Dot", "Conversationl Print", "Unspecified"],
