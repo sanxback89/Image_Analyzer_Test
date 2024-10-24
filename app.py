@@ -60,7 +60,7 @@ analysis_options = {
         "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Puff Sleeves"],
         "Length": ["Crop", "Regular", "Long"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
-        "Pattern": ["Solid", "Striped", "Polka Dot", "Floral", "Plaid", "Checkered", "Animal Print"],
+        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversationl Print", "Plaid/Check", "Heart & Dot", "Conversationl Print", "Unspecified"],
         "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué", "Buttons", "Zippers", "Pockets"]
     },
@@ -69,7 +69,7 @@ analysis_options = {
         "Length": ["Short", "Knee Length", "Ankle Length", "Full Length"],
         "Rise": ["Low Rise", "Mid Rise", "High Rise"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
-        "Pattern": ["Solid", "Striped", "Polka Dot", "Plaid", "Checkered"],
+        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversationl Print", "Plaid/Check", "Heart & Dot", "Conversationl Print", "Unspecified"],
         "Material": ["Denim", "Cotton", "Polyester", "Wool", "Leather"],
         "Details": ["Distressed", "Ripped", "Embroidery", "Pockets", "Belt Loops", "Pleats"]
     },
@@ -79,7 +79,7 @@ analysis_options = {
         "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Puff Sleeves"],
         "Length": ["Mini", "Midi", "Maxi"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
-        "Pattern": ["Solid", "Floral", "Polka Dot", "Striped", "Animal Print"],
+        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversationl Print", "Plaid/Check", "Heart & Dot", "Conversationl Print", "Unspecified"],
         "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Belt", "Pockets"]
     },
