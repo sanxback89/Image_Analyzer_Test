@@ -61,7 +61,7 @@ analysis_options = {
         "Sleeves Construction": ["Set-In", "Raglan", "Drop Shoulder"],
         "Length": ["Crop", "Regular", "Long"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
-        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversationl Print", "Plaid/Check", "Heart & Dot", "Conversationl Print", "Unspecified"],
+        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversationl Print", "Plaid/Check", "Heart & Dot", "Unspecified"],
         "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué", "Buttons", "Zippers", "Pockets"]
     },
@@ -81,7 +81,7 @@ analysis_options = {
         "Sleeves Construction": ["Set-In", "Raglan", "Drop Shoulder"],
         "Length": ["Mini", "Midi", "Maxi"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
-        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversationl Print", "Plaid/Check", "Heart & Dot", "Conversationl Print", "Unspecified"],
+        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversationl Print", "Plaid/Check", "Heart & Dot", "Unspecified"],
         "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Belt", "Pockets"]
     },
