@@ -24,14 +24,14 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 progress_bar = None
 status_text = None
 
-# Allowed users dictionary (email: password)
+# 허용된 사용자 딕셔너리 (이메일: 비밀번호)
 ALLOWED_USERS = {
     "baekdoo28@gmail.com": "Yakjin135#",
     "jenna.lee@yakjin.com": "Yakjin135#",
     "cielito@yakjin.com": "Yakjin135#",
     "jesssieyun@yakjin.com": "Yakjin135#",
-    "jake@yakjin.com": "Yakjin135#"
-    "zoe.choi@yakjin.com": "Yakjin123",
+    "jake@yakjin.com": "Yakjin135#",
+    "zoe.choi@yakjin.com": "Yakjin135#",
     "silvia@yakjin.com": "Yakjin135#",
     "jiwoo.shin@yakjin.com": "Yakjin135#",
     "elena.lee@yakjin.com": "Yakjin135#",
@@ -499,3 +499,4 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
