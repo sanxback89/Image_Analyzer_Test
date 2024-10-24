@@ -31,6 +31,11 @@ ALLOWED_USERS = {
     "cielito@yakjin.com": "Yakjin135#",
     "jesssieyun@yakjin.com": "Yakjin135#",
     "jake@yakjin.com": "Yakjin135#"
+    "zoe.choi@yakjin.com": "Yakjin123",
+    "silvia@yakjin.com": "Yakjin135#",
+    "jiwoo.shin@yakjin.com": "Yakjin135#",
+    "elena.lee@yakjin.com": "Yakjin135#",
+    "eunh.choi@yakjin.com": "Yakjin135#"
 }
 
 # User authentication and usage tracking
