@@ -56,12 +56,12 @@ def authenticate_user():
 analysis_options = {
     "Top": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Oversized"],
-        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Henley Neck" "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
-        "Sleeves ": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Puff Sleeves"],
+        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
+        "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Puff Sleeves"],
         "Sleeves Construction": ["Set-In", "Raglan", "Drop Shoulder"],
         "Length": ["Crop", "Regular", "Long"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
-        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversationl Print", "Plaid/Check", "Heart & Dot", "Unspecified"],
+        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversational Print", "Plaid/Check", "Heart & Dot", "Unspecified"],
         "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué", "Buttons", "Zippers", "Pockets"]
     },
@@ -70,7 +70,7 @@ analysis_options = {
         "Length": ["Short", "Knee Length", "Ankle Length", "Full Length"],
         "Rise": ["Low Rise", "Mid Rise", "High Rise"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
-        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversationl Print", "Plaid/Check", "Heart & Dot", "Unspecified"],
+        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversational Print", "Plaid/Check", "Heart & Dot", "Unspecified"],
         "Material": ["Denim", "Cotton", "Polyester", "Wool", "Leather"],
         "Details": ["Distressed", "Ripped", "Embroidery", "Pockets", "Belt Loops", "Pleats"]
     },
@@ -81,7 +81,7 @@ analysis_options = {
         "Sleeves Construction": ["Set-In", "Raglan", "Drop Shoulder"],
         "Length": ["Mini", "Midi", "Maxi"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
-        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversationl Print", "Plaid/Check", "Heart & Dot", "Unspecified"],
+        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversational Print", "Plaid/Check", "Heart & Dot", "Unspecified"],
         "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Belt", "Pockets"]
     },
