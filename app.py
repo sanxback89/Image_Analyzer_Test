@@ -70,7 +70,7 @@ analysis_options = {
         "Length": ["Short", "Knee Length", "Ankle Length", "Full Length"],
         "Rise": ["Low Rise", "Mid Rise", "High Rise"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
-        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversationl Print", "Plaid/Check", "Heart & Dot", "Conversationl Print", "Unspecified"],
+        "Pattern": ["Floral", "Animal Skin", "Abstract/Geo", "Ethnic", "Lettering", "Stripe", "Conversationl Print", "Plaid/Check", "Heart & Dot", "Unspecified"],
         "Material": ["Denim", "Cotton", "Polyester", "Wool", "Leather"],
         "Details": ["Distressed", "Ripped", "Embroidery", "Pockets", "Belt Loops", "Pleats"]
     },
