@@ -16,6 +16,8 @@ import cv2
 import numpy as np
 import time
 import colorsys
+import concurrent.futures
+from itertools import islice
 
 # OpenAI API key setup (fetched from Streamlit Cloud secrets)
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -60,19 +62,16 @@ def authenticate_user():
 # Analysis options definition (modified)
 analysis_options = {
     "Top": {
-        "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Oversized"],
-        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Square Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
+        "Fit": ["Slim Fit", "Loose Fit", "Oversized"],
+        "Neckline": ["Crew Neck", "V-Neck", "Square Neck", "Scoop Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
         "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Half Sleeves", "Puff Sleeves"],
         "Sleeves Construction": ["Set-In", "Raglan", "Dolman", "Drop Shoulder"],
         "Length": ["Crop", "Regular", "Long"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
-        "Details": [
-            "Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué", "Pockets",
-            "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", 
-            "Seamless", "Binding"
-        ]
+        "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué",
+                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", "Seamless", "Binding"]
     },
     "Bottom": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Skinny", "Straight", "Bootcut", "Flare", "Wide Leg"],
@@ -81,22 +80,19 @@ analysis_options = {
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Denim", "Cotton", "Polyester", "Wool", "Leather"],
-        "Details": ["Distressed", "Ripped", "Embroidery", "Pleats", "Jogger", "Seam detail", "Dart", "Mix media"]
+        "Details": ["Distressed", "Ripped", "Embroidery", "Pockets", "Belt Loops", "Pleats"]
     },
     "Dress": {
-        "Fit": ["A-Line", "Shift", "Sheath", "Empire Waist", "Fit&Flare"],
-        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Square Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
+        "Fit": ["Bodycon", "A-Line", "Fit&Flare", "Shift", "Sheath", "Empire Waist"],
+        "Neckline": ["Crew Neck", "V-Neck", "Square Neck", "Scoop Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
         "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Half Sleeves", "Puff Sleeves"],
         "Sleeves Construction": ["Set-In", "Raglan", "Dolman", "Drop Shoulder"],
-        "Length": ["Mini", "Midi", "Maxi", "Above Knee", "Knee Length", "Below Knee Length"],
+        "Length": ["Mini", "Midi", "Maxi", "Above Knee", "Knee Length", "Below Knee"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
-        "Details": [
-            "Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Belt", "Pockets",
-            "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", 
-            "Seamless", "Wrap", "Binding"
-        ]
+        "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading",  
+                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Cut out", "Binding"]
     },
     "Outerwear": {
         "Type": ["Jacket", "Coat", "Blazer", "Cardigan", "Vest"],
@@ -109,13 +105,72 @@ analysis_options = {
     }
 }
 
-# Individual image analysis function (with caching)
-@st.cache_data(show_spinner=False)
+# 배치 처리를 위한 헬퍼 함수
+def batch_images(iterable, batch_size):
+    iterator = iter(iterable)
+    return iter(lambda: list(islice(iterator, batch_size)), [])
+
+# 병렬 처리를 위한 분석 함수
+def analyze_image_batch(batch_data):
+    image, category, options = batch_data
+    return analyze_single_image(image, category, options)
+
+# 이미지 해시 함수 추가
+def get_image_hash(image):
+    if isinstance(image, Image.Image):
+        # PIL 이미지를 numpy 배열로 변환
+        img_array = np.array(image)
+    else:
+        # 이미 numpy 배열인 경우
+        img_array = image
+    
+    # 이미지를 32x32로 리사이즈하고 평균 해시 계산
+    resized = cv2.resize(img_array, (32, 32))
+    gray = cv2.cvtColor(resized, cv2.COLOR_RGB2GRAY)
+    avg = gray.mean()
+    hash_str = ''.join(['1' if pixel > avg else '0' for pixel in gray.flatten()])
+    return hash_str
+
+# 수정된 분석 함수
+@st.cache_data(ttl=24*3600, show_spinner=False, hash_funcs={Image.Image: get_image_hash})
 def analyze_single_image(image, category, options):
     base64_image = encode_image(image)
     
     prompt = f"Analyze the {category} clothing item in the image and provide information on the following aspects. Choose only the most appropriate option for each:\n\n"
+    
+    # 소매 길이에 대한 상세 가이드 추가
+    sleeve_length_guide = """
+    For Sleeve Length analysis, please consider these important factors:
+    
+    1. Look for design intention and original garment construction:
+    - Check for cuffs, hem finishing, or design details that indicate the intended sleeve length
+    - Observe if there are buttons or tabs designed for rolling up sleeves
+    - Look for permanent design elements like elastic bands or fixed cuffs
+    
+    2. Important: Distinguish between designed length vs. styled wearing:
+    - If sleeves appear rolled up or pushed up, analyze the original intended length
+    - Look for fabric bunching or gathering that suggests rolled-up long sleeves
+    - Consider the overall garment style and category to determine original design
+    
+    3. Length definitions:
+    - Long Sleeves: Full arm length to wrist, even if currently rolled up
+    - Three-Quarter Sleeves: Designed to end between elbow and wrist
+    - Short Sleeves: Designed to end at or above elbow
+    - Cap Sleeves: Very short, just covering shoulder
+    - Sleeveless: No sleeve coverage
+    
+    4. Key indicators of rolled-up long sleeves:
+    - Visible fabric bunching or folding
+    - Uneven or casual sleeve ending
+    - Presence of cuffs or buttons above current sleeve end
+    - Wrinkles or creases indicating temporary folding
+    
+    Please analyze the ORIGINAL designed sleeve length, not how it's currently styled or worn.
+    """
+    
     for option in options:
+        if option == "Sleeves":
+            prompt += f"\n{sleeve_length_guide}\n"
         prompt += f"{option}: {', '.join(analysis_options[category][option])}\n"
     
     prompt += "\nProvide the result as a JSON object with the selected aspects as keys and the detected options as values. Choose only one value for each key."
@@ -132,20 +187,22 @@ def analyze_single_image(image, category, options):
                     ]
                 }
             ],
-            max_tokens=300
+            max_tokens=300,
+            temperature=0.0,  # 일관성을 위해 temperature를 0으로 설정
+            seed=42  # 결과의 재현성을 위한 시드 값 설정
         )
         
         result = response.choices[0].message.content.strip()
         processed_result = preprocess_response(result)
         
-        # Attempt JSON parsing
         try:
             return json.loads(processed_result)
         except json.JSONDecodeError:
             st.error(f"JSON Parsing Error: {processed_result}")
             return {}
+            
     except Exception as e:
-        st.error(f"Error Occurred During Image Analysis: {e}")
+        st.error(f"Error During Image Analysis: {e}")
         return {}
 
 # Image encoding function
@@ -389,7 +446,7 @@ def main():
                 
                 if st.button("🚀 Step 5: Start analysing", key="start_analysis"):
                     if not selected_options:
-                        st.markdown("<p><span class='emoji'>⚠️</span> 분석 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
+                        st.markdown("<p><span class='emoji'>️</span> 분석 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
                     else:
                         progress_bar = st.progress(0)
                         status_text = st.empty()
@@ -398,21 +455,37 @@ def main():
                         image_categories = defaultdict(lambda: defaultdict(list))
                         
                         total_images = len(processed_images)
+                        batch_size = 4  # 한 번에 처리할 이미지 수
                         
-                        for i, image in enumerate(processed_images):
-                            result = analyze_single_image(image, selected_category, selected_options)
-                            if result and isinstance(result, dict):
-                                for option, detected in result.items():
-                                    if option in selected_options:
-                                        aggregated_results[option][detected] += 1
-                                        image_categories[option][detected].append(image)
-                            else:
-                                st.warning(f"이미지 {i+1}에 대한 분석 결과가 유효하지 않습니다.")
-                            
-                            progress = (i + 1) / total_images
-                            progress_bar.progress(progress)
-                            status_text.text(f"이미지 분석 중: {i+1}/{total_images}")
+                        # 병렬 처리를 위한 데이터 준비
+                        batch_data = [(img, selected_category, selected_options) 
+                                     for img in processed_images]
                         
+                        completed_images = 0
+                        
+                        # ThreadPoolExecutor를 사용한 병렬 처리
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                            for batch in batch_images(batch_data, batch_size):
+                                # 배치 단위로 병렬 처리
+                                future_to_image = {executor.submit(analyze_image_batch, data): data 
+                                                 for data in batch}
+                                
+                                for future in concurrent.futures.as_completed(future_to_image):
+                                    result = future.result()
+                                    if result and isinstance(result, dict):
+                                        image_data = future_to_image[future]
+                                        image = image_data[0]
+                                        
+                                        for option, detected in result.items():
+                                            if option in selected_options:
+                                                aggregated_results[option][detected] += 1
+                                                image_categories[option][detected].append(image)
+                                    
+                                    completed_images += 1
+                                    progress = completed_images / total_images
+                                    progress_bar.progress(progress)
+                                    status_text.text(f"이미지 분석 중: {completed_images}/{total_images}")
+
                         progress_bar.empty()
                         status_text.empty()
                         
