@@ -61,14 +61,18 @@ def authenticate_user():
 analysis_options = {
     "Top": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Oversized"],
-        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
-        "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Puff Sleeves"],
-        "Sleeves Construction": ["Set-In", "Raglan", "Drop Shoulder"],
+        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Square Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
+        "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Half Sleeves", "Puff Sleeves"],
+        "Sleeves Construction": ["Set-In", "Raglan", "Dolman", "Drop Shoulder"],
         "Length": ["Crop", "Regular", "Long"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
-        "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué", "Buttons", "Zippers", "Pockets"]
+        "Details": [
+            "Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué", "Pockets",
+            "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", 
+            "Seamless", "Binding"
+        ]
     },
     "Bottom": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Skinny", "Straight", "Bootcut", "Flare", "Wide Leg"],
@@ -77,18 +81,22 @@ analysis_options = {
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Denim", "Cotton", "Polyester", "Wool", "Leather"],
-        "Details": ["Distressed", "Ripped", "Embroidery", "Pockets", "Belt Loops", "Pleats"]
+        "Details": ["Distressed", "Ripped", "Embroidery", "Pleats", "Jogger", "Seam detail", "Dart", "Mix media"]
     },
     "Dress": {
-        "Fit": ["Bodycon", "A-Line", "Shift", "Wrap", "Sheath", "Empire Waist"],
-        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
-        "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Puff Sleeves"],
-        "Sleeves Construction": ["Set-In", "Raglan", "Drop Shoulder"],
-        "Length": ["Mini", "Midi", "Maxi"],
+        "Fit": ["A-Line", "Shift", "Sheath", "Empire Waist", "Fit&Flare"],
+        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Square Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
+        "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Half Sleeves", "Puff Sleeves"],
+        "Sleeves Construction": ["Set-In", "Raglan", "Dolman", "Drop Shoulder"],
+        "Length": ["Mini", "Midi", "Maxi", "Above Knee", "Knee Length", "Below Knee Length"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
-        "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Belt", "Pockets"]
+        "Details": [
+            "Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Belt", "Pockets",
+            "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", 
+            "Seamless", "Wrap", "Binding"
+        ]
     },
     "Outerwear": {
         "Type": ["Jacket", "Coat", "Blazer", "Cardigan", "Vest"],
