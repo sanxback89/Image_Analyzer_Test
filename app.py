@@ -101,7 +101,7 @@ analysis_options = {
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué",
-                   "Shirring", "Wrap", "Twist", "Knot", "Mix media (Different materials used for body, sleeves, or other parts. Not including rib on neckline/hem)", "Seam detail", "Cut out", "Seamless", "Binding"]
+                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", "Seamless", "Binding"]
     },
     "Bottom": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Skinny", "Straight", "Bootcut", "Flare", "Wide Leg"],
@@ -122,7 +122,7 @@ analysis_options = {
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading",  
-                   "Shirring", "Wrap", "Twist", "Knot", "Mix media (Different materials used for body, sleeves, or other parts. Not including rib on neckline/hem)", "Cut out", "Binding"]
+                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Cut out", "Binding"]
     },
     "Outerwear": {
         "Type": ["Jacket", "Coat", "Blazer", "Cardigan", "Vest"],
@@ -334,7 +334,7 @@ def create_donut_chart(data, title, color_set):
         hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
     )])
     
-    # 이아웃 설정 (이전과 동일)
+    # ���이아웃 설정 (이전과 동일)
     fig.update_layout(
         showlegend=True,
         legend=dict(
@@ -479,86 +479,103 @@ def main():
                             st.error(f"ZIP 파일 내 이미지 처리 중 오류 발생: {str(e)}")
             
             if images:
-                # 초기 분석이 아직 수행되지 않은 경우에만 실행
-                if 'initial_analysis_done' not in st.session_state:
-                    with st.spinner('이미지 처리 및 분석 중...'):
-                        # 결과를 저장할 딕셔너리 초기화
-                        aggregated_results = defaultdict(Counter)
-                        image_categories = defaultdict(lambda: defaultdict(list))
-                        
-                        # 이미지 배치 처리
-                        batch_size = 4
-                        total_images = len(images)
-                        progress_bar = st.progress(0)
-                        
-                        for i, image in enumerate(images):
-                            # 각 이미지에 대한 분석 수행
-                            analysis_result = analyze_single_image(image, selected_category, selected_options)
+                with st.spinner('이미지 처리 및 분석 중...'):
+                    # 이미지 처리와 분석을 한 번에 진행
+                    processed_images = process_images(images)
+                    
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    aggregated_results = {option: Counter() for option in selected_options}
+                    image_categories = defaultdict(lambda: defaultdict(list))
+                    
+                    total_images = len(processed_images)
+                    batch_size = 4
+                    
+                    batch_data = [(img, selected_category, selected_options) 
+                                 for img in processed_images]
+                    
+                    completed_images = 0
+                    
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                        for batch in batch_images(batch_data, batch_size):
+                            future_to_image = {executor.submit(analyze_image_batch, data): data 
+                                             for data in batch}
                             
-                            # 결과 집계
-                            for option, value in analysis_result.items():
-                                if option == "Details" and isinstance(value, list):
-                                    for detail in value:
-                                        aggregated_results[option][detail] += 1
-                                        image_categories[option][detail].append(image)
-                                else:
-                                    aggregated_results[option][value] += 1
-                                    image_categories[option][value].append(image)
+                            for future in concurrent.futures.as_completed(future_to_image):
+                                result = future.result()
+                                if result and isinstance(result, dict):
+                                    image_data = future_to_image[future]
+                                    image = image_data[0]
+                                    
+                                    for option, detected in result.items():
+                                        if option in selected_options:
+                                            if option == "Details" and isinstance(detected, list):
+                                                for detail in detected:
+                                                    aggregated_results[option][detail] += 1
+                                                    image_categories[option][detail].append(image)
+                                            else:
+                                                aggregated_results[option][detected] += 1
+                                                image_categories[option][detected].append(image)
+                                
+                                completed_images += 1
+                                progress = completed_images / total_images
+                                progress_bar.progress(progress)
+                                status_text.text(f"이미지 분석 중: {completed_images}/{total_images}")
+
+                    progress_bar.empty()
+                    status_text.empty()
+                    
+                    # 분석 결과를 세션 상태에 저장
+                    st.session_state.analysis_results = aggregated_results
+                    st.session_state.image_categories = image_categories
+                    
+                    # 결과 표시
+                    st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
+                    st.markdown("<hr>", unsafe_allow_html=True)
+                    st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
+                    st.markdown("<div class='results-container'>", unsafe_allow_html=True)
+                    
+                    # 각 분석 항목에 대한 고유한 색상 세트 생성
+                    color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최대 카테고리 수
+                    
+                    for i, (option, results) in enumerate(st.session_state.analysis_results.items()):
+                        if results:
+                            st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
+                            fig = create_donut_chart(results, option, color_sets[i])
+                            st.plotly_chart(fig, use_container_width=True)
                             
-                            # 진행률 업데이트
-                            progress = (i + 1) / total_images
-                            progress_bar.progress(progress)
-                        
-                        # 진행 바 제거
-                        progress_bar.empty()
-                        
-                        # 분석 완료 후 세션 상태 설정
-                        st.session_state.initial_analysis_done = True
-                        st.session_state.analysis_results = {k: dict(v) for k, v in aggregated_results.items()}
-                        st.session_state.image_categories = image_categories
-                
-                # 결과 표시 (이미 분석된 결과 사용)
-                st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
-                st.markdown("<hr>", unsafe_allow_html=True)
-                st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
-                st.markdown("<div class='results-container'>", unsafe_allow_html=True)
-                
-                color_sets = list(generate_unique_color_sets(len(selected_options), 12))
-                
-                for i, (option, results) in enumerate(st.session_state.analysis_results.items()):
-                    if results:
-                        st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
-                        fig = create_donut_chart(results, option, color_sets[i])
-                        st.plotly_chart(fig, use_container_width=True)
-                        
-                        with st.expander(f"{option} Details"):
-                            for value, count in results.items():
-                                if count > 0:
+                            with st.expander(f"{option} Details"):
+                                for value, count in results.items():
                                     st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
                                     if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
                                         images = st.session_state.image_categories[option][value]
                                         cols = st.columns(5)
                                         for j, img in enumerate(images):
                                             with cols[j % 5]:
+                                                # 이미지와 삭제 버튼을 포함하는 컨테이너
                                                 container = st.container()
+                                                # 삭제 버튼
                                                 remove_btn = container.button("❌", key=f"remove_{option}_{value}_{j}")
                                                 if remove_btn:
                                                     remove_image(option, value, j)
-                                                    st.experimental_rerun()
+                                                    st.rerun()  # 차트만 다시 그리기
+                                                # 이미지 표시
                                                 container.image(img, use_column_width=True)
                                             if (j + 1) % 5 == 0:
                                                 st.write("")
                                     else:
                                         st.write("No Matching Images Found.")
                                     st.write("---")
-                    else:
-                        st.write(f"No Data Available for {option}.")
+                            st.markdown("</div>", unsafe_allow_html=True)
+                        else:
+                            st.write(f"No Data Available for {option}.")
+                        
+                        # 2개의 차트마다 새 줄 시작
+                        if (i + 1) % 2 == 0:
+                            st.markdown("</div><div class='results-container'>", unsafe_allow_html=True)
                     
-                    # 2개의 차트마다 새 줄 시작
-                    if (i + 1) % 2 == 0:
-                        st.markdown("</div><div class='results-container'>", unsafe_allow_html=True)
-                
-                st.markdown("</div></div>", unsafe_allow_html=True)
+                    st.markdown("</div></div>", unsafe_allow_html=True)
             else:
                 st.markdown("<p><span class='emoji'>⚠️</span> No Images Found in the Uploaded File.</p>", unsafe_allow_html=True)
     else:
