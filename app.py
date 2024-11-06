@@ -104,44 +104,50 @@ Please analyze carefully if there are different textures, knit patterns, or mate
 
 # Binding detail guide definition
 binding_detail_guide = """
-For Binding Detail analysis, please consider these important factors:
+For Binding Detail analysis, focus on identifying contrasting color binding trim:
 
 1. Definition of Binding Detail:
-- Binding is a strip of fabric used to finish or decorate edges of garments
-- Binding detail specifically refers to when the binding color contrasts with the main fabric
-- It's a design element where the binding is intentionally visible and decorative
-- Usually appears on necklines, armholes, hems, or other edges
+- Binding is a strip of fabric that sits ON TOP of the garment's surface
+- Binding detail is ONLY counted when the binding color is different from the main fabric color
+- It creates a visible line or trim effect on the garment surface
+- The binding must be an intentional design element, not just a construction finish
 
-2. What qualifies as Binding Detail:
-- Contrasting color binding on necklines
-- Different colored binding on armholes
-- Visible binding trim in a different color than the main fabric
-- Decorative binding used as a design feature
-- Binding that creates a clear visual border or trim effect
+2. Key Visual Indicators:
+- Look for narrow strips of fabric that:
+  * Sit on top of the garment surface
+  * Have a different color than the main fabric
+  * Create visible lines or trim effects
+  * Are used as decorative elements
 
-3. What does NOT qualify as Binding Detail:
-- Self-fabric binding (same color as main fabric)
-- Hidden or internal binding
-- Regular seam finishes
+3. Common Locations:
+- Center front or center back lines
+- Across chest or bodice
+- Along seam lines
+- Around pockets
+- Along garment edges
+- Diagonal or vertical decorative lines
+
+4. What qualifies as Binding Detail:
+- Contrasting color binding strips on garment surface
+- Decorative binding trim in different color than main fabric
+- Visible binding lines used as design elements
+- Surface binding that creates color contrast
+
+5. What does NOT qualify as Binding Detail:
+- Same-color binding as the main fabric
+- Edge finishes or seam bindings
+- Piping or cording
 - Rib trim or bands
-- Decorative piping that's not used for edge finishing
-- Same-color binding used purely for construction
+- Hidden or internal binding
+- Topstitching without binding
 
-4. Key areas to check for Binding Detail:
-- Neckline edges
-- Armhole/sleeve edges
-- Hem edges
-- Pocket openings
-- Front placket edges
-- Collar edges
+6. Assessment Method:
+- First, identify if there is binding on the garment surface
+- Then, check if the binding color contrasts with the main fabric
+- Only mark as binding detail if BOTH conditions are met
+- Ignore edge finishes and same-color binding
 
-5. Important Considerations:
-- The binding must be visible from the outside
-- The binding must be a different color from the main fabric
-- The binding should be used as an intentional design element
-- Look for clean, finished edges with contrasting color trim
-
-Please focus on identifying binding that creates a visible contrast with the main fabric and is used as a deliberate design element rather than just a construction technique.
+Remember: The key factor is the combination of (1) binding placed on the garment surface AND (2) contrasting color from the main fabric. Both conditions must be present to qualify as a binding detail.
 """
 
 # 허용된 사용자 딕셔너리 (이메일: 비밀번호)
@@ -228,7 +234,7 @@ def batch_images(iterable, batch_size):
     iterator = iter(iterable)
     return iter(lambda: list(islice(iterator, batch_size)), [])
 
-# 병렬 처리를 ��한 분석 함수
+# 병렬 처리를 위한 분석 함수
 def analyze_image_batch(batch_data):
     image, category, options = batch_data
     return analyze_single_image(image, category, options)
@@ -261,7 +267,7 @@ def analyze_single_image(image, category, options):
             prompt += f"\n{sleeve_length_guide}\n"
         elif option == "Details" and "Mix media" in analysis_options[category]["Details"]:
             prompt += f"\n{mix_media_guide}\n"
-        elif option == "Details" and "Binding" in analysis_options[category]["Details"]:
+        elif option == "Details" and "Binding Detail" in analysis_options[category]["Details"]:
             prompt += f"\n{binding_detail_guide}\n"
         
         if option == "Details":
@@ -622,7 +628,7 @@ def main():
                     st.session_state.analysis_results = aggregated_results
                     st.session_state.image_categories = image_categories
                     
-                    # 결과 표��
+                    # 결과 표시
                     st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
                     st.markdown("<hr>", unsafe_allow_html=True)
                     st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
