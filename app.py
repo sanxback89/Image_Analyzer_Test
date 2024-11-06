@@ -64,24 +64,39 @@ For Mix Media analysis, please consider these important factors:
 - When different materials are used for different parts of the garment (body, sleeves, etc.)
 - Materials can be the same color but must have different textures
 - Includes combinations of different fabric types in main garment parts
+- Includes different knit patterns or textures between body and sleeves
 
 2. What qualifies as Mix Media:
 - Different materials used for body plate and sleeves
+- Different knit patterns between body and sleeves (e.g. cable knit sleeves with plain body)
+- Different textures or constructions between main parts
 - Different materials used in cutout sections
 - Contrasting fabric textures in main garment sections
+- Combination of woven and knit materials
+- Different gauge or stitch patterns in knitwear
 
 3. What does NOT qualify as Mix Media:
 - Rib trims on neckline
 - Rib trims on bottom hem
 - Rib trims on sleeve cuffs
 - Standard finishing materials on edges
+- Same material with different colors
+- Decorative elements like buttons or embroidery
 
 4. Key indicators of Mix Media:
 - Visible texture differences between main garment sections
+- Different knit patterns or gauges between sections
 - Distinct material changes in major garment components
-- Intentional design using multiple fabric types
+- Intentional design using multiple fabric types or constructions
+- Clear contrast in surface texture between body and sleeves
 
-Please analyze if the garment uses different materials in its main components, not just in trim or finishing details.
+5. Specific examples:
+- Cable knit sleeves with plain knit body
+- Woven body with knit sleeves
+- Textured sleeves with smooth body fabric
+- Different gauge knits combined in one garment
+
+Please analyze carefully if there are different textures, knit patterns, or material constructions between the main garment parts, especially between body and sleeves.
 """
 
 # 허용된 사용자 딕셔너리 (이메일: 비밀번호)
