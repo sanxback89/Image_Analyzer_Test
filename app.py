@@ -104,43 +104,92 @@ Please analyze carefully if there are different textures, knit patterns, or mate
 
 # Binding detail guide definition
 binding_detail_guide = """
-For Binding Detail analysis, focus on identifying contrasting color binding trim that is clearly visible and intentionally placed on the garment's surface.
+For Binding Detail analysis, focus on identifying contrasting color binding trim:
 
-Definition of Binding Detail:
-- Binding is a strip of fabric placed on top of the garment's main fabric, creating a visible line or trim effect.
-- The binding color should differ from the main fabric to create a noticeable contrast.
-- This element should be used as a design accent, not just as a construction finish.
+1. Definition of Binding Detail:
+- Binding is a strip of fabric that sits ON TOP of the garment's surface
+- Binding detail is ONLY counted when the binding color is different from the main fabric color
+- It creates a visible line or trim effect on the garment surface
+- The binding must be an intentional design element, not just a construction finish
+
+2. Key Visual Indicators:
+- Look for narrow strips of fabric that:
+  * Sit on top of the garment surface
+  * Have a different color than the main fabric
+  * Create visible lines or trim effects
+  * Are used as decorative elements
+
+3. Common Locations:
+- Center front or center back lines
+- Across chest or bodice
+- Along seam lines
+- Around pockets
+- Along garment edges
+- Diagonal or vertical decorative lines
+
+4. What qualifies as Binding Detail:
+- Contrasting color binding strips on garment surface
+- Decorative binding trim in different color than main fabric
+- Visible binding lines used as design elements
+- Surface binding that creates color contrast
+
+5. What does NOT qualify as Binding Detail:
+- Same-color binding as the main fabric
+- Edge finishes or seam bindings
+- Piping or cording
+- Rib trim or bands
+- Hidden or internal binding
+- Topstitching without binding
+
+6. Assessment Method:
+- First, identify if there is binding on the garment surface
+- Then, check if the binding color contrasts with the main fabric
+- Only mark as binding detail if BOTH conditions are met
+- Ignore edge finishes and same-color binding
+
+Remember: The key factor is the combination of (1) binding placed on the garment surface AND (2) contrasting color from the main fabric. Both conditions must be present to qualify as a binding detail.
+"""
+
+# Beading detail guide definition
+beading_detail_guide = """
+For Beading Detail analysis, focus on identifying small, three-dimensional decorative elements (beads) that are intentionally placed on the garment to create a textural or visual effect.
+
+Definition of Beading Detail:
+- Beading refers to the use of small, raised beads or similar elements attached to the fabric surface.
+- Beads are typically circular or spherical, but can also come in various shapes, as long as they provide a three-dimensional texture.
+- The purpose of beading is primarily decorative, adding visual interest, texture, and sometimes a bit of sparkle or color contrast.
 
 Key Visual Indicators:
-- Clear and Defined Lines: Look for narrow strips that are visually distinct from the main fabric.
-- Contrasting Color: Binding must be in a color that contrasts sharply with the main fabric to stand out clearly.
-- Placement on Key Areas: Binding often appears around necklines, sleeve edges, hemlines, or as decorative lines on the garment body.
+- Raised Texture: Beads stand out from the fabric, creating a three-dimensional effect.
+- Shine or Reflectiveness: Many beads have a slight sheen or reflective quality, especially under light.
+- Patterned Placement: Beads are often arranged in specific patterns, such as along the neckline, cuffs, or in floral/abstract designs.
+- Contrast with Fabric: Beads usually differ in color or texture from the fabric, making them visibly distinct.
 
 Common Locations:
-- Along necklines, armholes, and hems.
-- Used to outline panel edges or create decorative seams.
-- Often seen around pocket edges or as diagonal/vertical trim lines on the garment.
+- Along necklines, cuffs, hemlines, or around the edges of the garment.
+- Used to create floral patterns, geometric shapes, or outlining specific areas of the garment.
+- Can also appear as a continuous trim or as embellishments on specific areas, such as around the collar or bodice.
 
-What Qualifies as Binding Detail:
-- Contrasting binding trims that are purposefully visible on the garment.
-- Decorative binding that emphasizes or outlines parts of the garment.
-- Surface binding that adds visual interest by creating distinct lines.
+What Qualifies as Beading Detail:
+- Small, raised beads in patterns or lines on the garment surface.
+- Beads that add texture and visual appeal, especially when arranged symmetrically or in distinct designs.
+- Single rows of beads or complex arrangements that cover larger parts of the garment.
+- Beads used to form decoration along necklines, sleeve edges, or hemlines.
 
-What Does NOT Qualify as Binding Detail:
-- Binding that is the same color as the main fabric (not visible).
-- Edge finishes or seam bindings without color contrast.
-- Piping or cording that doesn't match the binding definition.
-- Ribbed trims or hems that don't provide the contrast effect.
+What Does NOT Qualify as Beading Detail:
+- Sequins, rhinestones, or flat embellishments that do not provide the same raised texture as beads.
+- Prints or patterns that mimic beading but are not three-dimensional.
+- Embroidery without bead attachment or any flat stitching that lacks the distinct texture.
 
 Assessment Method:
-- First, identify if there is binding visible on the surface.
-- Then, confirm if the binding color contrasts with the main fabric.
-- Only mark as a Binding Detail if both visibility and color contrast are present.
+- First, identify if there are small, raised elements that stand out from the fabric.
+- Confirm if these elements are circular or otherwise shaped beads.
+- Only classify as Beading Detail if the raised elements are part of an intentional decorative pattern or trim on the garment.
 
 Example Prompts for AI:
-- Look for binding that is clearly defined, in contrasting colors against the main fabric.
-- Assess whether the garment uses binding as a decorative outline on prominent edges.
-- Only binding that adds a visual contrast line should qualify as a detail.
+- Identify raised, three-dimensional beads arranged in decorative patterns on the garment surface.
+- Focus on small, spherical elements that create texture and visual contrast with the fabric.
+- Exclude flat patterns, prints, or other non-raised embellishments from the Beading Detail category.
 """
 
 # 허용된 사용자 딕셔너리 (이메일: 비밀번호)
@@ -188,7 +237,7 @@ analysis_options = {
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué",
-                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", "Seamless", "Binding detail"]
+                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", "Seamless", "Binding"]
     },
     "Bottom": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Skinny", "Straight", "Bootcut", "Flare", "Wide Leg"],
@@ -209,7 +258,7 @@ analysis_options = {
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading",  
-                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Cut out", "Binding detail"]
+                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Cut out", "Binding"]
     },
     "Outerwear": {
         "Type": ["Jacket", "Coat", "Blazer", "Cardigan", "Vest"],
@@ -262,6 +311,8 @@ def analyze_single_image(image, category, options):
             prompt += f"\n{mix_media_guide}\n"
         elif option == "Details" and "Binding Detail" in analysis_options[category]["Details"]:
             prompt += f"\n{binding_detail_guide}\n"
+        elif option == "Details" and "Beading Detail" in analysis_options[category]["Details"]:
+            prompt += f"\n{beading_detail_guide}\n"
         
         if option == "Details":
             prompt += f"{option}: Select ALL that apply from [{', '.join(analysis_options[category][option])}]\n"
@@ -628,7 +679,7 @@ def main():
                     st.markdown("<div class='results-container'>", unsafe_allow_html=True)
                     
                     # 각 분석 항목에 대한 고유한 색상 세트 생성
-                    color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최대 카테고리 수
+                    color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최��� 카테고리 ��
                     
                     for i, (option, results) in enumerate(aggregated_results.items()):
                         if results:
