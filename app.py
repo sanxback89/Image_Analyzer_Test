@@ -403,17 +403,26 @@ def enhance_image(image, scale_factor=1):
     # PIL 이미지를 OpenCV 형식으로 변환
     cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     
-    # 1. 이미지 크기 조정 (필요한 경우 축소)
-    max_dimension = 800  # 최대 크기 제한
+    # 1. 이미지 크기 조정 (최적 크기로 조정)
+    min_dimension = 800  # 최소 크기 제한
+    max_dimension = 1200  # 최대 크기 제한
     height, width = cv_image.shape[:2]
-    if max(height, width) > max_dimension:
+    
+    # 작은 이미지는 확대
+    if max(height, width) < min_dimension:
+        scale = min_dimension / max(height, width)
+        new_width = int(width * scale)
+        new_height = int(height * scale)
+        cv_image = cv2.resize(cv_image, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
+    # 큰 이미지는 축소
+    elif max(height, width) > max_dimension:
         scale = max_dimension / max(height, width)
         new_width = int(width * scale)
         new_height = int(height * scale)
         cv_image = cv2.resize(cv_image, (new_width, new_height), interpolation=cv2.INTER_AREA)
     
-    # 2. 기본적인 노이즈 제거만 수행
-    denoised = cv2.fastNlMeansDenoisingColored(cv_image, None, 10, 10, 7, 15)  # 파라미터 축소
+    # 2. 기본적인 노이즈 제거 (빠른 처리를 위해 파라미터 조정)
+    denoised = cv2.fastNlMeansDenoisingColored(cv_image, None, 7, 7, 5, 12)
     
     return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
 
