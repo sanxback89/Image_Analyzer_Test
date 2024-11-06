@@ -277,6 +277,57 @@ def get_image_hash(image):
     hash_str = ''.join(['1' if pixel > avg else '0' for pixel in gray.flatten()])
     return hash_str
 
+# 슬리브 컨스트럭션 가이드 정의 추가
+sleeve_construction_guide = """
+For Sleeve Construction analysis, please consider these important factors:
+
+1. Key Construction Types:
+- Set-In: Traditional sleeve construction with armhole seam
+- Raglan: Extends from neckline to underarm
+- Dolman: Cut as one piece with bodice
+- Drop Shoulder: Shoulder seam falls below natural shoulder
+- Unspecified: Use for:
+  * Sleeveless styles
+  * Straps
+  * Tank tops
+  * Halter styles
+  * Any style without traditional sleeve construction
+
+2. Important Rules:
+- Only analyze actual sleeve constructions
+- Sleeveless garments should ALWAYS be marked as "Unspecified"
+- Strap styles should ALWAYS be marked as "Unspecified"
+- If no clear sleeve construction is present, use "Unspecified"
+
+3. Key Indicators:
+Set-In Sleeves:
+- Clear armhole seam
+- Traditional sleeve cap
+- Fitted shoulder point
+
+Raglan Sleeves:
+- Extends to neckline
+- Diagonal seam from neck
+- No shoulder seam
+
+Dolman Sleeves:
+- Cut in one with bodice
+- No armhole seam
+- Bat-wing effect
+
+Drop Shoulder:
+- Shoulder seam below point
+- Visible drop from natural shoulder
+- Intentionally lowered sleeve
+
+Unspecified:
+- No sleeve present
+- Strap construction
+- Tank top style
+- Halter construction
+- Strapless design
+"""
+
 # 수정된 분석 함수
 @st.cache_data(ttl=24*3600, show_spinner=False, hash_funcs={Image.Image: get_image_hash})
 def analyze_single_image(image, category, options):
@@ -287,6 +338,8 @@ def analyze_single_image(image, category, options):
     for option in options:
         if option == "Sleeves":
             prompt += f"\n{sleeve_length_guide}\n"
+        elif option == "Sleeves Construction":
+            prompt += f"\n{sleeve_construction_guide}\n"
         elif option == "Details" and "Mix media" in analysis_options[category]["Details"]:
             prompt += f"\n{mix_media_guide}\n"
         elif option == "Details" and "Binding Detail" in analysis_options[category]["Details"]:
