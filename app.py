@@ -61,7 +61,7 @@ mix_media_guide = """
 For Mix Media analysis, please consider these important factors:
 
 1. Definition of Mix Media:
-- When different materials are used for different parts of the garment (body, sleeves, etc.)
+- When different materials or textures are used for different parts of the garment (body, sleeves, etc.)
 - Materials can be the same color but must have different textures
 - Includes combinations of different fabric types in main garment parts
 - Includes different knit patterns or textures between body and sleeves
@@ -80,8 +80,11 @@ For Mix Media analysis, please consider these important factors:
 - Rib trims on bottom hem
 - Rib trims on sleeve cuffs
 - Standard finishing materials on edges
-- Same material with different colors
+- Color blocking or different colored panels of the same material
+- Same material with different colors or prints
 - Decorative elements like buttons or embroidery
+- Different colored sections made from the same fabric type
+- Pattern or print changes within the same fabric type
 
 4. Key indicators of Mix Media:
 - Visible texture differences between main garment sections
@@ -90,13 +93,55 @@ For Mix Media analysis, please consider these important factors:
 - Intentional design using multiple fabric types or constructions
 - Clear contrast in surface texture between body and sleeves
 
-5. Specific examples:
-- Cable knit sleeves with plain knit body
-- Woven body with knit sleeves
-- Textured sleeves with smooth body fabric
-- Different gauge knits combined in one garment
+5. Focus on Texture, Not Color:
+- Mix media is about texture and material differences, not color variations
+- Color blocking alone does not constitute mix media
+- Different colored panels of the same fabric type are not mix media
+- Look for physical texture changes rather than visual pattern changes
 
-Please analyze carefully if there are different textures, knit patterns, or material constructions between the main garment parts, especially between body and sleeves.
+Please analyze carefully if there are different textures, knit patterns, or material constructions between the main garment parts, especially between body and sleeves. Focus on physical texture differences rather than color or print variations.
+"""
+
+# Binding detail guide definition
+binding_detail_guide = """
+For Binding Detail analysis, please consider these important factors:
+
+1. Definition of Binding Detail:
+- Binding is a strip of fabric used to finish or decorate edges of garments
+- Binding detail specifically refers to when the binding color contrasts with the main fabric
+- It's a design element where the binding is intentionally visible and decorative
+- Usually appears on necklines, armholes, hems, or other edges
+
+2. What qualifies as Binding Detail:
+- Contrasting color binding on necklines
+- Different colored binding on armholes
+- Visible binding trim in a different color than the main fabric
+- Decorative binding used as a design feature
+- Binding that creates a clear visual border or trim effect
+
+3. What does NOT qualify as Binding Detail:
+- Self-fabric binding (same color as main fabric)
+- Hidden or internal binding
+- Regular seam finishes
+- Rib trim or bands
+- Decorative piping that's not used for edge finishing
+- Same-color binding used purely for construction
+
+4. Key areas to check for Binding Detail:
+- Neckline edges
+- Armhole/sleeve edges
+- Hem edges
+- Pocket openings
+- Front placket edges
+- Collar edges
+
+5. Important Considerations:
+- The binding must be visible from the outside
+- The binding must be a different color from the main fabric
+- The binding should be used as an intentional design element
+- Look for clean, finished edges with contrasting color trim
+
+Please focus on identifying binding that creates a visible contrast with the main fabric and is used as a deliberate design element rather than just a construction technique.
 """
 
 # 허용된 사용자 딕셔너리 (이메일: 비밀번호)
@@ -183,7 +228,7 @@ def batch_images(iterable, batch_size):
     iterator = iter(iterable)
     return iter(lambda: list(islice(iterator, batch_size)), [])
 
-# 병렬 처리를 위한 분석 함수
+# 병렬 처리를 ��한 분석 함수
 def analyze_image_batch(batch_data):
     image, category, options = batch_data
     return analyze_single_image(image, category, options)
@@ -216,6 +261,8 @@ def analyze_single_image(image, category, options):
             prompt += f"\n{sleeve_length_guide}\n"
         elif option == "Details" and "Mix media" in analysis_options[category]["Details"]:
             prompt += f"\n{mix_media_guide}\n"
+        elif option == "Details" and "Binding" in analysis_options[category]["Details"]:
+            prompt += f"\n{binding_detail_guide}\n"
         
         if option == "Details":
             prompt += f"{option}: Select ALL that apply from [{', '.join(analysis_options[category][option])}]\n"
@@ -575,7 +622,7 @@ def main():
                     st.session_state.analysis_results = aggregated_results
                     st.session_state.image_categories = image_categories
                     
-                    # 결과 표시
+                    # 결과 표��
                     st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
                     st.markdown("<hr>", unsafe_allow_html=True)
                     st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
