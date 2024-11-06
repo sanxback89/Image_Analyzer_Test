@@ -502,8 +502,44 @@ def main():
                     progress_bar.empty()
                     status_text.empty()
                     
-                    # 결과 표시 부분은 동일하게 유지
-                    # ... (이하 결과 표시 코드는 변경 없음)
+                    # 결과 표시
+                    st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
+                    st.markdown("<hr>", unsafe_allow_html=True)
+                    st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
+                    st.markdown("<div class='results-container'>", unsafe_allow_html=True)
+                    
+                    # 각 분석 항목에 대한 고유한 색상 세트 생성
+                    color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최대 카테고리 수
+                    
+                    for i, (option, results) in enumerate(aggregated_results.items()):
+                        if results:
+                            st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
+                            fig = create_donut_chart(results, option, color_sets[i])
+                            st.plotly_chart(fig, use_container_width=True)
+                            
+                            with st.expander(f"{option} Details"):
+                                for value, count in results.items():
+                                    st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
+                                    if option in image_categories and value in image_categories[option]:
+                                        images = image_categories[option][value]
+                                        cols = st.columns(5)
+                                        for j, img in enumerate(images):
+                                            with cols[j % 5]:
+                                                st.image(img, use_column_width=True)
+                                            if (j + 1) % 5 == 0:
+                                                st.write("")
+                                    else:
+                                        st.write("No Matching Images Found.")
+                                    st.write("---")
+                            st.markdown("</div>", unsafe_allow_html=True)
+                        else:
+                            st.write(f"No Data Available for {option}.")
+                        
+                        # 2개의 차트마다 새 줄 시작
+                        if (i + 1) % 2 == 0:
+                            st.markdown("</div><div class='results-container'>", unsafe_allow_html=True)
+                    
+                    st.markdown("</div></div>", unsafe_allow_html=True)
             else:
                 st.markdown("<p><span class='emoji'>⚠️</span> No Images Found in the Uploaded File.</p>", unsafe_allow_html=True)
     else:
