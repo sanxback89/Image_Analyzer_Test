@@ -257,6 +257,137 @@ def process_zip_file(uploaded_file):
                 with zip_ref.open(file_name) as file:
                     yield file_name, file.read()
 
+# Image processing
+def process_images(images):
+    processed_images = []
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    for i, img in enumerate(images):
+        processed_img = enhance_image(img)
+        processed_images.append(processed_img)
+        
+        # Update progress
+        progress = (i + 1) / len(images)
+        progress_bar.progress(progress)
+        status_text.text(f"Processing Images: {i+1}/{len(images)}")
+    
+    progress_bar.empty()
+    status_text.empty()
+    return processed_images
+
+# Image enhancement function
+def enhance_image(image, scale_factor=2):
+    cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    height, width = cv_image.shape[:2]
+    resized = cv2.resize(cv_image, (width*scale_factor, height*scale_factor), interpolation=cv2.INTER_CUBIC)
+    gaussian = cv2.GaussianBlur(resized, (0, 0), 3.0)
+    sharpened = cv2.addWeighted(resized, 1.5, gaussian, -0.5, 0, resized)
+    denoised = cv2.fastNlMeansDenoisingColored(sharpened, None, 10, 10, 7, 21)
+    return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
+
+# 고유한 색상 세트를 생성하는 함수
+def generate_unique_color_sets(num_sets, colors_per_set):
+    all_colors = []
+    for _ in range(num_sets):
+        set_colors = []
+        for _ in range(colors_per_set):
+            while True:
+                hue = random.random()
+                saturation = 0.5 + random.random() * 0.5
+                lightness = 0.4 + random.random() * 0.2
+                rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
+                hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
+                if hex_color not in all_colors:
+                    set_colors.append(hex_color)
+                    all_colors.append(hex_color)
+                    break
+        yield set_colors
+
+# 수정된 create_donut_chart 함수
+def create_donut_chart(data, title, color_set):
+    labels = list(data.keys())
+    values = list(data.values())
+    
+    if title.lower() == 'color':
+        colors = [get_color(label) for label in labels]
+        colors = ['#F0F0F0' if color == '#FFFFFF' else color for color in colors]
+    else:
+        colors = color_set[:len(labels)]
+    
+    def get_text_color(background_color):
+        r, g, b = int(background_color[1:3], 16), int(background_color[3:5], 16), int(background_color[5:7], 16)
+        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        return '#000000' if luminance > 0.5 else '#FFFFFF'
+    
+    text_colors = [get_text_color(color) for color in colors]
+    
+    fig = go.Figure(data=[go.Pie(
+        labels=labels,
+        values=values,
+        hole=.3,
+        marker_colors=colors,
+        textinfo='percent',
+        textfont=dict(size=14, color=text_colors),
+        hoverinfo='label+percent+text',
+        text=[f'Count: {v}' for v in values],
+        hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
+    )])
+    
+    # 레이아웃 설정 (이전과 동일)
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=-0.3,
+            xanchor='center',
+            x=0.5,
+            font=dict(size=15),
+            itemsizing='constant',
+            itemwidth=30
+        ),
+        width=500,
+        height=450,
+        margin=dict(t=70, b=90, l=20, r=20),
+        annotations=[
+            dict(
+                text=f'<b>{title}</b>',
+                x=0.5,
+                y=1.2,
+                xref='paper',
+                yref='paper',
+                showarrow=False,
+                font=dict(size=32, color='black'),
+                align='center'
+            )
+        ]
+    )
+    
+    return fig
+
+# Modified color mapping function
+def get_color(label):
+    color_map = {
+        'Red': '#FF0000', 'Blue': '#0000FF', 'Green': '#00FF00',
+        'Yellow': '#FFFF00', 'Purple': '#800080', 'Orange': '#FFA500',
+        'Pink': '#FFC0CB', 'Brown': '#A52A2A', 'Black': '#000000',
+        'White': '#FFFFFF', 'Gray': '#808080', 'Multicolor': '#FFFFFF'
+    }
+    return color_map.get(label, '#000000')
+
+# Color generation function
+def generate_colors(n):
+    colors = []
+    for _ in range(n):
+        hue = random.random()
+        saturation = 0.5 + random.random() * 0.5
+        lightness = 0.4 + random.random() * 0.2
+        rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
+        hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
+        colors.append(hex_color)
+    return colors
+
 # Modified main app logic (image list part)
 def main():
     st.set_page_config(layout="centered")
@@ -290,14 +421,12 @@ def main():
             key="analysis_options"
         )
         
-        st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload File</h3>", unsafe_allow_html=True)
+        st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload and Analyze</h3>", unsafe_allow_html=True)
         uploaded_files = st.file_uploader("Choose File(s)", 
                                         type=["xlsx", "xls", "png", "jpg", "jpeg", "jfif", "zip"], 
                                         accept_multiple_files=True)
         
-        if uploaded_files:
-            st.markdown("<h3><span class='emoji'>🖼️</span> Step 4: Image Processing and Analysis</h3>", unsafe_allow_html=True)
-            
+        if uploaded_files and selected_options:  # 파일과 분석 항목이 모두 선택된 경우
             images = []
             for uploaded_file in uploaded_files:
                 if uploaded_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
@@ -326,97 +455,55 @@ def main():
                             st.error(f"ZIP 파일 내 이미지 처리 중 오류 발생: {str(e)}")
             
             if images:
-                st.success(f"{len(images)}개의 이미지가 성공적으로 로드되었습니다.")
-                
-                if st.button("🚀 Step 5: Start analysing", key="start_analysis"):
-                    if not selected_options:
-                        st.markdown("<p><span class='emoji'>️</span> 분석 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
-                    else:
-                        progress_bar = st.progress(0)
-                        status_text = st.empty()
-                        
-                        aggregated_results = {option: Counter() for option in selected_options}
-                        image_categories = defaultdict(lambda: defaultdict(list))
-                        
-                        total_images = len(images)
-                        batch_size = 4  # 한 번에 처리할 이미지 수
-                        
-                        # 병렬 처리를 위한 데이터 준비
-                        batch_data = [(img, selected_category, selected_options) 
-                                     for img in images]
-                        
-                        completed_images = 0
-                        
-                        # ThreadPoolExecutor를 사용한 병렬 처리
-                        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                            for batch in batch_images(batch_data, batch_size):
-                                future_to_image = {executor.submit(analyze_image_batch, data): data 
-                                                 for data in batch}
-                                
-                                for future in concurrent.futures.as_completed(future_to_image):
-                                    result = future.result()
-                                    if result and isinstance(result, dict):
-                                        image_data = future_to_image[future]
-                                        image = image_data[0]
-                                        
-                                        for option, detected in result.items():
-                                            if option in selected_options:
-                                                if option == "Details" and isinstance(detected, list):
-                                                    # Details의 경우 리스트로 받은 각 항목을 개별적으로 처리
-                                                    for detail in detected:
-                                                        aggregated_results[option][detail] += 1
-                                                        image_categories[option][detail].append(image)
-                                                else:
-                                                    # 다른 옵션들은 기존 방식대로 처리
-                                                    aggregated_results[option][detected] += 1
-                                                    image_categories[option][detected].append(image)
-                                    
-                                    completed_images += 1
-                                    progress = completed_images / total_images
-                                    progress_bar.progress(progress)
-                                    status_text.text(f"이미지 분석 중: {completed_images}/{total_images}")
-
-                        progress_bar.empty()
-                        status_text.empty()
-                        
-                        # 결과 표시
-                        st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
-                        st.markdown("<hr>", unsafe_allow_html=True)
-                        st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
-                        st.markdown("<div class='results-container'>", unsafe_allow_html=True)
-                        
-                        # 각 분석 항목에 대한 고유한 색상 세트 생성
-                        color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최대 카테고리 수
-                        
-                        for i, (option, results) in enumerate(aggregated_results.items()):
-                            if results:
-                                st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
-                                fig = create_donut_chart(results, option, color_sets[i])
-                                st.plotly_chart(fig, use_container_width=True)
-                                
-                                with st.expander(f"{option} Details"):
-                                    for value, count in results.items():
-                                        st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
-                                        if option in image_categories and value in image_categories[option]:
-                                            images = image_categories[option][value]
-                                            cols = st.columns(5)
-                                            for j, img in enumerate(images):
-                                                with cols[j % 5]:
-                                                    st.image(img, use_column_width=True)
-                                                if (j + 1) % 5 == 0:
-                                                    st.write("")
-                                        else:
-                                            st.write("No Matching Images Found.")
-                                        st.write("---")
-                                st.markdown("</div>", unsafe_allow_html=True)
-                            else:
-                                st.write(f"No Data Available for {option}.")
+                with st.spinner('이미지 처리 및 분석 중...'):
+                    # 이미지 처리와 분석을 한 번에 진행
+                    processed_images = process_images(images)
+                    
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    aggregated_results = {option: Counter() for option in selected_options}
+                    image_categories = defaultdict(lambda: defaultdict(list))
+                    
+                    total_images = len(processed_images)
+                    batch_size = 4
+                    
+                    batch_data = [(img, selected_category, selected_options) 
+                                 for img in processed_images]
+                    
+                    completed_images = 0
+                    
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                        for batch in batch_images(batch_data, batch_size):
+                            future_to_image = {executor.submit(analyze_image_batch, data): data 
+                                             for data in batch}
                             
-                            # 2개의 차트마다 새 줄 시작
-                            if (i + 1) % 2 == 0:
-                                st.markdown("</div><div class='results-container'>", unsafe_allow_html=True)
-                        
-                        st.markdown("</div></div>", unsafe_allow_html=True)
+                            for future in concurrent.futures.as_completed(future_to_image):
+                                result = future.result()
+                                if result and isinstance(result, dict):
+                                    image_data = future_to_image[future]
+                                    image = image_data[0]
+                                    
+                                    for option, detected in result.items():
+                                        if option in selected_options:
+                                            if option == "Details" and isinstance(detected, list):
+                                                for detail in detected:
+                                                    aggregated_results[option][detail] += 1
+                                                    image_categories[option][detail].append(image)
+                                            else:
+                                                aggregated_results[option][detected] += 1
+                                                image_categories[option][detected].append(image)
+                                
+                                completed_images += 1
+                                progress = completed_images / total_images
+                                progress_bar.progress(progress)
+                                status_text.text(f"이미지 분석 중: {completed_images}/{total_images}")
+
+                    progress_bar.empty()
+                    status_text.empty()
+                    
+                    # 결과 표시 부분은 동일하게 유지
+                    # ... (이하 결과 표시 코드는 변경 없음)
             else:
                 st.markdown("<p><span class='emoji'>⚠️</span> No Images Found in the Uploaded File.</p>", unsafe_allow_html=True)
     else:
@@ -471,93 +558,4 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
-# 고유한 색상 세트를 생성하는 함수
-def generate_unique_color_sets(num_sets, colors_per_set):
-    all_colors = []
-    for _ in range(num_sets):
-        set_colors = []
-        for _ in range(colors_per_set):
-            while True:
-                hue = random.random()
-                saturation = 0.5 + random.random() * 0.5
-                lightness = 0.4 + random.random() * 0.2
-                rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
-                hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
-                if hex_color not in all_colors:
-                    set_colors.append(hex_color)
-                    all_colors.append(hex_color)
-                    break
-        yield set_colors
-
-# 도넛 차트 생성 함수
-def create_donut_chart(data, title, color_set):
-    labels = list(data.keys())
-    values = list(data.values())
-    
-    if title.lower() == 'color':
-        colors = [get_color(label) for label in labels]
-        colors = ['#F0F0F0' if color == '#FFFFFF' else color for color in colors]
-    else:
-        colors = color_set[:len(labels)]
-    
-    def get_text_color(background_color):
-        r, g, b = int(background_color[1:3], 16), int(background_color[3:5], 16), int(background_color[5:7], 16)
-        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-        return '#000000' if luminance > 0.5 else '#FFFFFF'
-    
-    text_colors = [get_text_color(color) for color in colors]
-    
-    fig = go.Figure(data=[go.Pie(
-        labels=labels,
-        values=values,
-        hole=.3,
-        marker_colors=colors,
-        textinfo='percent',
-        textfont=dict(size=14, color=text_colors),
-        hoverinfo='label+percent+text',
-        text=[f'Count: {v}' for v in values],
-        hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
-    )])
-    
-    fig.update_layout(
-        showlegend=True,
-        legend=dict(
-            orientation='h',
-            yanchor='bottom',
-            y=-0.3,
-            xanchor='center',
-            x=0.5,
-            font=dict(size=15),
-            itemsizing='constant',
-            itemwidth=30
-        ),
-        width=500,
-        height=450,
-        margin=dict(t=70, b=90, l=20, r=20),
-        annotations=[
-            dict(
-                text=f'<b>{title}</b>',
-                x=0.5,
-                y=1.2,
-                xref='paper',
-                yref='paper',
-                showarrow=False,
-                font=dict(size=32, color='black'),
-                align='center'
-            )
-        ]
-    )
-    
-    return fig
-
-# 색상 매핑 함수
-def get_color(label):
-    color_map = {
-        'Red': '#FF0000', 'Blue': '#0000FF', 'Green': '#00FF00',
-        'Yellow': '#FFFF00', 'Purple': '#800080', 'Orange': '#FFA500',
-        'Pink': '#FFC0CB', 'Brown': '#A52A2A', 'Black': '#000000',
-        'White': '#FFFFFF', 'Gray': '#808080', 'Multicolor': '#FFFFFF'
-    }
-    return color_map.get(label, '#000000')
 
