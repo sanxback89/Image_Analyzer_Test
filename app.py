@@ -334,7 +334,7 @@ def create_donut_chart(data, title, color_set):
         hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
     )])
     
-    # 레이아웃 설정 (이전과 동일)
+    # ���이아웃 설정 (이전과 동일)
     fig.update_layout(
         showlegend=True,
         legend=dict(
@@ -387,6 +387,30 @@ def generate_colors(n):
         hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
         colors.append(hex_color)
     return colors
+
+# 세션 상태에 분석 결과 저장을 위한 초기화 함수 추가
+def initialize_session_state():
+    if 'analysis_results' not in st.session_state:
+        st.session_state.analysis_results = {}
+    if 'image_categories' not in st.session_state:
+        st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
+
+# 이미지 제거 함수 추가
+def remove_image(option, value, image_index):
+    if option in st.session_state.analysis_results and value in st.session_state.image_categories[option]:
+        # 이미지 리스트에서 제거
+        st.session_state.image_categories[option][value].pop(image_index)
+        
+        # 카운터 업데이트
+        if option == "Details":
+            st.session_state.analysis_results[option][value] -= 1
+            if st.session_state.analysis_results[option][value] == 0:
+                del st.session_state.analysis_results[option][value]
+        else:
+            st.session_state.analysis_results[option][value] -= 1
+        
+        # 세션 상태 업데이트 트리거
+        st.session_state.update_charts = True
 
 # Modified main app logic (image list part)
 def main():
@@ -502,6 +526,10 @@ def main():
                     progress_bar.empty()
                     status_text.empty()
                     
+                    # 분석 결과를 세션 상태에 저장
+                    st.session_state.analysis_results = aggregated_results
+                    st.session_state.image_categories = image_categories
+                    
                     # 결과 표시
                     st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
                     st.markdown("<hr>", unsafe_allow_html=True)
@@ -511,7 +539,7 @@ def main():
                     # 각 분석 항목에 대한 고유한 색상 세트 생성
                     color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최대 카테고리 수
                     
-                    for i, (option, results) in enumerate(aggregated_results.items()):
+                    for i, (option, results) in enumerate(st.session_state.analysis_results.items()):
                         if results:
                             st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
                             fig = create_donut_chart(results, option, color_sets[i])
@@ -520,12 +548,20 @@ def main():
                             with st.expander(f"{option} Details"):
                                 for value, count in results.items():
                                     st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
-                                    if option in image_categories and value in image_categories[option]:
-                                        images = image_categories[option][value]
+                                    if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
+                                        images = st.session_state.image_categories[option][value]
                                         cols = st.columns(5)
                                         for j, img in enumerate(images):
                                             with cols[j % 5]:
-                                                st.image(img, use_column_width=True)
+                                                # 이미지와 삭제 버튼을 포함하는 컨테이너
+                                                container = st.container()
+                                                # 삭제 버튼
+                                                remove_btn = container.button("❌", key=f"remove_{option}_{value}_{j}")
+                                                if remove_btn:
+                                                    remove_image(option, value, j)
+                                                    st.rerun()  # 차트만 다시 그리기
+                                                # 이미지 표시
+                                                container.image(img, use_column_width=True)
                                             if (j + 1) % 5 == 0:
                                                 st.write("")
                                     else:
@@ -591,6 +627,23 @@ st.markdown("""
     }
     .stButton > button:hover {
         background-color: #e0e2e6;
+    }
+    /* 삭제 버튼 스타일링 */
+    .stButton button {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        padding: 0px 6px;
+        background: rgba(255, 255, 255, 0.8);
+        border: none;
+        border-radius: 50%;
+        z-index: 1;
+        cursor: pointer;
+    }
+    
+    /* 이미지 컨테이너 스타일링 */
+    .stImage {
+        position: relative;
     }
 </style>
 """, unsafe_allow_html=True)
