@@ -26,6 +26,36 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 progress_bar = None
 status_text = None
 
+# Sleeve length guide definition
+sleeve_length_guide = """
+For Sleeve Length analysis, please consider these important factors:
+
+1. Look for design intention and original garment construction:
+- Check for cuffs, hem finishing, or design details that indicate the intended sleeve length
+- Observe if there are buttons or tabs designed for rolling up sleeves
+- Look for permanent design elements like elastic bands or fixed cuffs
+
+2. Important: Distinguish between designed length vs. styled wearing:
+- If sleeves appear rolled up or pushed up, analyze the original intended length
+- Look for fabric bunching or gathering that suggests rolled-up long sleeves
+- Consider the overall garment style and category to determine original design
+
+3. Length definitions:
+- Long Sleeves: Full arm length to wrist, even if currently rolled up
+- Three-Quarter Sleeves: Designed to end between elbow and wrist
+- Short Sleeves: Designed to end at or above elbow
+- Cap Sleeves: Very short, just covering shoulder
+- Sleeveless: No sleeve coverage
+
+4. Key indicators of rolled-up long sleeves:
+- Visible fabric bunching or folding
+- Uneven or casual sleeve ending
+- Presence of cuffs or buttons above current sleeve end
+- Wrinkles or creases indicating temporary folding
+
+Please analyze the ORIGINAL designed sleeve length, not how it's currently styled or worn.
+"""
+
 # 허용된 사용자 딕셔너리 (이메일: 비밀번호)
 ALLOWED_USERS = {
     "baekdoo28@gmail.com": "Yakjin135#",
@@ -136,48 +166,22 @@ def get_image_hash(image):
 def analyze_single_image(image, category, options):
     base64_image = encode_image(image)
     
-    prompt = f"Analyze the {category} clothing item in the image and provide information on the following aspects. Choose only the most appropriate option for each:\n\n"
-    
-    # 소매 길이에 대한 상세 가이드 추가
-    sleeve_length_guide = """
-    For Sleeve Length analysis, please consider these important factors:
-    
-    1. Look for design intention and original garment construction:
-    - Check for cuffs, hem finishing, or design details that indicate the intended sleeve length
-    - Observe if there are buttons or tabs designed for rolling up sleeves
-    - Look for permanent design elements like elastic bands or fixed cuffs
-    
-    2. Important: Distinguish between designed length vs. styled wearing:
-    - If sleeves appear rolled up or pushed up, analyze the original intended length
-    - Look for fabric bunching or gathering that suggests rolled-up long sleeves
-    - Consider the overall garment style and category to determine original design
-    
-    3. Length definitions:
-    - Long Sleeves: Full arm length to wrist, even if currently rolled up
-    - Three-Quarter Sleeves: Designed to end between elbow and wrist
-    - Short Sleeves: Designed to end at or above elbow
-    - Cap Sleeves: Very short, just covering shoulder
-    - Sleeveless: No sleeve coverage
-    
-    4. Key indicators of rolled-up long sleeves:
-    - Visible fabric bunching or folding
-    - Uneven or casual sleeve ending
-    - Presence of cuffs or buttons above current sleeve end
-    - Wrinkles or creases indicating temporary folding
-    
-    Please analyze the ORIGINAL designed sleeve length, not how it's currently styled or worn.
-    """
+    prompt = f"Analyze the {category} clothing item in the image and provide information on the following aspects:\n\n"
     
     for option in options:
         if option == "Sleeves":
             prompt += f"\n{sleeve_length_guide}\n"
-        prompt += f"{option}: {', '.join(analysis_options[category][option])}\n"
+        
+        if option == "Details":
+            prompt += f"{option}: Select ALL that apply from [{', '.join(analysis_options[category][option])}]\n"
+        else:
+            prompt += f"{option}: Select ONE from [{', '.join(analysis_options[category][option])}]\n"
     
-    prompt += "\nProvide the result as a JSON object with the selected aspects as keys and the detected options as values. Choose only one value for each key."
+    prompt += "\nProvide the result as a JSON object with the selected aspects as keys and the detected options as values. For 'Details', provide an array of all applicable options. For other aspects, provide a single value."
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4-vision-preview",
             messages=[
                 {
                     "role": "user",
@@ -188,8 +192,8 @@ def analyze_single_image(image, category, options):
                 }
             ],
             max_tokens=300,
-            temperature=0.0,  # 일관성을 위해 temperature를 0으로 설정
-            seed=42  # 결과의 재현성을 위한 시드 값 설정
+            temperature=0.0,
+            seed=42
         )
         
         result = response.choices[0].message.content.strip()
@@ -492,8 +496,15 @@ def main():
                                         
                                         for option, detected in result.items():
                                             if option in selected_options:
-                                                aggregated_results[option][detected] += 1
-                                                image_categories[option][detected].append(image)
+                                                if option == "Details" and isinstance(detected, list):
+                                                    # Details의 경우 리스트로 받은 각 항목을 개별적으로 처리
+                                                    for detail in detected:
+                                                        aggregated_results[option][detail] += 1
+                                                        image_categories[option][detail].append(image)
+                                                else:
+                                                    # 다른 옵션들은 기존 방식대로 처리
+                                                    aggregated_results[option][detected] += 1
+                                                    image_categories[option][detected].append(image)
                                     
                                     completed_images += 1
                                     progress = completed_images / total_images
