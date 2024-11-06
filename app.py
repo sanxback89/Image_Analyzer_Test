@@ -56,6 +56,37 @@ For Sleeve Length analysis, please consider these important factors:
 Please analyze the ORIGINAL designed sleeve length, not how it's currently styled or worn.
 """
 
+# Mix media guide definition 추가
+mix_media_guide = """
+For Mix Media analysis, please consider these important factors:
+
+1. Definition of Mix Media:
+- When different materials are used for different parts of the garment (body, sleeves, etc.)
+- Materials can be the same color but must have different textures
+- Applies when different fabrics are used for main body parts
+
+2. What IS considered Mix Media:
+- Different materials for body and sleeves
+- Different materials for front/back panels
+- Different materials for body and cutout sections
+- Contrasting fabric panels in main garment areas
+- Different textures even if same color
+
+3. What is NOT considered Mix Media:
+- Rib trims on neckline, cuffs, or hem
+- Standard collar constructions
+- Basic hem finishings
+- Standard cuff treatments
+- Decorative trims or bindings
+
+4. Key indicators:
+- Visible texture differences between main garment sections
+- Distinct material changes in major garment areas
+- Intentional design using multiple fabric types
+
+Please analyze if the garment uses different materials for main construction areas, not just decorative elements or standard garment finishings.
+"""
+
 # 허용된 사용자 딕셔너리 (이메일: 비밀번호)
 ALLOWED_USERS = {
     "baekdoo28@gmail.com": "Yakjin135#",
@@ -171,6 +202,8 @@ def analyze_single_image(image, category, options):
     for option in options:
         if option == "Sleeves":
             prompt += f"\n{sleeve_length_guide}\n"
+        elif option == "Details" and "Mix media" in analysis_options[category]["Details"]:
+            prompt += f"\n{mix_media_guide}\n"
         
         if option == "Details":
             prompt += f"{option}: Select ALL that apply from [{', '.join(analysis_options[category][option])}]\n"
