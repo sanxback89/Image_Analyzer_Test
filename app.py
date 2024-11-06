@@ -61,45 +61,41 @@ mix_media_guide = """
 For Mix Media analysis, please consider these important factors:
 
 1. Definition of Mix Media:
-- When different materials or textures are used for different parts of the garment (body, sleeves, etc.)
-- Materials can be the same color but must have different textures
-- Includes combinations of different fabric types in main garment parts
-- Includes different knit patterns or textures between body and sleeves
+- Different TEXTURES or MATERIALS used in main garment parts
+- Must be distinctly different fabric constructions or materials
+- Focus on physical texture and material differences ONLY
+- Must be intentional design using multiple fabric types
 
 2. What qualifies as Mix Media:
-- Different materials used for body plate and sleeves
-- Different knit patterns between body and sleeves (e.g. cable knit sleeves with plain body)
-- Different textures or constructions between main parts
-- Different materials used in cutout sections
-- Contrasting fabric textures in main garment sections
-- Combination of woven and knit materials
-- Different gauge or stitch patterns in knitwear
+- Different fabric types between body and sleeves (e.g. woven body with knit sleeves)
+- Different knit patterns between sections (e.g. cable knit sleeves with jersey body)
+- Combination of materials like:
+  * Mesh with solid fabric
+  * Lace with jersey
+  * Velvet with chiffon
+  * Leather with knit
+- Distinctly different fabric weights or constructions in main sections
 
 3. What does NOT qualify as Mix Media:
-- Rib trims on neckline
-- Rib trims on bottom hem
-- Rib trims on sleeve cuffs
-- Standard finishing materials on edges
-- Color blocking or different colored panels of the same material
-- Same material with different colors or prints
-- Decorative elements like buttons or embroidery
-- Different colored sections made from the same fabric type
-- Pattern or print changes within the same fabric type
+- Color blocking (different colors of the same fabric)
+- Different colored binding or trim
+- Rib trims on edges (neckline, hem, cuffs)
+- Print or pattern changes in same fabric
+- Decorative elements (buttons, embroidery)
+- Different colors or prints of same material
+- Contrast stitching or seam details
+- Layering of same fabric type
+- Binding in different colors
+- Appliqué or patches on same base fabric
 
-4. Key indicators of Mix Media:
-- Visible texture differences between main garment sections
-- Different knit patterns or gauges between sections
-- Distinct material changes in major garment components
-- Intentional design using multiple fabric types or constructions
-- Clear contrast in surface texture between body and sleeves
+4. Key Assessment Points:
+- Look for PHYSICAL texture differences
+- Must be different fabric constructions
+- Ignore all color variations
+- Focus on material changes only
+- Check for actual fabric type changes
 
-5. Focus on Texture, Not Color:
-- Mix media is about texture and material differences, not color variations
-- Color blocking alone does not constitute mix media
-- Different colored panels of the same fabric type are not mix media
-- Look for physical texture changes rather than visual pattern changes
-
-Please analyze carefully if there are different textures, knit patterns, or material constructions between the main garment parts, especially between body and sleeves. Focus on physical texture differences rather than color or print variations.
+Remember: Mix Media is strictly about different MATERIALS and TEXTURES, not about color variations or decorative elements. Color blocking, contrast binding, or different colored sections of the same fabric type do NOT qualify as mix media.
 """
 
 # Binding detail guide definition
