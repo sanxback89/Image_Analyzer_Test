@@ -152,44 +152,21 @@ Remember: The key factor is the combination of (1) binding placed on the garment
 
 # Beading detail guide definition
 beading_detail_guide = """
-For Beading Detail analysis, focus on identifying small, three-dimensional decorative elements (beads) that are intentionally placed on the garment to create a textural or visual effect.
+Key Visual Indicators for Beading:
+1. Must be raised/3D elements on fabric surface
+2. Usually small, spherical or shaped beads
+3. Creates visible texture and shine
+4. Common locations: necklines, edges, patterns
 
-Definition of Beading Detail:
-- Beading refers to the use of small, raised beads or similar elements attached to the fabric surface.
-- Beads are typically circular or spherical, but can also come in various shapes, as long as they provide a three-dimensional texture.
-- The purpose of beading is primarily decorative, adding visual interest, texture, and sometimes a bit of sparkle or color contrast.
+NOT Beading:
+- Flat sequins or rhinestones
+- Printed patterns
+- Regular embroidery
 
-Key Visual Indicators:
-- Raised Texture: Beads stand out from the fabric, creating a three-dimensional effect.
-- Shine or Reflectiveness: Many beads have a slight sheen or reflective quality, especially under light.
-- Patterned Placement: Beads are often arranged in specific patterns, such as along the neckline, cuffs, or in floral/abstract designs.
-- Contrast with Fabric: Beads usually differ in color or texture from the fabric, making them visibly distinct.
-
-Common Locations:
-- Along necklines, cuffs, hemlines, or around the edges of the garment.
-- Used to create floral patterns, geometric shapes, or outlining specific areas of the garment.
-- Can also appear as a continuous trim or as embellishments on specific areas, such as around the collar or bodice.
-
-What Qualifies as Beading Detail:
-- Small, raised beads in patterns or lines on the garment surface.
-- Beads that add texture and visual appeal, especially when arranged symmetrically or in distinct designs.
-- Single rows of beads or complex arrangements that cover larger parts of the garment.
-- Beads used to form decoration along necklines, sleeve edges, or hemlines.
-
-What Does NOT Qualify as Beading Detail:
-- Sequins, rhinestones, or flat embellishments that do not provide the same raised texture as beads.
-- Prints or patterns that mimic beading but are not three-dimensional.
-- Embroidery without bead attachment or any flat stitching that lacks the distinct texture.
-
-Assessment Method:
-- First, identify if there are small, raised elements that stand out from the fabric.
-- Confirm if these elements are circular or otherwise shaped beads.
-- Only classify as Beading Detail if the raised elements are part of an intentional decorative pattern or trim on the garment.
-
-Example Prompts for AI:
-- Identify raised, three-dimensional beads arranged in decorative patterns on the garment surface.
-- Focus on small, spherical elements that create texture and visual contrast with the fabric.
-- Exclude flat patterns, prints, or other non-raised embellishments from the Beading Detail category.
+Check for:
+1. Is it raised from the surface?
+2. Are they actual beads?
+3. Is it intentionally decorative?
 """
 
 # 허용된 사용자 딕셔너리 (이메일: 비밀번호)
@@ -679,7 +656,7 @@ def main():
                     st.markdown("<div class='results-container'>", unsafe_allow_html=True)
                     
                     # 각 분석 항목에 대한 고유한 색상 세트 생성
-                    color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최��� 카테고리 ��
+                    color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최 카테고리 
                     
                     for i, (option, results) in enumerate(aggregated_results.items()):
                         if results:
