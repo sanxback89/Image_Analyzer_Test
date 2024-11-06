@@ -296,7 +296,7 @@ def analyze_single_image(image, category, options):
 
     try:
         response = client.chat.completions.create(
-            model="ft:gpt-4o-2024-08-06:personal::AQSucHe0",
+            model="gpt-4o",
             messages=[
                 {
                     "role": "user",
