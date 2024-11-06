@@ -104,50 +104,43 @@ Please analyze carefully if there are different textures, knit patterns, or mate
 
 # Binding detail guide definition
 binding_detail_guide = """
-For Binding Detail analysis, focus on identifying contrasting color binding trim:
+For Binding Detail analysis, focus on identifying contrasting color binding trim that is clearly visible and intentionally placed on the garment's surface.
 
-1. Definition of Binding Detail:
-- Binding is a strip of fabric that sits ON TOP of the garment's surface
-- Binding detail is ONLY counted when the binding color is different from the main fabric color
-- It creates a visible line or trim effect on the garment surface
-- The binding must be an intentional design element, not just a construction finish
+Definition of Binding Detail:
+- Binding is a strip of fabric placed on top of the garment's main fabric, creating a visible line or trim effect.
+- The binding color should differ from the main fabric to create a noticeable contrast.
+- This element should be used as a design accent, not just as a construction finish.
 
-2. Key Visual Indicators:
-- Look for narrow strips of fabric that:
-  * Sit on top of the garment surface
-  * Have a different color than the main fabric
-  * Create visible lines or trim effects
-  * Are used as decorative elements
+Key Visual Indicators:
+- Clear and Defined Lines: Look for narrow strips that are visually distinct from the main fabric.
+- Contrasting Color: Binding must be in a color that contrasts sharply with the main fabric to stand out clearly.
+- Placement on Key Areas: Binding often appears around necklines, sleeve edges, hemlines, or as decorative lines on the garment body.
 
-3. Common Locations:
-- Center front or center back lines
-- Across chest or bodice
-- Along seam lines
-- Around pockets
-- Along garment edges
-- Diagonal or vertical decorative lines
+Common Locations:
+- Along necklines, armholes, and hems.
+- Used to outline panel edges or create decorative seams.
+- Often seen around pocket edges or as diagonal/vertical trim lines on the garment.
 
-4. What qualifies as Binding Detail:
-- Contrasting color binding strips on garment surface
-- Decorative binding trim in different color than main fabric
-- Visible binding lines used as design elements
-- Surface binding that creates color contrast
+What Qualifies as Binding Detail:
+- Contrasting binding trims that are purposefully visible on the garment.
+- Decorative binding that emphasizes or outlines parts of the garment.
+- Surface binding that adds visual interest by creating distinct lines.
 
-5. What does NOT qualify as Binding Detail:
-- Same-color binding as the main fabric
-- Edge finishes or seam bindings
-- Piping or cording
-- Rib trim or bands
-- Hidden or internal binding
-- Topstitching without binding
+What Does NOT Qualify as Binding Detail:
+- Binding that is the same color as the main fabric (not visible).
+- Edge finishes or seam bindings without color contrast.
+- Piping or cording that doesn't match the binding definition.
+- Ribbed trims or hems that don't provide the contrast effect.
 
-6. Assessment Method:
-- First, identify if there is binding on the garment surface
-- Then, check if the binding color contrasts with the main fabric
-- Only mark as binding detail if BOTH conditions are met
-- Ignore edge finishes and same-color binding
+Assessment Method:
+- First, identify if there is binding visible on the surface.
+- Then, confirm if the binding color contrasts with the main fabric.
+- Only mark as a Binding Detail if both visibility and color contrast are present.
 
-Remember: The key factor is the combination of (1) binding placed on the garment surface AND (2) contrasting color from the main fabric. Both conditions must be present to qualify as a binding detail.
+Example Prompts for AI:
+- Look for binding that is clearly defined, in contrasting colors against the main fabric.
+- Assess whether the garment uses binding as a decorative outline on prominent edges.
+- Only binding that adds a visual contrast line should qualify as a detail.
 """
 
 # 허용된 사용자 딕셔너리 (이메일: 비밀번호)
@@ -195,7 +188,7 @@ analysis_options = {
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué",
-                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", "Seamless", "Binding"]
+                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", "Seamless", "Binding detail"]
     },
     "Bottom": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Skinny", "Straight", "Bootcut", "Flare", "Wide Leg"],
@@ -216,7 +209,7 @@ analysis_options = {
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading",  
-                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Cut out", "Binding"]
+                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Cut out", "Binding detail"]
     },
     "Outerwear": {
         "Type": ["Jacket", "Coat", "Blazer", "Cardigan", "Vest"],
