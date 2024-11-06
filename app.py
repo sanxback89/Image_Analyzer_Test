@@ -399,13 +399,22 @@ def process_images(images):
     return processed_images
 
 # Image enhancement function
-def enhance_image(image, scale_factor=2):
+def enhance_image(image, scale_factor=1):
+    # PIL 이미지를 OpenCV 형식으로 변환
     cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    
+    # 1. 이미지 크기 조정 (필요한 경우 축소)
+    max_dimension = 800  # 최대 크기 제한
     height, width = cv_image.shape[:2]
-    resized = cv2.resize(cv_image, (width*scale_factor, height*scale_factor), interpolation=cv2.INTER_CUBIC)
-    gaussian = cv2.GaussianBlur(resized, (0, 0), 3.0)
-    sharpened = cv2.addWeighted(resized, 1.5, gaussian, -0.5, 0, resized)
-    denoised = cv2.fastNlMeansDenoisingColored(sharpened, None, 10, 10, 7, 21)
+    if max(height, width) > max_dimension:
+        scale = max_dimension / max(height, width)
+        new_width = int(width * scale)
+        new_height = int(height * scale)
+        cv_image = cv2.resize(cv_image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    
+    # 2. 기본적인 노이즈 제거만 수행
+    denoised = cv2.fastNlMeansDenoisingColored(cv_image, None, 10, 10, 7, 15)  # 파라미터 축소
+    
     return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
 
 # 고유한 색상 세트를 생성하는 함수
