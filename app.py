@@ -97,54 +97,61 @@ For Mix Media analysis, please consider these important factors:
 
 Remember: Mix Media is strictly about different MATERIALS and TEXTURES, not about color variations or decorative elements. Color blocking, contrast binding, or different colored sections of the same fabric type do NOT qualify as mix media.
 """
-
 # Binding detail guide definition
 binding_detail_guide = """
-For Binding Detail analysis, focus on identifying contrasting color binding trim:
+For Binding Detail analysis, carefully examine contrasting trim elements:
 
 1. Definition of Binding Detail:
-- Binding is a strip of fabric that sits ON TOP of the garment's surface
-- Binding detail is ONLY counted when the binding color is different from the main fabric color
-- It creates a visible line or trim effect on the garment surface
-- The binding must be an intentional design element, not just a construction finish
+IMPORTANT: Binding detail should be identified when ANY of these conditions are met:
+- Contrasting color trim/bands along edges of garment parts
+- Contrasting color lines or strips that outline design elements
+- Trim that creates a visible border or edge effect in a different color
+- Decorative bands or strips in contrasting colors
+- Color blocking achieved through binding or trim elements
 
-2. Key Visual Indicators:
-- Look for narrow strips of fabric that:
-  * Sit on top of the garment surface
-  * Have a different color than the main fabric
-  * Create visible lines or trim effects
-  * Are used as decorative elements
+2. Key Visual Indicators - Look for:
+- Edge finishes in different colors from the main fabric
+- Contrasting color strips along:
+  * Necklines
+  * Armholes/sleeve edges
+  * Hem edges
+  * Waistbands
+  * Any seam lines or design lines
+- Sporty trim details
+- Athletic-style contrast edging
+- Fashion trim elements that create color contrast
 
-3. Common Locations:
-- Center front or center back lines
-- Across chest or bodice
-- Along seam lines
-- Around pockets
-- Along garment edges
-- Diagonal or vertical decorative lines
+3. Important Assessment Guidelines:
+- ANY contrast color edge treatment should be considered binding
+- The binding effect can be created by:
+  * Actual binding tape
+  * Contrast fabric bands
+  * Decorative trim
+  * Edge finishing in different colors
+- Focus on the visual effect of contrast edges/lines
+- Both thin and wide contrast bands qualify
+- Both single and double line bindings count
+- Consider both solid and multi-color binding effects
 
-4. What qualifies as Binding Detail:
-- Contrasting color binding strips on garment surface
-- Decorative binding trim in different color than main fabric
-- Visible binding lines used as design elements
-- Surface binding that creates color contrast
+4. Common Examples in Sportswear:
+- White trim on dark garments
+- Dark trim on light garments
+- Athletic-style contrast edging
+- Racing stripes and sport trim
+- Contrast color blocking achieved through binding
+- Decorative edge treatments in different colors
 
-5. What does NOT qualify as Binding Detail:
-- Same-color binding as the main fabric
-- Edge finishes or seam bindings
-- Piping or cording
-- Rib trim or bands
-- Hidden or internal binding
-- Topstitching without binding
+5. Special Notes:
+- Binding can be functional AND decorative
+- The contrast effect is more important than the construction method
+- Look for ANY intentional use of contrast edges or trim
+- Consider both subtle and bold contrast effects
+- Multiple binding details can exist on one garment
+- Both straight and curved binding lines qualify
 
-6. Assessment Method:
-- First, identify if there is binding on the garment surface
-- Then, check if the binding color contrasts with the main fabric
-- Only mark as binding detail if BOTH conditions are met
-- Ignore edge finishes and same-color binding
+Remember: If you see contrasting color trim, edge treatment, or binding-like effects that create visual interest or define garment sections, count it as binding detail. Focus on the decorative effect rather than the technical construction.
 
-Remember: The key factor is the combination of (1) binding placed on the garment surface AND (2) contrasting color from the main fabric. Both conditions must be present to qualify as a binding detail.
-"""
+For example, garments with white trim on black fabric, navy trim on white fabric, or any contrasting color edges should be marked as having binding detail."""
 
 # Beading detail guide definition
 beading_detail_guide = """
