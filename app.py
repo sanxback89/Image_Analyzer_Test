@@ -56,6 +56,34 @@ For Sleeve Length analysis, please consider these important factors:
 Please analyze the ORIGINAL designed sleeve length, not how it's currently styled or worn.
 """
 
+# Mix media guide definition
+mix_media_guide = """
+For Mix Media analysis, please consider these important factors:
+
+1. Definition of Mix Media:
+- When different materials are used for different parts of the garment (body, sleeves, etc.)
+- Materials can be the same color but must have different textures
+- Includes combinations of different fabric types in main garment parts
+
+2. What qualifies as Mix Media:
+- Different materials used for body plate and sleeves
+- Different materials used in cutout sections
+- Contrasting fabric textures in main garment sections
+
+3. What does NOT qualify as Mix Media:
+- Rib trims on neckline
+- Rib trims on bottom hem
+- Rib trims on sleeve cuffs
+- Standard finishing materials on edges
+
+4. Key indicators of Mix Media:
+- Visible texture differences between main garment sections
+- Distinct material changes in major garment components
+- Intentional design using multiple fabric types
+
+Please analyze if the garment uses different materials in its main components, not just in trim or finishing details.
+"""
+
 # 허용된 사용자 딕셔너리 (이메일: 비밀번호)
 ALLOWED_USERS = {
     "baekdoo28@gmail.com": "Yakjin135#",
@@ -171,6 +199,8 @@ def analyze_single_image(image, category, options):
     for option in options:
         if option == "Sleeves":
             prompt += f"\n{sleeve_length_guide}\n"
+        elif option == "Details" and "Mix media" in analysis_options[category]["Details"]:
+            prompt += f"\n{mix_media_guide}\n"
         
         if option == "Details":
             prompt += f"{option}: Select ALL that apply from [{', '.join(analysis_options[category][option])}]\n"
@@ -334,7 +364,7 @@ def create_donut_chart(data, title, color_set):
         hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
     )])
     
-    # ���이아웃 설정 (이전과 동일)
+    # 이아웃 설정 (이전과 동일)
     fig.update_layout(
         showlegend=True,
         legend=dict(
