@@ -257,137 +257,6 @@ def process_zip_file(uploaded_file):
                 with zip_ref.open(file_name) as file:
                     yield file_name, file.read()
 
-# Image processing
-def process_images(images):
-    processed_images = []
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-    
-    for i, img in enumerate(images):
-        processed_img = enhance_image(img)
-        processed_images.append(processed_img)
-        
-        # Update progress
-        progress = (i + 1) / len(images)
-        progress_bar.progress(progress)
-        status_text.text(f"Processing Images: {i+1}/{len(images)}")
-    
-    progress_bar.empty()
-    status_text.empty()
-    return processed_images
-
-# Image enhancement function
-def enhance_image(image, scale_factor=2):
-    cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-    height, width = cv_image.shape[:2]
-    resized = cv2.resize(cv_image, (width*scale_factor, height*scale_factor), interpolation=cv2.INTER_CUBIC)
-    gaussian = cv2.GaussianBlur(resized, (0, 0), 3.0)
-    sharpened = cv2.addWeighted(resized, 1.5, gaussian, -0.5, 0, resized)
-    denoised = cv2.fastNlMeansDenoisingColored(sharpened, None, 10, 10, 7, 21)
-    return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
-
-# 고유한 색상 세트를 생성하는 함수
-def generate_unique_color_sets(num_sets, colors_per_set):
-    all_colors = []
-    for _ in range(num_sets):
-        set_colors = []
-        for _ in range(colors_per_set):
-            while True:
-                hue = random.random()
-                saturation = 0.5 + random.random() * 0.5
-                lightness = 0.4 + random.random() * 0.2
-                rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
-                hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
-                if hex_color not in all_colors:
-                    set_colors.append(hex_color)
-                    all_colors.append(hex_color)
-                    break
-        yield set_colors
-
-# 수정된 create_donut_chart 함수
-def create_donut_chart(data, title, color_set):
-    labels = list(data.keys())
-    values = list(data.values())
-    
-    if title.lower() == 'color':
-        colors = [get_color(label) for label in labels]
-        colors = ['#F0F0F0' if color == '#FFFFFF' else color for color in colors]
-    else:
-        colors = color_set[:len(labels)]
-    
-    def get_text_color(background_color):
-        r, g, b = int(background_color[1:3], 16), int(background_color[3:5], 16), int(background_color[5:7], 16)
-        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-        return '#000000' if luminance > 0.5 else '#FFFFFF'
-    
-    text_colors = [get_text_color(color) for color in colors]
-    
-    fig = go.Figure(data=[go.Pie(
-        labels=labels,
-        values=values,
-        hole=.3,
-        marker_colors=colors,
-        textinfo='percent',
-        textfont=dict(size=14, color=text_colors),
-        hoverinfo='label+percent+text',
-        text=[f'Count: {v}' for v in values],
-        hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
-    )])
-    
-    # 레이아웃 설정 (이전과 동일)
-    fig.update_layout(
-        showlegend=True,
-        legend=dict(
-            orientation='h',
-            yanchor='bottom',
-            y=-0.3,
-            xanchor='center',
-            x=0.5,
-            font=dict(size=15),
-            itemsizing='constant',
-            itemwidth=30
-        ),
-        width=500,
-        height=450,
-        margin=dict(t=70, b=90, l=20, r=20),
-        annotations=[
-            dict(
-                text=f'<b>{title}</b>',
-                x=0.5,
-                y=1.2,
-                xref='paper',
-                yref='paper',
-                showarrow=False,
-                font=dict(size=32, color='black'),
-                align='center'
-            )
-        ]
-    )
-    
-    return fig
-
-# Modified color mapping function
-def get_color(label):
-    color_map = {
-        'Red': '#FF0000', 'Blue': '#0000FF', 'Green': '#00FF00',
-        'Yellow': '#FFFF00', 'Purple': '#800080', 'Orange': '#FFA500',
-        'Pink': '#FFC0CB', 'Brown': '#A52A2A', 'Black': '#000000',
-        'White': '#FFFFFF', 'Gray': '#808080', 'Multicolor': '#FFFFFF'
-    }
-    return color_map.get(label, '#000000')
-
-# Color generation function
-def generate_colors(n):
-    colors = []
-    for _ in range(n):
-        hue = random.random()
-        saturation = 0.5 + random.random() * 0.5
-        lightness = 0.4 + random.random() * 0.2
-        rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
-        hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
-        colors.append(hex_color)
-    return colors
-
 # Modified main app logic (image list part)
 def main():
     st.set_page_config(layout="centered")
@@ -427,7 +296,7 @@ def main():
                                         accept_multiple_files=True)
         
         if uploaded_files:
-            st.markdown("<h3><span class='emoji'>🖼️</span> Step 4: Image Processing</h3>", unsafe_allow_html=True)
+            st.markdown("<h3><span class='emoji'>🖼️</span> Step 4: Image Processing and Analysis</h3>", unsafe_allow_html=True)
             
             images = []
             for uploaded_file in uploaded_files:
@@ -457,10 +326,7 @@ def main():
                             st.error(f"ZIP 파일 내 이미지 처리 중 오류 발생: {str(e)}")
             
             if images:
-                with st.spinner('이미지 처리 중...'):
-                    processed_images = process_images(images)
-                
-                st.success(f"{len(processed_images)}개의 이미지가 성공적으로 처리되습니다.")
+                st.success(f"{len(images)}개의 이미지가 성공적으로 로드되었습니다.")
                 
                 if st.button("🚀 Step 5: Start analysing", key="start_analysis"):
                     if not selected_options:
@@ -472,19 +338,18 @@ def main():
                         aggregated_results = {option: Counter() for option in selected_options}
                         image_categories = defaultdict(lambda: defaultdict(list))
                         
-                        total_images = len(processed_images)
+                        total_images = len(images)
                         batch_size = 4  # 한 번에 처리할 이미지 수
                         
                         # 병렬 처리를 위한 데이터 준비
                         batch_data = [(img, selected_category, selected_options) 
-                                     for img in processed_images]
+                                     for img in images]
                         
                         completed_images = 0
                         
                         # ThreadPoolExecutor를 사용한 병렬 처리
                         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                             for batch in batch_images(batch_data, batch_size):
-                                # 배치 단위로 병렬 처리
                                 future_to_image = {executor.submit(analyze_image_batch, data): data 
                                                  for data in batch}
                                 
@@ -606,4 +471,93 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+# 고유한 색상 세트를 생성하는 함수
+def generate_unique_color_sets(num_sets, colors_per_set):
+    all_colors = []
+    for _ in range(num_sets):
+        set_colors = []
+        for _ in range(colors_per_set):
+            while True:
+                hue = random.random()
+                saturation = 0.5 + random.random() * 0.5
+                lightness = 0.4 + random.random() * 0.2
+                rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
+                hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
+                if hex_color not in all_colors:
+                    set_colors.append(hex_color)
+                    all_colors.append(hex_color)
+                    break
+        yield set_colors
+
+# 도넛 차트 생성 함수
+def create_donut_chart(data, title, color_set):
+    labels = list(data.keys())
+    values = list(data.values())
+    
+    if title.lower() == 'color':
+        colors = [get_color(label) for label in labels]
+        colors = ['#F0F0F0' if color == '#FFFFFF' else color for color in colors]
+    else:
+        colors = color_set[:len(labels)]
+    
+    def get_text_color(background_color):
+        r, g, b = int(background_color[1:3], 16), int(background_color[3:5], 16), int(background_color[5:7], 16)
+        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        return '#000000' if luminance > 0.5 else '#FFFFFF'
+    
+    text_colors = [get_text_color(color) for color in colors]
+    
+    fig = go.Figure(data=[go.Pie(
+        labels=labels,
+        values=values,
+        hole=.3,
+        marker_colors=colors,
+        textinfo='percent',
+        textfont=dict(size=14, color=text_colors),
+        hoverinfo='label+percent+text',
+        text=[f'Count: {v}' for v in values],
+        hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
+    )])
+    
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=-0.3,
+            xanchor='center',
+            x=0.5,
+            font=dict(size=15),
+            itemsizing='constant',
+            itemwidth=30
+        ),
+        width=500,
+        height=450,
+        margin=dict(t=70, b=90, l=20, r=20),
+        annotations=[
+            dict(
+                text=f'<b>{title}</b>',
+                x=0.5,
+                y=1.2,
+                xref='paper',
+                yref='paper',
+                showarrow=False,
+                font=dict(size=32, color='black'),
+                align='center'
+            )
+        ]
+    )
+    
+    return fig
+
+# 색상 매핑 함수
+def get_color(label):
+    color_map = {
+        'Red': '#FF0000', 'Blue': '#0000FF', 'Green': '#00FF00',
+        'Yellow': '#FFFF00', 'Purple': '#800080', 'Orange': '#FFA500',
+        'Pink': '#FFC0CB', 'Brown': '#A52A2A', 'Black': '#000000',
+        'White': '#FFFFFF', 'Gray': '#808080', 'Multicolor': '#FFFFFF'
+    }
+    return color_map.get(label, '#000000')
 
