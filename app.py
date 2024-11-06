@@ -418,7 +418,9 @@ def main():
         )
         
         st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload File</h3>", unsafe_allow_html=True)
-        uploaded_files = st.file_uploader("Choose File(s)", type=["xlsx", "xls", "png", "jpg", "jpeg", "zip"], accept_multiple_files=True)
+        uploaded_files = st.file_uploader("Choose File(s)", 
+                                        type=["xlsx", "xls", "png", "jpg", "jpeg", "jfif", "zip"], 
+                                        accept_multiple_files=True)
         
         if uploaded_files:
             st.markdown("<h3><span class='emoji'>🖼️</span> Step 4: Image Processing</h3>", unsafe_allow_html=True)
@@ -429,14 +431,26 @@ def main():
                     try:
                         excel_images = extract_images_from_excel(uploaded_file)
                         if excel_images:
-                            images.extend(excel_images[1:])  # 첫 번째 이미지(로고) 제외
+                            images.extend(excel_images[1:])
                     except Exception as e:
                         st.error(f"Excel 파일에서 이미지 추출 중 오류 발생: {str(e)}")
                 elif uploaded_file.type.startswith('image/'):
-                    images.append(Image.open(uploaded_file))
+                    try:
+                        img = Image.open(uploaded_file)
+                        if img.mode != 'RGB':
+                            img = img.convert('RGB')
+                        images.append(img)
+                    except Exception as e:
+                        st.error(f"이미지 파일 처리 중 오류 발생: {str(e)}")
                 elif uploaded_file.type == 'application/zip':
-                    zip_images = [Image.open(io.BytesIO(img_data)) for _, img_data in process_zip_file(uploaded_file)]
-                    images.extend(zip_images)
+                    for _, img_data in process_zip_file(uploaded_file):
+                        try:
+                            img = Image.open(io.BytesIO(img_data))
+                            if img.mode != 'RGB':
+                                img = img.convert('RGB')
+                            images.append(img)
+                        except Exception as e:
+                            st.error(f"ZIP 파일 내 이미지 처리 중 오류 발생: {str(e)}")
             
             if images:
                 with st.spinner('이미지 처리 중...'):
