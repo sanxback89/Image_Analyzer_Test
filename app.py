@@ -83,12 +83,13 @@ Identify and confirm Contrast Binding if these features are present, and disrega
 
 # Shirring detail guide definition
 shirring_detail_guide = """
-Focus on areas where shirring details typically appear, such as on the shoulder, side seams, and other specific areas. Here are some refined prompts for identifying shirring:
+Identify shirring details within the garment images by closely examining specific areas for gathered, ruched, or cinched fabric appearances, which often create a rippled or pleated texture. Focus on:
 
-1.Highlighting Shoulder Shirring: "Identify garments with gathered or ruched fabric on the shoulder area, showcasing a textured and pleated appearance along the seam.
-2.Side Seam Shirring Detection: "Look for garments featuring shirring along the side seams, where fabric gathers into a wavy, ruched texture creating depth and dimension on the side.
-3.General Shirring Characteristics: "Identify garments with shirring details, focusing on areas with gathered or pleated fabric along seams or edges, where fabric appears textured and ruched.
-4.Shirring on Other Areas: "Recognize shirring in various parts of the garment, such as along waistlines, cuffs, or necklines, where fabric gathers into visible folds or pleats.
+1.Shoulders and Sleeve Tops: Look for gathered or ruched fabric around the shoulder seams, where shirring is often used to add volume or shape.
+2.Side Seams: Inspect the side areas for tightly gathered or ruched fabric, which creates a defined shirring effect typically around the waist or torso.
+3.Sleeve Cuffs and Bodice: Look for shirring along sleeve cuffs or the bodice that gives a puffed or pleated appearance, adding texture and volume to these sections.
+4.Contrast with Smooth Sections: Differentiate shirred areas from adjacent smooth or flat fabric sections. Shirring should present a visibly textured, gathered appearance.
+5.Material Stretch and Layering: Identify if the shirring effect is achieved through elastic material or multiple fabric layers creating gathered textures.
 """
 
 # Beading detail guide definition
