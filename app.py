@@ -56,18 +56,16 @@ For Sleeve Length analysis, please consider these important factors:
 Please analyze the ORIGINAL designed sleeve length, not how it's currently styled or worn.
 """
 
-# Mix media guide definition
-mix_media_guide = """
-Analyze the image to identify any Mixed Media details. Follow these guidelines to ensure accurate classification:
+# Textural Contrast guide definition
+Textural_Contrast_guide = """
+Analyze the garment to identify any mixed media characteristics, focusing strictly on the use of distinct materials and textures. Follow these guidelines to ensure accurate classification:
 
-1. Distinct Textures and Materials: Focus on identifying two or more distinct textures or materials used within the same garment. Mixed media generally includes differences in fabric between sections, such as a smooth fabric on the body and a knit, lace, mesh, or textured material on the sleeves.
-2. Clear Physical Differences: Look for obvious physical differences in texture or thickness between different parts of the garment. Examples include combinations like cotton with wool, knit with woven fabric, or mesh with velvet.
-3. Distinguish from Color Variations: Do not classify as Mixed Media if the sections differ only in color without a change in texture or material. Mixed Media requires a tangible physical difference in the fabric or material, not just color blocking.
-4. Layered Materials: Recognize cases where multiple materials are layered or used independently in different sections of the garment, such as the body being one fabric and the sleeves another. This intentional use of contrasting materials qualifies as Mixed Media.
+1. Distinct Textures and Materials: Identify garments that use two or more different textures or materials within the same piece. Look for fabric variations between sections, such as smooth material on the body with contrasting knit, lace, mesh, or textured fabric on the sleeves. Mixed media garments typically showcase an intentional contrast in fabric types.
+2. Clear Physical Differences: Observe the garment for obvious physical differences in thickness or texture between different parts. This could include combinations such as cotton paired with wool, knit mixed with woven fabric, or mesh alongside velvet. The presence of varied textures signals a mixed media approach.
+3. Exclude Color Variations Alone: Do not classify the garment as mixed media if the sections differ only in color without a change in texture or material. Mixed media requires a physical contrast in fabric or material, not just color blocking or decorative stitching.
+4. Layered or Separate Materials: Recognize cases where multiple materials are layered or independently used in distinct garment sections, like a body of one fabric type and sleeves of another. This deliberate use of contrasting materials qualifies as mixed media.
 
-Identify and confirm Mixed Media if these characteristics are present, and exclude any instances where the difference is merely a color change without a texture or material distinction.
-
-Remember: Mix Media is strictly about different MATERIALS and TEXTURES, not about color variations or decorative elements. Color blocking, contrast binding, or different colored sections of the same fabric type do NOT qualify as mix media.
+Key Reminder: Classify as mixed media only if there are differences in material or texture. Do not include garments that have variations only in color or decorative elements without a true change in fabric type or physical texture. Color blocking, contrast binding, or differently colored sections of the same fabric do not meet the criteria for mixed media
 """
 # Contrast binding detail guide definition
 contrast_binding_detail_guide = """
@@ -270,7 +268,7 @@ def analyze_single_image(image, category, options):
         elif option == "Sleeves Construction":
             prompt += f"\n{sleeve_construction_guide}\n"
         elif option == "Details" and "Mix media" in analysis_options[category]["Details"]:
-            prompt += f"\n{mix_media_guide}\n"
+            prompt += f"\n{Textural_Contrast_guide}\n"
         elif option == "Details" and "Binding Detail" in analysis_options[category]["Details"]:
             prompt += f"\n{contrast_binding_detail_guide}\n"
         elif option == "Details" and "Beading Detail" in analysis_options[category]["Details"]:
@@ -601,96 +599,100 @@ def main():
                             st.error(f"ZIP 파일 내 이미지 처리 중 오류 발생: {str(e)}")
             
             if images:
-                with st.spinner('이미지 처리 중...'):
-                    # 이미지 처리와 분석을 한 번에 진행
-                    processed_images = process_images(images)
-                    
-                    progress_bar = st.progress(0)
-                    status_text = st.empty()
-                    
-                    aggregated_results = {option: Counter() for option in selected_options}
-                    image_categories = defaultdict(lambda: defaultdict(list))
-                    
-                    total_images = len(processed_images)
-                    batch_size = 4
-                    
-                    batch_data = [(img, selected_category, selected_options) 
-                                 for img in processed_images]
-                    
-                    completed_images = 0
-                    
-                    with st.spinner('이미지 분석 중...'):
-                        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                            for batch in batch_images(batch_data, batch_size):
-                                future_to_image = {executor.submit(analyze_image_batch, data): data 
-                                                 for data in batch}
-                                
-                                for future in concurrent.futures.as_completed(future_to_image):
-                                    result = future.result()
-                                    if result and isinstance(result, dict):
-                                        image_data = future_to_image[future]
-                                        image = image_data[0]
-                                        
-                                        for option, detected in result.items():
-                                            if option in selected_options:
-                                                if option == "Details" and isinstance(detected, list):
-                                                    for detail in detected:
-                                                        aggregated_results[option][detail] += 1
-                                                        image_categories[option][detail].append(image)
-                                                else:
-                                                    aggregated_results[option][detected] += 1
-                                                    image_categories[option][detected].append(image)
-                                
-                                completed_images += 1
-                                progress = completed_images / total_images
-                                progress_bar.progress(progress)
-                                status_text.text(f"이미지 분석 중: {completed_images}/{total_images}")
-
-                    progress_bar.empty()
-                    status_text.empty()
-                    
-                    # 분석 결과를 세션 상태에 저장
-                    st.session_state.analysis_results = aggregated_results
-                    st.session_state.image_categories = image_categories
-                    
-                    # 결과 표시
-                    st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
-                    st.markdown("<hr>", unsafe_allow_html=True)
-                    st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
-                    st.markdown("<div class='results-container'>", unsafe_allow_html=True)
-                    
-                    # 각 분석 항목에 대한 고유한 색상 세트 생성
-                    color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최 카테고리 
-                    
-                    for i, (option, results) in enumerate(aggregated_results.items()):
-                        if results:
-                            st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
-                            fig = create_donut_chart(results, option, color_sets[i])
-                            st.plotly_chart(fig, use_container_width=True)
-                            
-                            with st.expander(f"{option} Details"):
-                                for value, count in results.items():
-                                    st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
-                                    if option in image_categories and value in image_categories[option]:
-                                        images = image_categories[option][value]
-                                        cols = st.columns(5)
-                                        for j, img in enumerate(images):
-                                            with cols[j % 5]:
-                                                st.image(img, use_column_width=True)
-                                            if (j + 1) % 5 == 0:
-                                                st.write("")
-                                    else:
-                                        st.write("No Matching Images Found.")
-                                    st.write("---")
-                            st.markdown("</div>", unsafe_allow_html=True)
-                        else:
-                            st.write(f"No Data Available for {option}.")
+                status_message = st.empty()  # 상태 메시지를 위한 컨테이너 생성
+                status_message.text('이미지 처리 중...')
+                
+                # 이미지 처리
+                processed_images = process_images(images)
+                
+                # 이미지 처리가 끝나면 상태 메시지 업데이트
+                status_message.text('이미지 분석 중...')
+                
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                aggregated_results = {option: Counter() for option in selected_options}
+                image_categories = defaultdict(lambda: defaultdict(list))
+                
+                total_images = len(processed_images)
+                batch_size = 4
+                
+                batch_data = [(img, selected_category, selected_options) 
+                             for img in processed_images]
+                
+                completed_images = 0
+                
+                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                    for batch in batch_images(batch_data, batch_size):
+                        future_to_image = {executor.submit(analyze_image_batch, data): data 
+                                         for data in batch}
                         
-                        # 2개의 차트마다 새 줄 시작
-                        if (i + 1) % 2 == 0:
-                            st.markdown("</div><div class='results-container'>", unsafe_allow_html=True)
+                        for future in concurrent.futures.as_completed(future_to_image):
+                            result = future.result()
+                            if result and isinstance(result, dict):
+                                image_data = future_to_image[future]
+                                image = image_data[0]
+                                
+                                for option, detected in result.items():
+                                    if option in selected_options:
+                                        if option == "Details" and isinstance(detected, list):
+                                            for detail in detected:
+                                                aggregated_results[option][detail] += 1
+                                                image_categories[option][detail].append(image)
+                                        else:
+                                            aggregated_results[option][detected] += 1
+                                            image_categories[option][detected].append(image)
+                                
+                            completed_images += 1
+                            progress = completed_images / total_images
+                            progress_bar.progress(progress)
+                            status_text.text(f"이미지 분석 중: {completed_images}/{total_images}")
+
+                progress_bar.empty()
+                status_text.empty()
+                
+                # 분석 결과를 세션 상태에 저장
+                st.session_state.analysis_results = aggregated_results
+                st.session_state.image_categories = image_categories
+                
+                # 결과 표시
+                st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
+                st.markdown("<hr>", unsafe_allow_html=True)
+                st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
+                st.markdown("<div class='results-container'>", unsafe_allow_html=True)
+                
+                # 각 분석 항목에 대한 고유한 색상 세트 생성
+                color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최 카테고리 
+                
+                for i, (option, results) in enumerate(aggregated_results.items()):
+                    if results:
+                        st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
+                        fig = create_donut_chart(results, option, color_sets[i])
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                        with st.expander(f"{option} Details"):
+                            for value, count in results.items():
+                                st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
+                                if option in image_categories and value in image_categories[option]:
+                                    images = image_categories[option][value]
+                                    cols = st.columns(5)
+                                    for j, img in enumerate(images):
+                                        with cols[j % 5]:
+                                            st.image(img, use_column_width=True)
+                                        if (j + 1) % 5 == 0:
+                                            st.write("")
+                                else:
+                                    st.write("No Matching Images Found.")
+                                st.write("---")
+                        st.markdown("</div>", unsafe_allow_html=True)
+                    else:
+                        st.write(f"No Data Available for {option}.")
                     
-                    st.markdown("</div></div>", unsafe_allow_html=True)
+                    # 2개의 차트마다 새 줄 시작
+                    if (i + 1) % 2 == 0:
+                        st.markdown("</div><div class='results-container'>", unsafe_allow_html=True)
+                
+                st.markdown("</div></div>", unsafe_allow_html=True)
             else:
                 st.markdown("<p><span class='emoji'>⚠️</span> No Images Found in the Uploaded File.</p>", unsafe_allow_html=True)
     else:
