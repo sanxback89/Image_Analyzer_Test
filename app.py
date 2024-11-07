@@ -653,6 +653,9 @@ def main():
     .results-container { display: flex; flex-wrap: wrap; justify-content: space-between; }
     .chart-container { width: 48%; margin-bottom: 20px; }
     .fullwidth { width: 100vw; position: relative; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; }
+    .stFileUploader > section > input + div {
+        width: 100% !important;
+    }
     </style>
     """, unsafe_allow_html=True)
     
