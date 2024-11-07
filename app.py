@@ -76,7 +76,7 @@ For Contrast Binding Detail analysis, carefully examine contrasting trim element
 3. Distinction from Other Decorative Elements: Ensure that the binding is a continuous strip or edge detail, not merely color-blocking or different-colored panels. Ignore any patterns or prints unless they are directly part of the binding effect itself.
 4. Multiple Binding Lines or Layered Effects: Some garments may feature multiple lines or dual bindings, adding visual layers or borders in more than one color. Both single and double lines qualify as contrast binding.
 5. Texture and Fabric Type Consistency with Binding: Contrast binding usually appears as a visibly raised or separate fabric trim sewn onto the main garment, often with a smooth or elastic texture that stands out against the base fabric.
-
+Do not include garments with mixed textures or materials that create different segments or panels without a defined binding line.
 Identify and confirm Contrast Binding if these features are present, and disregard general color patterns or internal color contrasts that do not form distinct edge or seam lines.
 """
 
