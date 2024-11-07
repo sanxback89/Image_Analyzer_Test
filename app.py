@@ -56,8 +56,8 @@ For Sleeve Length analysis, please consider these important factors:
 Please analyze the ORIGINAL designed sleeve length, not how it's currently styled or worn.
 """
 
-# Textural Contrast guide definition
-Textural_Contrast_guide = """
+# Mixed Media guide definition
+mixed_media_guide = """
 Analyze the garment to identify any mixed media characteristics, focusing strictly on the use of distinct materials and textures. Follow these guidelines to ensure accurate classification:
 
 1. Distinct Textures and Materials: Identify garments that use two or more different textures or materials within the same piece. Look for fabric variations between sections, such as smooth material on the body with contrasting knit, lace, mesh, or textured fabric on the sleeves. Mixed media garments typically showcase an intentional contrast in fabric types.
@@ -85,7 +85,7 @@ Identify and confirm Contrast Binding if these features are present, and disrega
 shirring_detail_guide = """
 Identify shirring details within the garment images by closely examining specific areas for gathered, ruched, or cinched fabric appearances, which often create a rippled or pleated texture. Focus on:
 
-1.Shoulders and Sleeve Tops: Look for gathered or ruched fabric around the shoulder seams, where shirring is often used to add volume or shape.
+1.Shoulders and Sleeve Tops: Look for gathered or ruched fabric around the shoulder seams, where shirring is often used to add volume or shape. If there is a shirring at the shoulder, classify it as a shirring.
 2.Side Seams: Inspect the side areas for tightly gathered or ruched fabric, which creates a defined shirring effect typically around the waist or torso.
 3.Sleeve Cuffs and Bodice: Look for shirring along sleeve cuffs or the bodice that gives a puffed or pleated appearance, adding texture and volume to these sections.
 4.Contrast with Smooth Sections: Differentiate shirred areas from adjacent smooth or flat fabric sections. Shirring should present a visibly textured, gathered appearance.
@@ -156,7 +156,7 @@ analysis_options = {
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué",
-                   "Shirring", "Wrap", "Twist", "Knot", "Textural_Contrast", "Seam detail", "Cut out", "Seamless", "Contrast Binding"]
+                   "Shirring", "Wrap", "Twist", "Knot", "mixed_media", "Seam detail", "Cut out", "Seamless", "Contrast Binding"]
     },
     "Bottom": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Skinny", "Straight", "Bootcut", "Flare", "Wide Leg"],
@@ -177,7 +177,7 @@ analysis_options = {
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading",  
-                   "Shirring", "Wrap", "Twist", "Knot", "Textural_Contrast", "Seam detail", "Cut out", "Seamless", "Contrast Binding"]
+                   "Shirring", "Wrap", "Twist", "Knot", "mixed_media", "Seam detail", "Cut out", "Seamless", "Contrast Binding"]
     },
     "Outerwear": {
         "Type": ["Jacket", "Coat", "Blazer", "Cardigan", "Vest"],
@@ -279,8 +279,8 @@ def analyze_single_image(image, category, options):
             prompt += f"\n{sleeve_length_guide}\n"
         elif option == "Sleeves Construction":
             prompt += f"\n{sleeve_construction_guide}\n"
-        elif option == "Details" and "Textural_Contrast" in analysis_options[category]["Details"]:
-            prompt += f"\n{Textural_Contrast_guide}\n"
+        elif option == "Details" and "mixed_media" in analysis_options[category]["Details"]:
+            prompt += f"\n{mixed_media_guide}\n"
         elif option == "Details" and "Binding Detail" in analysis_options[category]["Details"]:
             prompt += f"\n{contrast_binding_detail_guide}\n"
         elif option == "Details" and "Beading Detail" in analysis_options[category]["Details"]:
@@ -660,8 +660,10 @@ def main():
                             progress_bar.progress(progress)
                             status_text.text(f"이미지 분석 중: {completed_images}/{total_images}")
 
+                # 분석 완료 후 상태 메시지와 프로그레스 바 삭제
                 progress_bar.empty()
                 status_text.empty()
+                status_message.empty()
                 
                 # 분석 결과를 세션 상태에 저장
                 st.session_state.analysis_results = aggregated_results
