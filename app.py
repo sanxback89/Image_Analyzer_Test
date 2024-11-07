@@ -64,8 +64,21 @@ Analyze the garment to identify any mixed media characteristics, focusing strict
 2. Clear Physical Differences: Observe the garment for obvious physical differences in thickness or texture between different parts. This could include combinations such as cotton paired with wool, knit mixed with woven fabric, or mesh alongside velvet. The presence of varied textures signals a mixed media approach.
 3. Exclude Color Variations Alone: Do not classify the garment as mixed media if the sections differ only in color without a change in texture or material. Mixed media requires a physical contrast in fabric or material, not just color blocking or decorative stitching.
 4. Layered or Separate Materials: Recognize cases where multiple materials are layered or independently used in distinct garment sections, like a body of one fabric type and sleeves of another. This deliberate use of contrasting materials qualifies as mixed media.
-
+5. Exclude Designs with Single Fabric: If the garment uses one consistent material with no layered or contrasting segments, do not classify it as mixed media, even if the appearance changes due to design or draping.
 Key Reminder: Classify as mixed media only if there are differences in material or texture. Do not include garments that have variations only in color or decorative elements without a true change in fabric type or physical texture. Color blocking, contrast binding, or differently colored sections of the same fabric do not meet the criteria for mixed media
+"""
+
+# Appliqué guide definition
+Appliqué_guide = """
+for classifying images as "Appliqué," I'll focus on describing visual characteristics typical of appliqué techniques:
+
+1.Surface Details: Mention intricate surface patterns, often raised or layered, with fabric or thread detailing visible.
+2.Layering Effect: Describe an overlay effect, where fabric patches or shapes are sewn onto the garment surface, creating a distinct texture or pattern.
+3.Contrast in Textures: Appliqué work often involves contrasting textures, where the applied fabric has a different feel or appearance from the base garment fabric.
+4.Embroidery or Stitching: Highlight visible stitching or embroidery around the edges of appliqué pieces, anchoring them to the fabric beneath.
+5.Floral or Geometric Patterns: Many appliqué designs include floral, geometric, or symmetrical patterns, enhancing the visual complexity of the garment.
+
+Dimensional Depth: Describe any three-dimensional or slightly raised look that appliqué adds to an otherwise flat fabric, giving the garment a sense of depth.
 """
 
 # Contrast binding detail guide definition
