@@ -107,63 +107,86 @@ Note: Distinguish from embroidery or printed designs - appliqué must show physi
 
 # Contrast binding detail guide definition
 contrast_binding_detail_guide = """
-For Contrast Binding Detail analysis, carefully examine ONLY true binding elements that meet ALL of the following criteria:
+⚠️ CRITICAL IDENTIFICATION RULES - READ FIRST:
 
-1. Physical Construction Requirements:
-   - Must be a separate strip of fabric folded over and encasing the raw edge
-   - Must be sewn through all layers to enclose and finish an edge
-   - Must be a continuous piece of fabric trim, NOT decorative stitching or embroidery
-   - Must serve a functional purpose of edge finishing, not just decoration
+STEP 1 - IMMEDIATE DISQUALIFICATION CHECK:
+If ANY of these are present, it is NOT contrast binding - DO NOT PROCEED WITH FURTHER CHECKS:
+   ❌ ANY decorative stitching or embroidered edges
+   ❌ ANY knit or sweater construction
+   ❌ ANY buttoned front closure
+   ❌ ANY ribbed edges or bands
+   ❌ ANY contrast color topstitching
+   ❌ ANY decorative trim that doesn't fully wrap to inside
+   ❌ ANY sweatshirt or casual knitwear construction
+   
+STEP 2 - MANDATORY MATERIAL CHECK:
+True contrast binding is ONLY possible on:
+   ✓ Lightweight woven fabrics
+   ✓ Non-stretch materials
+   ✓ Fabrics that require edge finishing
+   
+If the garment is made of ANY of these materials, it CANNOT have contrast binding:
+   ❌ Knit fabrics (ANY type)
+   ❌ Sweater knits
+   ❌ Jersey
+   ❌ Rib knit
+   ❌ French terry
+   ❌ Fleece
+   ❌ Interlock
+   ❌ Any stretch material
 
-2. Visual Identification Criteria:
-   - Must show clear folded edge wrapping around the garment edge
-   - Must have consistent width throughout its length
-   - Must be made of fabric material different from the main garment
-   - Must create a clean, finished edge appearance
+STEP 3 - CONSTRUCTION VERIFICATION:
+True binding MUST show ALL of these characteristics:
+   ✓ Separate fabric strip folded over edge
+   ✓ Visible wrap to inside of garment
+   ✓ Uniform width throughout
+   ✓ Clean, functional edge finish
+   ✓ Machine stitching through all layers
+   ✓ Clear purpose of raw edge finishing
 
-3. Common Locations (must be at actual garment edges):
-   - Necklines
-   - Armholes
-   - Hem edges
-   - Waistbands
-   - Sleeve openings
+CRITICAL EXCLUSIONS - These are NEVER contrast binding:
+1. Decorative Elements:
+   ❌ Surface embroidery or stitching
+   ❌ Contrast color topstitching
+   ❌ Applied braids or trims
+   ❌ Flat trim sewn on surface
+   ❌ Decorative edging
+   ❌ Rick-rack trim
+   ❌ Scalloped edges
+   ❌ Pattern stitching
 
-4. Explicit Exclusions:
-   - Decorative embroidery or stitching along edges
-   - Flat trim sewn on top of fabric
-   - Contrast topstitching
-   - Appliqué or patches
-   - Lace trim
-   - Woven or knitted pattern borders
-   - Color blocking
-   - Decorative ribbon or tape that doesn't encase an edge
-   - Any trim that doesn't fully wrap around and encase a raw edge
+2. Garment Types:
+   ❌ ALL knitwear (no exceptions)
+   ❌ ALL sweaters and cardigans
+   ❌ ALL sweatshirts and hoodies
+   ❌ ALL garments with buttons
+   ❌ ALL garments with ribbed edges
+   ❌ ANY garment with decorative stitching
+   ❌ Tank tops with decorative edges
+   ❌ Knit dresses with contrast edges
 
-5. Key Verification Test:
-   - If you were to look at the cross-section, you must be able to see the binding fabric wrapping around and encasing the raw edge of the main fabric
-   - The binding must be serving a functional edge-finishing purpose, not merely decorative
+3. Edge Treatments:
+   ❌ Embroidered edges
+   ❌ Contrast stitching on edges
+   ❌ Decorative topstitching
+   ❌ Surface-applied trim
+   ❌ Non-functional decorative edges
+   ❌ Knitted-in pattern borders
+   ❌ Serged edges with contrast thread
+   ❌ Zigzag or decorative stitch finishes
 
-6. MANDATORY GARMENT TYPE EXCLUSIONS - These garments can NEVER have contrast binding:
-   - All sweatshirts and hoodies
-   - All button-front cardigans
-   - All sweater-knit garments
-   - Any garment with ribbed edges
-   - Any garment with decorative stitching along edges
-   - Any garment with self-fabric finishing
-   - Any garment with inherent edge finishing in its construction
+IMMEDIATE REJECTION EXAMPLES (Do NOT classify as binding):
+- White stitching on black knit edges
+- Embroidered borders on sweaters
+- Contrast color stitching on edges
+- Button-front garments with decorated edges
+- Knit tops with contrast edging
+- Tank tops with decorative trim
+- Sweatshirts with ANY type of edge decoration
+- Cardigans with ANY type of edge treatment
 
-Remember: True contrast binding is a construction technique for finishing raw edges, not just any decorative border or trim. If the element in question is purely decorative and doesn't actually encase a raw edge, it is NOT contrast binding. Also, sweatshirts and button-front cardigans MUST BE automatically excluded from contrast binding classification regardless of their appearance - these garment types use different construction methods that are incompatible with true contrast binding.
-
-Examples of what is NOT contrast binding:
-- Embroidered borders
-- Decorative stitching
-- Surface-applied trim
-- Woven or knitted pattern borders
-- Topstitching in a contrast color
-- Flat trim sewn onto the surface
-- ANY edge finishing on sweatshirts
-- ANY edge finishing on button-front cardigans
-- Decorative edging on knitwear
+FINAL VERIFICATION:
+If there is ANY doubt about whether something is true binding, it should be classified as decorative trim or embroidery instead. When in doubt, it is NOT binding.
 """
 
 # Shirring detail guide definition
