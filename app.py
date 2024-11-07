@@ -56,6 +56,137 @@ For Sleeve Length analysis, please consider these important factors:
 Please analyze the ORIGINAL designed sleeve length, not how it's currently styled or worn.
 """
 
+# Mixed Media guide definition
+mixed_media_guide = """
+Analyze the garment to identify any mixed media characteristics, focusing strictly on the use of distinct materials and textures. Follow these guidelines to ensure accurate classification:
+
+1. Distinct Textures and Materials: Identify garments that use two or more different textures or materials within the same piece. Look for fabric variations between sections, such as smooth material on the body with contrasting knit, lace, mesh, or textured fabric on the sleeves. Mixed media garments typically showcase an intentional contrast in fabric types.
+2. Clear Physical Differences: Observe the garment for obvious physical differences in thickness or texture between different parts. This could include combinations such as cotton paired with wool, knit mixed with woven fabric, or mesh alongside velvet. The presence of varied textures signals a mixed media approach.
+3. Exclude Color Variations Alone: Do not classify the garment as mixed media if the sections differ only in color without a change in texture or material. Mixed media requires a physical contrast in fabric or material, not just color blocking or decorative stitching.
+4. Layered or Separate Materials: Recognize cases where multiple materials are layered or independently used in distinct garment sections, like a body of one fabric type and sleeves of another. This deliberate use of contrasting materials qualifies as mixed media.
+5. Exclude Designs with Single Fabric: If the garment uses one consistent material with no layered or contrasting segments, do not classify it as mixed media, even if the appearance changes due to design or draping.
+Key Reminder: Classify as mixed media only if there are differences in material or texture. Do not include garments that have variations only in color or decorative elements without a true change in fabric type or physical texture. Color blocking, contrast binding, or differently colored sections of the same fabric do not meet the criteria for mixed media
+"""
+
+# Appliqué guide definition
+Appliqué_guide = """
+For identifying Appliqué in garments, consider these key characteristics:
+
+1. Definition and Process:
+- Involves attaching separate fabric pieces onto the main garment
+- Creates a distinct layered effect
+- Additional fabric is cut into specific shapes/patterns
+- Secured through stitching onto base material
+
+2. Visual Characteristics:
+- Creates three-dimensional, raised appearance
+- Makes bold visual impact
+- Typically larger design elements
+- Uses contrasting colors or patterns
+- Stands out against base material
+
+3. Applications:
+- Forms larger design elements like:
+  * Floral motifs
+  * Logos
+  * Letters
+- Features visible stitched borders
+- Emphasizes shape and detail through edge stitching
+
+4. Key Indicators:
+- Visible raised fabric layers
+- Clear separation between base and added fabric
+- Distinct edge stitching
+- Intentional design placement
+- Dimensional surface texture
+
+Example: "A sweatshirt with large floral appliqué patches that stand out due to their distinct colors and raised effect, creating a visually striking and textured surface."
+
+Note: Distinguish from embroidery or printed designs - appliqué must show physical fabric layering and dimensional effect.
+"""
+
+# Contrast binding detail guide definition
+contrast_binding_detail_guide = """
+For Contrast Binding Detail analysis, carefully examine contrasting trim elements:
+
+1. Uniform and Intentional Outlining Effect: The binding should create a consistent and intentional outline that visually frames specific parts of the garment. This can give the garment a sporty, streamlined, or tailored look, often following straight, curved, or shaped lines across various sections.
+3. Distinction from Other Decorative Elements: Ensure that the binding is a continuous strip or edge detail, not merely color-blocking or different-colored panels. Ignore any patterns or prints unless they are directly part of the binding effect itself.
+4. Multiple Binding Lines or Layered Effects: Some garments may feature multiple lines or dual bindings, adding visual layers or borders in more than one color. Both single and double lines qualify as contrast binding.
+5. Texture and Fabric Type Consistency with Binding: Contrast binding usually appears as a visibly raised or separate fabric trim sewn onto the main garment
+Do not include garments with mixed textures or materials that create different segments or panels without a defined binding line.
+Identify and confirm Contrast Binding if these features are present, and disregard general color patterns or internal color contrasts that do not form distinct edge or seam lines.
+"""
+
+# Shirring detail guide definition
+shirring_detail_guide = """
+Identify shirring details within the garment images by closely examining specific areas for gathered, ruched, or cinched fabric appearances, which often create a rippled or pleated texture. Focus on:
+
+1.Shoulders and Sleeve Tops: Look for gathered or ruched fabric around the shoulder seams, where shirring is often used to add volume or shape. If there is a shirring at the shoulder, classify it as a shirring.
+2.Side Seams: Inspect the side areas for tightly gathered or ruched fabric, which creates a defined shirring effect typically around the waist or torso.
+3.Sleeve Cuffs and Bodice: Look for shirring along sleeve cuffs or the bodice that gives a puffed or pleated appearance, adding texture and volume to these sections.
+4.Contrast with Smooth Sections: Differentiate shirred areas from adjacent smooth or flat fabric sections. Shirring should present a visibly textured, gathered appearance.
+5.Material Stretch and Layering: Identify if the shirring effect is achieved through elastic material or multiple fabric layers creating gathered textures.
+"""
+
+# Beading detail guide definition
+beading_detail_guide = """
+Key Visual Indicators for Beading:
+1. Must be raised/3D elements on fabric surface
+2. Usually small, spherical or shaped beads
+3. Creates visible texture and shine
+4. Common locations: necklines, edges, patterns
+
+NOT Beading:
+- Flat sequins or rhinestones
+- Printed patterns
+- Regular embroidery
+
+Check for:
+1. Is it raised from the surface?
+2. Are they actual beads?
+3. Is it intentionally decorative?
+"""
+
+# Embroidery guide definition
+embroidery_guide = """
+For identifying Embroidery in garments, consider these key characteristics:
+
+1. Definition and Process:
+- Patterns/designs directly stitched onto fabric using thread
+- No separate fabric pieces added
+- Uses different colored threads for design creation
+- Integrated into the base material through stitching
+
+2. Visual Characteristics:
+- Appears as integral part of the fabric
+- Creates flat, non-layered appearance
+- Features intricate and delicate patterns
+- Seamlessly blends with base material
+- Can include multiple thread colors
+
+3. Applications:
+- Creates detailed patterns such as:
+  * Floral motifs
+  * Small logos
+  * Text elements
+- Common placement areas:
+  * Collars
+  * Pockets
+  * Central decorative elements
+- Integrates naturally with garment design
+
+4. Key Indicators:
+- Thread-based design elements
+- No raised fabric layers
+- Fine, detailed stitching
+- Precise pattern execution
+- Direct surface decoration
+
+Example: "A T-shirt with an embroidered floral pocket, where colorful threads create a delicate flower design that is directly stitched onto the pocket, providing a subtle yet intricate detail."
+
+Note: Distinguish from appliqué - embroidery uses only thread and creates no additional fabric layers.
+"""
+
 # 허용된 사용자 딕셔너리 (이메일: 비밀번호)
 ALLOWED_USERS = {
     "baekdoo28@gmail.com": "Yakjin135#",
@@ -95,13 +226,13 @@ analysis_options = {
         "Fit": ["Slim Fit", "Loose Fit", "Oversized"],
         "Neckline": ["Crew Neck", "V-Neck", "Square Neck", "Scoop Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
         "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Half Sleeves", "Puff Sleeves"],
-        "Sleeves Construction": ["Set-In", "Raglan", "Dolman", "Drop Shoulder"],
+        "Sleeves Construction": ["Set-In", "Raglan", "Dolman", "Drop Shoulder", "Unspecified"],
         "Length": ["Crop", "Regular", "Long"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué",
-                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", "Seamless", "Binding"]
+                   "Shirring", "Wrap", "Twist", "Knot", "mixed_media", "Seam detail", "Cut out", "Seamless", "Contrast Binding"]
     },
     "Bottom": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Skinny", "Straight", "Bootcut", "Flare", "Wide Leg"],
@@ -116,13 +247,13 @@ analysis_options = {
         "Fit": ["Bodycon", "A-Line", "Fit&Flare", "Shift", "Sheath", "Empire Waist"],
         "Neckline": ["Crew Neck", "V-Neck", "Square Neck", "Scoop Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
         "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Half Sleeves", "Puff Sleeves"],
-        "Sleeves Construction": ["Set-In", "Raglan", "Dolman", "Drop Shoulder"],
+        "Sleeves Construction": ["Set-In", "Raglan", "Dolman", "Drop Shoulder", "Unspecified"],
         "Length": ["Mini", "Midi", "Maxi", "Above Knee", "Knee Length", "Below Knee"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading",  
-                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Cut out", "Binding"]
+                   "Shirring", "Wrap", "Twist", "Knot", "mixed_media", "Seam detail", "Cut out", "Seamless", "Contrast Binding"]
     },
     "Outerwear": {
         "Type": ["Jacket", "Coat", "Blazer", "Cardigan", "Vest"],
@@ -161,6 +292,57 @@ def get_image_hash(image):
     hash_str = ''.join(['1' if pixel > avg else '0' for pixel in gray.flatten()])
     return hash_str
 
+# 슬리브 컨스트럭션 가이드 정의 추가
+sleeve_construction_guide = """
+For Sleeve Construction analysis, please consider these important factors:
+
+1. Key Construction Types:
+- Set-In: Traditional sleeve construction with armhole seam
+- Raglan: Extends from neckline to underarm
+- Dolman: Cut as one piece with bodice
+- Drop Shoulder: Shoulder seam falls below natural shoulder
+- Unspecified: Use for:
+  * Sleeveless styles
+  * Straps
+  * Tank tops
+  * Halter styles
+  * Any style without traditional sleeve construction
+
+2. Important Rules:
+- Only analyze actual sleeve constructions
+- Sleeveless garments should ALWAYS be marked as "Unspecified"
+- Strap styles should ALWAYS be marked as "Unspecified"
+- If no clear sleeve construction is present, use "Unspecified"
+
+3. Key Indicators:
+Set-In Sleeves:
+- Clear armhole seam
+- Traditional sleeve cap
+- Fitted shoulder point
+
+Raglan Sleeves:
+- Extends to neckline
+- Diagonal seam from neck
+- No shoulder seam
+
+Dolman Sleeves:
+- Cut in one with bodice
+- No armhole seam
+- Bat-wing effect
+
+Drop Shoulder:
+- Shoulder seam below point
+- Visible drop from natural shoulder
+- Intentionally lowered sleeve
+
+Unspecified:
+- No sleeve present
+- Strap construction
+- Tank top style
+- Halter construction
+- Strapless design
+"""
+
 # 수정된 분석 함수
 @st.cache_data(ttl=24*3600, show_spinner=False, hash_funcs={Image.Image: get_image_hash})
 def analyze_single_image(image, category, options):
@@ -171,6 +353,16 @@ def analyze_single_image(image, category, options):
     for option in options:
         if option == "Sleeves":
             prompt += f"\n{sleeve_length_guide}\n"
+        elif option == "Sleeves Construction":
+            prompt += f"\n{sleeve_construction_guide}\n"
+        elif option == "Details" and "mixed_media" in analysis_options[category]["Details"]:
+            prompt += f"\n{mixed_media_guide}\n"
+        elif option == "Details" and "Binding Detail" in analysis_options[category]["Details"]:
+            prompt += f"\n{contrast_binding_detail_guide}\n"
+        elif option == "Details" and "Beading Detail" in analysis_options[category]["Details"]:
+            prompt += f"\n{beading_detail_guide}\n"
+        elif option == "Details" and "Embroidery" in analysis_options[category]["Details"]:
+            prompt += f"\n{embroidery_guide}\n"
         
         if option == "Details":
             prompt += f"{option}: Select ALL that apply from [{', '.join(analysis_options[category][option])}]\n"
@@ -277,13 +469,31 @@ def process_images(images):
     return processed_images
 
 # Image enhancement function
-def enhance_image(image, scale_factor=2):
+def enhance_image(image, scale_factor=1):
+    # PIL 이미지를 OpenCV 형식으로 변환
     cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    
+    # 1. 이미지 크기 조정 (최적 크기로 조정)
+    min_dimension = 800  # 최소 크기 제한
+    max_dimension = 1200  # 최대 크기 제한
     height, width = cv_image.shape[:2]
-    resized = cv2.resize(cv_image, (width*scale_factor, height*scale_factor), interpolation=cv2.INTER_CUBIC)
-    gaussian = cv2.GaussianBlur(resized, (0, 0), 3.0)
-    sharpened = cv2.addWeighted(resized, 1.5, gaussian, -0.5, 0, resized)
-    denoised = cv2.fastNlMeansDenoisingColored(sharpened, None, 10, 10, 7, 21)
+    
+    # 작은 이미지는 확대
+    if max(height, width) < min_dimension:
+        scale = min_dimension / max(height, width)
+        new_width = int(width * scale)
+        new_height = int(height * scale)
+        cv_image = cv2.resize(cv_image, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
+    # 큰 이미지는 축소
+    elif max(height, width) > max_dimension:
+        scale = max_dimension / max(height, width)
+        new_width = int(width * scale)
+        new_height = int(height * scale)
+        cv_image = cv2.resize(cv_image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    
+    # 2. 기본적인 노이즈 제거 (빠른 처리를 위해 파라미터 조정)
+    denoised = cv2.fastNlMeansDenoisingColored(cv_image, None, 7, 7, 5, 12)
+    
     return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
 
 # 고유한 색상 세트를 생성하는 함수
@@ -334,7 +544,7 @@ def create_donut_chart(data, title, color_set):
         hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
     )])
     
-    # 레이아웃 설정 (이전과 동일)
+    # 이아웃 설정 (이전과 동일)
     fig.update_layout(
         showlegend=True,
         legend=dict(
@@ -388,6 +598,30 @@ def generate_colors(n):
         colors.append(hex_color)
     return colors
 
+# 세션 상태에 분석 결과 저장을 위한 초기화 함수 추가
+def initialize_session_state():
+    if 'analysis_results' not in st.session_state:
+        st.session_state.analysis_results = {}
+    if 'image_categories' not in st.session_state:
+        st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
+
+# 이미지 제거 함수 추가
+def remove_image(option, value, image_index):
+    if option in st.session_state.analysis_results and value in st.session_state.image_categories[option]:
+        # 이미지 리스트에서 제거
+        st.session_state.image_categories[option][value].pop(image_index)
+        
+        # 카운터 업데이트
+        if option == "Details":
+            st.session_state.analysis_results[option][value] -= 1
+            if st.session_state.analysis_results[option][value] == 0:
+                del st.session_state.analysis_results[option][value]
+        else:
+            st.session_state.analysis_results[option][value] -= 1
+        
+        # 세션 상태 업데이트 트리거
+        st.session_state.update_charts = True
+
 # Modified main app logic (image list part)
 def main():
     st.set_page_config(layout="centered")
@@ -421,14 +655,12 @@ def main():
             key="analysis_options"
         )
         
-        st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload File</h3>", unsafe_allow_html=True)
+        st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload and Analyze</h3>", unsafe_allow_html=True)
         uploaded_files = st.file_uploader("Choose File(s)", 
                                         type=["xlsx", "xls", "png", "jpg", "jpeg", "jfif", "zip"], 
                                         accept_multiple_files=True)
         
-        if uploaded_files:
-            st.markdown("<h3><span class='emoji'>🖼️</span> Step 4: Image Processing</h3>", unsafe_allow_html=True)
-            
+        if uploaded_files and selected_options:  # 파일과 분석 항목이 모두 선택된 경우
             images = []
             for uploaded_file in uploaded_files:
                 if uploaded_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
@@ -445,7 +677,7 @@ def main():
                             img = img.convert('RGB')
                         images.append(img)
                     except Exception as e:
-                        st.error(f"이미지 파일 처리 중 오류 발생: {str(e)}")
+                        st.error(f"이지 파일 처리 중 오류 발생: {str(e)}")
                 elif uploaded_file.type == 'application/zip':
                     for _, img_data in process_zip_file(uploaded_file):
                         try:
@@ -457,101 +689,102 @@ def main():
                             st.error(f"ZIP 파일 내 이미지 처리 중 오류 발생: {str(e)}")
             
             if images:
-                with st.spinner('이미지 처리 중...'):
-                    processed_images = process_images(images)
+                status_message = st.empty()  # 상태 메시지를 위한 컨테이너 생성
+                status_message.text('이미지 처리 중...')
                 
-                st.success(f"{len(processed_images)}개의 이미지가 성공적으로 처리되습니다.")
+                # 이미지 처리
+                processed_images = process_images(images)
                 
-                if st.button("🚀 Step 5: Start analysing", key="start_analysis"):
-                    if not selected_options:
-                        st.markdown("<p><span class='emoji'>️</span> 분석 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
-                    else:
-                        progress_bar = st.progress(0)
-                        status_text = st.empty()
+                # 이미지 처리가 끝나면 상태 메시지 업데이트
+                status_message.text('이미지 분석 중...')
+                
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                aggregated_results = {option: Counter() for option in selected_options}
+                image_categories = defaultdict(lambda: defaultdict(list))
+                
+                total_images = len(processed_images)
+                batch_size = 4
+                
+                batch_data = [(img, selected_category, selected_options) 
+                             for img in processed_images]
+                
+                completed_images = 0
+                
+                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                    for batch in batch_images(batch_data, batch_size):
+                        future_to_image = {executor.submit(analyze_image_batch, data): data 
+                                         for data in batch}
                         
-                        aggregated_results = {option: Counter() for option in selected_options}
-                        image_categories = defaultdict(lambda: defaultdict(list))
-                        
-                        total_images = len(processed_images)
-                        batch_size = 4  # 한 번에 처리할 이미지 수
-                        
-                        # 병렬 처리를 위한 데이터 준비
-                        batch_data = [(img, selected_category, selected_options) 
-                                     for img in processed_images]
-                        
-                        completed_images = 0
-                        
-                        # ThreadPoolExecutor를 사용한 병렬 처리
-                        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                            for batch in batch_images(batch_data, batch_size):
-                                # 배치 단위로 병렬 처리
-                                future_to_image = {executor.submit(analyze_image_batch, data): data 
-                                                 for data in batch}
+                        for future in concurrent.futures.as_completed(future_to_image):
+                            result = future.result()
+                            if result and isinstance(result, dict):
+                                image_data = future_to_image[future]
+                                image = image_data[0]
                                 
-                                for future in concurrent.futures.as_completed(future_to_image):
-                                    result = future.result()
-                                    if result and isinstance(result, dict):
-                                        image_data = future_to_image[future]
-                                        image = image_data[0]
-                                        
-                                        for option, detected in result.items():
-                                            if option in selected_options:
-                                                if option == "Details" and isinstance(detected, list):
-                                                    # Details의 경우 리스트로 받은 각 항목을 개별적으로 처리
-                                                    for detail in detected:
-                                                        aggregated_results[option][detail] += 1
-                                                        image_categories[option][detail].append(image)
-                                                else:
-                                                    # 다른 옵션들은 기존 방식대로 처리
-                                                    aggregated_results[option][detected] += 1
-                                                    image_categories[option][detected].append(image)
-                                    
-                                    completed_images += 1
-                                    progress = completed_images / total_images
-                                    progress_bar.progress(progress)
-                                    status_text.text(f"이미지 분석 중: {completed_images}/{total_images}")
-
-                        progress_bar.empty()
-                        status_text.empty()
-                        
-                        # 결과 표시
-                        st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
-                        st.markdown("<hr>", unsafe_allow_html=True)
-                        st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
-                        st.markdown("<div class='results-container'>", unsafe_allow_html=True)
-                        
-                        # 각 분석 항목에 대한 고유한 색상 세트 생성
-                        color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최대 카테고리 수
-                        
-                        for i, (option, results) in enumerate(aggregated_results.items()):
-                            if results:
-                                st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
-                                fig = create_donut_chart(results, option, color_sets[i])
-                                st.plotly_chart(fig, use_container_width=True)
-                                
-                                with st.expander(f"{option} Details"):
-                                    for value, count in results.items():
-                                        st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
-                                        if option in image_categories and value in image_categories[option]:
-                                            images = image_categories[option][value]
-                                            cols = st.columns(5)
-                                            for j, img in enumerate(images):
-                                                with cols[j % 5]:
-                                                    st.image(img, use_column_width=True)
-                                                if (j + 1) % 5 == 0:
-                                                    st.write("")
+                                for option, detected in result.items():
+                                    if option in selected_options:
+                                        if option == "Details" and isinstance(detected, list):
+                                            for detail in detected:
+                                                aggregated_results[option][detail] += 1
+                                                image_categories[option][detail].append(image)
                                         else:
-                                            st.write("No Matching Images Found.")
-                                        st.write("---")
-                                st.markdown("</div>", unsafe_allow_html=True)
-                            else:
-                                st.write(f"No Data Available for {option}.")
-                            
-                            # 2개의 차트마다 새 줄 시작
-                            if (i + 1) % 2 == 0:
-                                st.markdown("</div><div class='results-container'>", unsafe_allow_html=True)
+                                            aggregated_results[option][detected] += 1
+                                            image_categories[option][detected].append(image)
+                                
+                            completed_images += 1
+                            progress = completed_images / total_images
+                            progress_bar.progress(progress)
+                            status_text.text(f"이미지 분석 중: {completed_images}/{total_images}")
+
+                # 분석 완료 후 상태 메시지와 프로그레스 바 삭제
+                progress_bar.empty()
+                status_text.empty()
+                status_message.empty()
+                
+                # 분석 결과를 세션 상태에 저장
+                st.session_state.analysis_results = aggregated_results
+                st.session_state.image_categories = image_categories
+                
+                # 결과 표시
+                st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
+                st.markdown("<hr>", unsafe_allow_html=True)
+                st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
+                st.markdown("<div class='results-container'>", unsafe_allow_html=True)
+                
+                # 각 분석 항목에 대한 고유한 색상 세트 생성
+                color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최 카테고리 
+                
+                for i, (option, results) in enumerate(aggregated_results.items()):
+                    if results:
+                        st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
+                        fig = create_donut_chart(results, option, color_sets[i])
+                        st.plotly_chart(fig, use_container_width=True)
                         
-                        st.markdown("</div></div>", unsafe_allow_html=True)
+                        with st.expander(f"{option} Details"):
+                            for value, count in results.items():
+                                st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
+                                if option in image_categories and value in image_categories[option]:
+                                    images = image_categories[option][value]
+                                    cols = st.columns(5)
+                                    for j, img in enumerate(images):
+                                        with cols[j % 5]:
+                                            st.image(img, use_column_width=True)
+                                        if (j + 1) % 5 == 0:
+                                            st.write("")
+                                else:
+                                    st.write("No Matching Images Found.")
+                                st.write("---")
+                        st.markdown("</div>", unsafe_allow_html=True)
+                    else:
+                        st.write(f"No Data Available for {option}.")
+                    
+                    # 2개의 차트마다 새 줄 시작
+                    if (i + 1) % 2 == 0:
+                        st.markdown("</div><div class='results-container'>", unsafe_allow_html=True)
+                
+                st.markdown("</div></div>", unsafe_allow_html=True)
             else:
                 st.markdown("<p><span class='emoji'>⚠️</span> No Images Found in the Uploaded File.</p>", unsafe_allow_html=True)
     else:
