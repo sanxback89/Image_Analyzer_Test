@@ -144,6 +144,7 @@ For Contrast Binding Detail analysis, carefully examine ONLY true binding elemen
    - The binding must be serving a functional edge-finishing purpose, not merely decorative
 
 Remember: True contrast binding is a construction technique for finishing raw edges, not just any decorative border or trim. If the element in question is purely decorative and doesn't actually encase a raw edge, it is NOT contrast binding.
+          Also, if the data is sweatshirts or cardigan type garments, we do not use contrast binding, so we exclude those submissions. Also, if the embellishment is in the form of a contrast colour, such as a stitch on the neck trim, but it is an embellishment and not a contrast binding, we classify it as an embellishment and not a contrast binding.
 
 Examples of what is NOT contrast binding:
 - Embroidered borders
