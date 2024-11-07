@@ -107,15 +107,51 @@ Note: Distinguish from embroidery or printed designs - appliqué must show physi
 
 # Contrast binding detail guide definition
 contrast_binding_detail_guide = """
-For Contrast Binding Detail analysis, carefully examine contrasting trim elements:
+For Contrast Binding Detail analysis, carefully examine ONLY true binding elements that meet ALL of the following criteria:
 
-1. Clear Color Contrast in Narrow Edges and Trims: Look specifically for narrow, fabric-based lines or strips outlining parts of the garment that are a different color from the main body fabric. This is typically seen along edges such as necklines, armholes, waistbands, sleeve edges, or hem edges. Avoid interpreting textures, shadows, or minimal tonal differences as contrast binding.
-2. Intentional and Consistent Outlining Effect: The binding should create a distinct, continuous, and purposeful outline framing parts of the garment. This framing effect should be uniform and separate from other design elements. For garments with minor trim differences that are not bold or framing the garment, do not consider these as contrast bindings.
-3. Separation from Decorative and Textured Patterns: Contrast binding should appear as a separate, narrow edge line or trim, not part of the overall fabric pattern or texture. Avoid interpreting patterns, embroidery, or woven details along edges as contrast bindings unless they clearly function as a border trim.
-4. Single or Double Binding Lines Only: Accept garments with either single or dual, narrow binding lines as contrast binding. If multiple colors or patterns are present but do not distinctly frame the garment as binding, exclude these from classification.
-5. Consistent Texture in Binding Material: The binding should have a visibly distinct and often smoother texture that contrasts against the main garment fabric. Disregard mixed or textured edges without a clearly defined trim.
+1. Physical Construction Requirements:
+   - Must be a separate strip of fabric folded over and encasing the raw edge
+   - Must be sewn through all layers to enclose and finish an edge
+   - Must be a continuous piece of fabric trim, NOT decorative stitching or embroidery
+   - Must serve a functional purpose of edge finishing, not just decoration
 
-Note: Ignore garments with subtle color edging or patterns that do not distinctly frame parts of the garment. Avoid interpreting internal stitching, general color blocking, or patterned details as contrast binding if they lack a defined edge or seam effect.
+2. Visual Identification Criteria:
+   - Must show clear folded edge wrapping around the garment edge
+   - Must have consistent width throughout its length
+   - Must be made of fabric material different from the main garment
+   - Must create a clean, finished edge appearance
+
+3. Common Locations (must be at actual garment edges):
+   - Necklines
+   - Armholes
+   - Hem edges
+   - Waistbands
+   - Sleeve openings
+
+4. Explicit Exclusions:
+   - Decorative embroidery or stitching along edges
+   - Flat trim sewn on top of fabric
+   - Contrast topstitching
+   - Appliqué or patches
+   - Lace trim
+   - Woven or knitted pattern borders
+   - Color blocking
+   - Decorative ribbon or tape that doesn't encase an edge
+   - Any trim that doesn't fully wrap around and encase a raw edge
+
+5. Key Verification Test:
+   - If you were to look at the cross-section, you must be able to see the binding fabric wrapping around and encasing the raw edge of the main fabric
+   - The binding must be serving a functional edge-finishing purpose, not merely decorative
+
+Remember: True contrast binding is a construction technique for finishing raw edges, not just any decorative border or trim. If the element in question is purely decorative and doesn't actually encase a raw edge, it is NOT contrast binding.
+
+Examples of what is NOT contrast binding:
+- Embroidered borders
+- Decorative stitching
+- Surface-applied trim
+- Woven or knitted pattern borders
+- Topstitching in a contrast color
+- Flat trim sewn onto the surface
 """
 
 # Shirring detail guide definition
