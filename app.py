@@ -653,9 +653,6 @@ def main():
     .results-container { display: flex; flex-wrap: wrap; justify-content: space-between; }
     .chart-container { width: 48%; margin-bottom: 20px; }
     .fullwidth { width: 100vw; position: relative; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; }
-    .stFileUploader > section > input + div {
-        width: 100% !important;
-    }
     </style>
     """, unsafe_allow_html=True)
     
@@ -675,17 +672,10 @@ def main():
             key="analysis_options"
         )
         
-        # 파일 업로더 상태를 추적하기 위한 키 추가
-        if 'previous_upload_count' not in st.session_state:
-            st.session_state.previous_upload_count = 0
-            
-        # Clear 버튼 추가
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            uploaded_files = st.file_uploader("Choose File(s)", 
-                                            type=["xlsx", "xls", "png", "jpg", "jpeg", "jfif", "zip"], 
-                                            accept_multiple_files=True,
-                                            key="file_uploader")
+        st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload and Analyze</h3>", unsafe_allow_html=True)
+        uploaded_files = st.file_uploader("Choose File(s)", 
+                                        type=["xlsx", "xls", "png", "jpg", "jpeg", "jfif", "zip"], 
+                                        accept_multiple_files=True)
         
         if uploaded_files and selected_options:  # 파일과 분석 항목이 모두 선택된 경우
             images = []
