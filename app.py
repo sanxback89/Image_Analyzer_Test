@@ -97,61 +97,18 @@ For Mix Media analysis, please consider these important factors:
 
 Remember: Mix Media is strictly about different MATERIALS and TEXTURES, not about color variations or decorative elements. Color blocking, contrast binding, or different colored sections of the same fabric type do NOT qualify as mix media.
 """
-# Binding detail guide definition
-binding_detail_guide = """
-For Binding Detail analysis, carefully examine contrasting trim elements:
+# Contrast binding detail guide definition
+contrast_binding_detail_guide = """
+For Contrast Binding Detail analysis, carefully examine contrasting trim elements:
 
-1. Definition of Binding Detail:
-IMPORTANT: Binding detail should be identified when ANY of these conditions are met:
-- Contrasting color trim/bands along edges of garment parts
-- Contrasting color lines or strips that outline design elements
-- Trim that creates a visible border or edge effect in a different color
-- Decorative bands or strips in contrasting colors
-- Color blocking achieved through binding or trim elements
+1. Color Contrast in Edges and Trims: Look for areas where a narrow, often fabric-based line or strip outlines parts of the garment in a color that contrasts with the main body fabric. This is usually seen along edges such as necklines, armholes, waistbands, sleeve edges, hem edges, or seams. For instance, a white line on a black garment or a dark line on a light fabric indicates contrast binding.
+2. Uniform and Intentional Outlining Effect: The binding should create a consistent and intentional outline that visually frames specific parts of the garment. This can give the garment a sporty, streamlined, or tailored look, often following straight, curved, or shaped lines across various sections.
+3. Distinction from Other Decorative Elements: Ensure that the binding is a continuous strip or edge detail, not merely color-blocking or different-colored panels. Ignore any patterns or prints unless they are directly part of the binding effect itself.
+4. Multiple Binding Lines or Layered Effects: Some garments may feature multiple lines or dual bindings, adding visual layers or borders in more than one color. Both single and double lines qualify as contrast binding.
+5. Texture and Fabric Type Consistency with Binding: Contrast binding usually appears as a visibly raised or separate fabric trim sewn onto the main garment, often with a smooth or elastic texture that stands out against the base fabric.
 
-2. Key Visual Indicators - Look for:
-- Edge finishes in different colors from the main fabric
-- Contrasting color strips along:
-  * Necklines
-  * Armholes/sleeve edges
-  * Hem edges
-  * Waistbands
-  * Any seam lines or design lines
-- Sporty trim details
-- Athletic-style contrast edging
-- Fashion trim elements that create color contrast
-
-3. Important Assessment Guidelines:
-- ANY contrast color edge treatment should be considered binding
-- The binding effect can be created by:
-  * Actual binding tape
-  * Contrast fabric bands
-  * Decorative trim
-  * Edge finishing in different colors
-- Focus on the visual effect of contrast edges/lines
-- Both thin and wide contrast bands qualify
-- Both single and double line bindings count
-- Consider both solid and multi-color binding effects
-
-4. Common Examples in Sportswear:
-- White trim on dark garments
-- Dark trim on light garments
-- Athletic-style contrast edging
-- Racing stripes and sport trim
-- Contrast color blocking achieved through binding
-- Decorative edge treatments in different colors
-
-5. Special Notes:
-- Binding can be functional AND decorative
-- The contrast effect is more important than the construction method
-- Look for ANY intentional use of contrast edges or trim
-- Consider both subtle and bold contrast effects
-- Multiple binding details can exist on one garment
-- Both straight and curved binding lines qualify
-
-Remember: If you see contrasting color trim, edge treatment, or binding-like effects that create visual interest or define garment sections, count it as binding detail. Focus on the decorative effect rather than the technical construction.
-
-For example, garments with white trim on black fabric, navy trim on white fabric, or any contrasting color edges should be marked as having binding detail."""
+Identify and confirm Contrast Binding if these features are present, and disregard general color patterns or internal color contrasts that do not form distinct edge or seam lines.
+"""
 
 # Beading detail guide definition
 beading_detail_guide = """
@@ -217,7 +174,7 @@ analysis_options = {
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué",
-                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", "Seamless", "Binding"]
+                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", "Seamless", "Contrast Binding"]
     },
     "Bottom": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Skinny", "Straight", "Bootcut", "Flare", "Wide Leg"],
@@ -238,7 +195,7 @@ analysis_options = {
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading",  
-                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Cut out", "Binding"]
+                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Cut out", "Contrast Binding"]
     },
     "Outerwear": {
         "Type": ["Jacket", "Coat", "Blazer", "Cardigan", "Vest"],
@@ -343,7 +300,7 @@ def analyze_single_image(image, category, options):
         elif option == "Details" and "Mix media" in analysis_options[category]["Details"]:
             prompt += f"\n{mix_media_guide}\n"
         elif option == "Details" and "Binding Detail" in analysis_options[category]["Details"]:
-            prompt += f"\n{binding_detail_guide}\n"
+            prompt += f"\n{contrast_binding_detail_guide}\n"
         elif option == "Details" and "Beading Detail" in analysis_options[category]["Details"]:
             prompt += f"\n{beading_detail_guide}\n"
         
