@@ -107,56 +107,31 @@ Note: Distinguish from embroidery or printed designs - appliqué must show physi
 
 # Contrast binding detail guide definition
 contrast_binding_detail_guide = """
-CONTRAST BINDING IDENTIFICATION RULES:
+CONTRAST BINDING RULES:
 
-1. True Binding Construction ONLY:
-   - Must be a separate fabric strip physically folded over the raw edge
-   - Must wrap completely around to the inside of the garment
-   - Must be stitched through all layers
-   - Must serve a functional purpose of finishing raw edges
+1. ONLY Valid on These Garments:
+   ✓ Athletic/Sportswear
+   ✓ Performance wear
+   ✓ Technical stretch fabrics
+   ✓ Functional activewear
 
-2. Physical Structure Requirements:
-   - Must show clear evidence of fabric wrap-around
-   - Must have uniform width throughout
-   - Must encase the raw edge completely
-   - Must be sewn through multiple layers
+2. MUST Show All:
+   ✓ Actual binding tape wrapped around edges
+   ✓ Clean functional edge finishing
+   ✓ Consistent width throughout
+   ✓ Professional sports garment construction
 
-3. Automatic Exclusion - STOP ANALYSIS if you see:
-   [STOP] Surface stitching or embroidery
-   [STOP] Decorative edge treatments
-   [STOP] Contrast color topstitching
-   [STOP] Any knit garment construction
-   [STOP] Any button-front garment
-   [STOP] Any sweater or cardigan
-   [STOP] Any sweatshirt
-   [STOP] Any decorative trim without full wrap-around
-   [STOP] Any elastic or ribbed edges
+3. AUTOMATIC EXCLUSIONS - If any of these, NOT binding:
+   [NO] Knitwear of any kind
+   [NO] Button-front garments
+   [NO] Decorative stitching
+   [NO] Embroidered details
+   [NO] Sweaters/Sweatshirts
+   [NO] Contrast color topstitching
+   [NO] Surface decorations
 
-4. True Binding vs. Decorative Elements:
-   NOT Binding:
-   - Surface stitching (even if continuous)
-   - Embroidered edges
-   - Contrast color topstitching
-   - Decorative edge treatments
-   - Applied trims or braids
-   - Serged edges with contrast thread
-   
-   IS Binding:
-   - Separate fabric strip
-   - Completely wraps edge
-   - Functional edge finish
-   - Full encasing of raw edge
-
-CRITICAL: Do not classify as binding if:
-1. You cannot verify the strip wraps to inside
-2. It appears to be surface decoration
-3. It's on a knit/sweater/sweatshirt
-4. It has buttons
-5. It's decorative stitching
-
-VERIFICATION TEST:
-Can you physically see the binding fabric wrap around to the inside?
-If NO or UNSURE = NOT binding
+Key Test: Is it sports/athleticwear with actual binding tape?
+If NO = Not contrast binding
 """
 
 # Shirring detail guide definition
