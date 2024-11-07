@@ -70,15 +70,39 @@ Key Reminder: Classify as mixed media only if there are differences in material 
 
 # Appliqué guide definition
 Appliqué_guide = """
-for classifying images as "Appliqué," I'll focus on describing visual characteristics typical of appliqué techniques:
+For identifying Appliqué in garments, consider these key characteristics:
 
-1.Surface Details: Mention intricate surface patterns, often raised or layered, with fabric or thread detailing visible.
-2.Layering Effect: Describe an overlay effect, where fabric patches or shapes are sewn onto the garment surface, creating a distinct texture or pattern.
-3.Contrast in Textures: Appliqué work often involves contrasting textures, where the applied fabric has a different feel or appearance from the base garment fabric.
-4.Embroidery or Stitching: Highlight visible stitching or embroidery around the edges of appliqué pieces, anchoring them to the fabric beneath.
-5.Floral or Geometric Patterns: Many appliqué designs include floral, geometric, or symmetrical patterns, enhancing the visual complexity of the garment.
+1. Definition and Process:
+- Involves attaching separate fabric pieces onto the main garment
+- Creates a distinct layered effect
+- Additional fabric is cut into specific shapes/patterns
+- Secured through stitching onto base material
 
-Dimensional Depth: Describe any three-dimensional or slightly raised look that appliqué adds to an otherwise flat fabric, giving the garment a sense of depth.
+2. Visual Characteristics:
+- Creates three-dimensional, raised appearance
+- Makes bold visual impact
+- Typically larger design elements
+- Uses contrasting colors or patterns
+- Stands out against base material
+
+3. Applications:
+- Forms larger design elements like:
+  * Floral motifs
+  * Logos
+  * Letters
+- Features visible stitched borders
+- Emphasizes shape and detail through edge stitching
+
+4. Key Indicators:
+- Visible raised fabric layers
+- Clear separation between base and added fabric
+- Distinct edge stitching
+- Intentional design placement
+- Dimensional surface texture
+
+Example: "A sweatshirt with large floral appliqué patches that stand out due to their distinct colors and raised effect, creating a visually striking and textured surface."
+
+Note: Distinguish from embroidery or printed designs - appliqué must show physical fabric layering and dimensional effect.
 """
 
 # Contrast binding detail guide definition
@@ -122,6 +146,46 @@ Check for:
 1. Is it raised from the surface?
 2. Are they actual beads?
 3. Is it intentionally decorative?
+"""
+
+# Embroidery guide definition
+embroidery_guide = """
+For identifying Embroidery in garments, consider these key characteristics:
+
+1. Definition and Process:
+- Patterns/designs directly stitched onto fabric using thread
+- No separate fabric pieces added
+- Uses different colored threads for design creation
+- Integrated into the base material through stitching
+
+2. Visual Characteristics:
+- Appears as integral part of the fabric
+- Creates flat, non-layered appearance
+- Features intricate and delicate patterns
+- Seamlessly blends with base material
+- Can include multiple thread colors
+
+3. Applications:
+- Creates detailed patterns such as:
+  * Floral motifs
+  * Small logos
+  * Text elements
+- Common placement areas:
+  * Collars
+  * Pockets
+  * Central decorative elements
+- Integrates naturally with garment design
+
+4. Key Indicators:
+- Thread-based design elements
+- No raised fabric layers
+- Fine, detailed stitching
+- Precise pattern execution
+- Direct surface decoration
+
+Example: "A T-shirt with an embroidered floral pocket, where colorful threads create a delicate flower design that is directly stitched onto the pocket, providing a subtle yet intricate detail."
+
+Note: Distinguish from appliqué - embroidery uses only thread and creates no additional fabric layers.
 """
 
 # 허용된 사용자 딕셔너리 (이메일: 비밀번호)
@@ -298,6 +362,8 @@ def analyze_single_image(image, category, options):
             prompt += f"\n{contrast_binding_detail_guide}\n"
         elif option == "Details" and "Beading Detail" in analysis_options[category]["Details"]:
             prompt += f"\n{beading_detail_guide}\n"
+        elif option == "Details" and "Embroidery" in analysis_options[category]["Details"]:
+            prompt += f"\n{embroidery_guide}\n"
         
         if option == "Details":
             prompt += f"{option}: Select ALL that apply from [{', '.join(analysis_options[category][option])}]\n"
@@ -612,7 +678,7 @@ def main():
                             img = img.convert('RGB')
                         images.append(img)
                     except Exception as e:
-                        st.error(f"이미지 파일 처리 중 오류 발생: {str(e)}")
+                        st.error(f"이지 파일 처리 중 오류 발생: {str(e)}")
                 elif uploaded_file.type == 'application/zip':
                     for _, img_data in process_zip_file(uploaded_file):
                         try:
