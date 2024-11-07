@@ -143,8 +143,16 @@ For Contrast Binding Detail analysis, carefully examine ONLY true binding elemen
    - If you were to look at the cross-section, you must be able to see the binding fabric wrapping around and encasing the raw edge of the main fabric
    - The binding must be serving a functional edge-finishing purpose, not merely decorative
 
-Remember: True contrast binding is a construction technique for finishing raw edges, not just any decorative border or trim. If the element in question is purely decorative and doesn't actually encase a raw edge, it is NOT contrast binding.
-          Also, if the data is sweatshirts or cardigan type garments, we do not use contrast binding, so we exclude those submissions. Also, if the embellishment is in the form of a contrast colour, such as a stitch on the neck trim, but it is an embellishment and not a contrast binding, we classify it as an embellishment and not a contrast binding.
+6. MANDATORY GARMENT TYPE EXCLUSIONS - These garments can NEVER have contrast binding:
+   - All sweatshirts and hoodies
+   - All button-front cardigans
+   - All sweater-knit garments
+   - Any garment with ribbed edges
+   - Any garment with decorative stitching along edges
+   - Any garment with self-fabric finishing
+   - Any garment with inherent edge finishing in its construction
+
+Remember: True contrast binding is a construction technique for finishing raw edges, not just any decorative border or trim. If the element in question is purely decorative and doesn't actually encase a raw edge, it is NOT contrast binding. Also, sweatshirts and button-front cardigans MUST BE automatically excluded from contrast binding classification regardless of their appearance - these garment types use different construction methods that are incompatible with true contrast binding.
 
 Examples of what is NOT contrast binding:
 - Embroidered borders
@@ -153,6 +161,9 @@ Examples of what is NOT contrast binding:
 - Woven or knitted pattern borders
 - Topstitching in a contrast color
 - Flat trim sewn onto the surface
+- ANY edge finishing on sweatshirts
+- ANY edge finishing on button-front cardigans
+- Decorative edging on knitwear
 """
 
 # Shirring detail guide definition
