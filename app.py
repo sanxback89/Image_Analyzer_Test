@@ -685,10 +685,11 @@ def main():
                                             key="file_uploader")
         with col2:
             if st.button("Clear Files"):
-                # 분석 결과만 초기화
+                # 파일 업로더와 분석 결과 초기화
+                st.session_state.file_uploader = []
                 st.session_state.analysis_results = {}
                 st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
-                st.experimental_rerun()  # 페이지 새로고침
+                st.rerun()
         
         if uploaded_files and selected_options:  # 파일과 분석 항목이 모두 선택된 경우
             images = []
