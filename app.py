@@ -144,7 +144,7 @@ analysis_options = {
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué",
-                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", "Seamless", "Contrast Binding"]
+                   "Shirring", "Wrap", "Twist", "Knot", "Textural_Contrast", "Seam detail", "Cut out", "Seamless", "Contrast Binding"]
     },
     "Bottom": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Skinny", "Straight", "Bootcut", "Flare", "Wide Leg"],
@@ -165,7 +165,7 @@ analysis_options = {
         "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
         "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading",  
-                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Cut out", "Contrast Binding"]
+                   "Shirring", "Wrap", "Twist", "Knot", "Textural_Contrast", "Seam detail", "Cut out", "Seamless", "Contrast Binding"]
     },
     "Outerwear": {
         "Type": ["Jacket", "Coat", "Blazer", "Cardigan", "Vest"],
@@ -267,7 +267,7 @@ def analyze_single_image(image, category, options):
             prompt += f"\n{sleeve_length_guide}\n"
         elif option == "Sleeves Construction":
             prompt += f"\n{sleeve_construction_guide}\n"
-        elif option == "Details" and "Mix media" in analysis_options[category]["Details"]:
+        elif option == "Details" and "Textural_Contrast" in analysis_options[category]["Details"]:
             prompt += f"\n{Textural_Contrast_guide}\n"
         elif option == "Details" and "Binding Detail" in analysis_options[category]["Details"]:
             prompt += f"\n{contrast_binding_detail_guide}\n"
