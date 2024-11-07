@@ -299,7 +299,7 @@ def get_image_hash(image):
         # PIL 이미지를 numpy 배열로 변환
         img_array = np.array(image)
     else:
-        # 이미 numpy 배���인 경우
+        # 이미 numpy 배열인 경우
         img_array = image
     
     # 이미지를 32x32로 리사이즈하고 평균 해시 계산
@@ -621,13 +621,6 @@ def initialize_session_state():
         st.session_state.analysis_results = {}
     if 'image_categories' not in st.session_state:
         st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
-    if 'uploaded_files' not in st.session_state:
-        st.session_state.uploaded_files = []
-
-def reset_uploads():
-    st.session_state.uploaded_files = []
-    st.session_state.analysis_results = {}
-    st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
 
 # 이미지 제거 함수 추가
 def remove_image(option, value, image_index):
@@ -679,26 +672,21 @@ def main():
             key="analysis_options"
         )
         
-        st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload and Analyze</h3>", unsafe_allow_html=True)
+        # 파일 업로더 상태를 추적하기 위한 키 추가
+        if 'previous_upload_count' not in st.session_state:
+            st.session_state.previous_upload_count = 0
+            
+        uploaded_files = st.file_uploader("Choose File(s)", 
+                                        type=["xlsx", "xls", "png", "jpg", "jpeg", "jfif", "zip"], 
+                                        accept_multiple_files=True)
         
-        # 리셋 버튼 추가
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            uploaded_files = st.file_uploader("Choose File(s)", 
-                                            type=["xlsx", "xls", "png", "jpg", "jpeg", "jfif", "zip"], 
-                                            accept_multiple_files=True,
-                                            key="file_uploader")
-        with col2:
-            if st.button("Reset Images"):
-                reset_uploads()
-                st.rerun()
-        
-        # 새로운 파일이 업로드되면 기존 파일 삭제
-        if uploaded_files and uploaded_files != st.session_state.uploaded_files:
-            st.session_state.uploaded_files = uploaded_files
+        # 새로운 업로드가 감지되면 기존 결과 초기화
+        current_upload_count = len(uploaded_files) if uploaded_files else 0
+        if current_upload_count != st.session_state.previous_upload_count:
             st.session_state.analysis_results = {}
             st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
-
+            st.session_state.previous_upload_count = current_upload_count
+        
         if uploaded_files and selected_options:  # 파일과 분석 항목이 모두 선택된 경우
             images = []
             for uploaded_file in uploaded_files:
