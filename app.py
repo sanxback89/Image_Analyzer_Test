@@ -107,14 +107,56 @@ Note: Distinguish from embroidery or printed designs - appliqué must show physi
 
 # Contrast binding detail guide definition
 contrast_binding_detail_guide = """
-For Contrast Binding Detail analysis, carefully examine contrasting trim elements:
+CONTRAST BINDING IDENTIFICATION RULES:
 
-1. Uniform and Intentional Outlining Effect: The binding should create a consistent and intentional outline that visually frames specific parts of the garment. This can give the garment a sporty, streamlined, or tailored look, often following straight, curved, or shaped lines across various sections.
-3. Distinction from Other Decorative Elements: Ensure that the binding is a continuous strip or edge detail, not merely color-blocking or different-colored panels. Ignore any patterns or prints unless they are directly part of the binding effect itself.
-4. Multiple Binding Lines or Layered Effects: Some garments may feature multiple lines or dual bindings, adding visual layers or borders in more than one color. Both single and double lines qualify as contrast binding.
-5. Texture and Fabric Type Consistency with Binding: Contrast binding usually appears as a visibly raised or separate fabric trim sewn onto the main garment
-Do not include garments with mixed textures or materials that create different segments or panels without a defined binding line.
-Identify and confirm Contrast Binding if these features are present, and disregard general color patterns or internal color contrasts that do not form distinct edge or seam lines.
+1. True Binding Construction ONLY:
+   - Must be a separate fabric strip physically folded over the raw edge
+   - Must wrap completely around to the inside of the garment
+   - Must be stitched through all layers
+   - Must serve a functional purpose of finishing raw edges
+
+2. Physical Structure Requirements:
+   - Must show clear evidence of fabric wrap-around
+   - Must have uniform width throughout
+   - Must encase the raw edge completely
+   - Must be sewn through multiple layers
+
+3. Automatic Exclusion - STOP ANALYSIS if you see:
+   [STOP] Surface stitching or embroidery
+   [STOP] Decorative edge treatments
+   [STOP] Contrast color topstitching
+   [STOP] Any knit garment construction
+   [STOP] Any button-front garment
+   [STOP] Any sweater or cardigan
+   [STOP] Any sweatshirt
+   [STOP] Any decorative trim without full wrap-around
+   [STOP] Any elastic or ribbed edges
+
+4. True Binding vs. Decorative Elements:
+   NOT Binding:
+   - Surface stitching (even if continuous)
+   - Embroidered edges
+   - Contrast color topstitching
+   - Decorative edge treatments
+   - Applied trims or braids
+   - Serged edges with contrast thread
+   
+   IS Binding:
+   - Separate fabric strip
+   - Completely wraps edge
+   - Functional edge finish
+   - Full encasing of raw edge
+
+CRITICAL: Do not classify as binding if:
+1. You cannot verify the strip wraps to inside
+2. It appears to be surface decoration
+3. It's on a knit/sweater/sweatshirt
+4. It has buttons
+5. It's decorative stitching
+
+VERIFICATION TEST:
+Can you physically see the binding fabric wrap around to the inside?
+If NO or UNSURE = NOT binding
 """
 
 # Shirring detail guide definition
