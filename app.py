@@ -109,13 +109,13 @@ Note: Distinguish from embroidery or printed designs - appliqué must show physi
 contrast_binding_detail_guide = """
 For Contrast Binding Detail analysis, carefully examine contrasting trim elements:
 
-1. Color Contrast in Edges and Trims: Look for areas where a narrow, often fabric-based line or strip outlines parts of the garment in a color that contrasts with the main body fabric. This is usually seen along edges such as necklines, armholes, waistbands, sleeve edges, hem edges, or seams. For instance, a white line on a black garment or a dark line on a light fabric indicates contrast binding.
-2. Uniform and Intentional Outlining Effect: The binding should create a consistent and intentional outline that visually frames specific parts of the garment. This can give the garment a sporty, streamlined, or tailored look, often following straight, curved, or shaped lines across various sections.
-3. Distinction from Other Decorative Elements: Ensure that the binding is a continuous strip or edge detail, not merely color-blocking or different-colored panels. Ignore any patterns or prints unless they are directly part of the binding effect itself.
-4. Multiple Binding Lines or Layered Effects: Some garments may feature multiple lines or dual bindings, adding visual layers or borders in more than one color. Both single and double lines qualify as contrast binding.
-5. Texture and Fabric Type Consistency with Binding: Contrast binding usually appears as a visibly raised or separate fabric trim sewn onto the main garment, often with a smooth or elastic texture that stands out against the base fabric.
-Do not include garments with mixed textures or materials that create different segments or panels without a defined binding line.
-Identify and confirm Contrast Binding if these features are present, and disregard general color patterns or internal color contrasts that do not form distinct edge or seam lines.
+1. Clear Color Contrast in Narrow Edges and Trims: Look specifically for narrow, fabric-based lines or strips outlining parts of the garment that are a different color from the main body fabric. This is typically seen along edges such as necklines, armholes, waistbands, sleeve edges, or hem edges. Avoid interpreting textures, shadows, or minimal tonal differences as contrast binding.
+2. Intentional and Consistent Outlining Effect: The binding should create a distinct, continuous, and purposeful outline framing parts of the garment. This framing effect should be uniform and separate from other design elements. For garments with minor trim differences that are not bold or framing the garment, do not consider these as contrast bindings.
+3. Separation from Decorative and Textured Patterns: Contrast binding should appear as a separate, narrow edge line or trim, not part of the overall fabric pattern or texture. Avoid interpreting patterns, embroidery, or woven details along edges as contrast bindings unless they clearly function as a border trim.
+4. Single or Double Binding Lines Only: Accept garments with either single or dual, narrow binding lines as contrast binding. If multiple colors or patterns are present but do not distinctly frame the garment as binding, exclude these from classification.
+5. Consistent Texture in Binding Material: The binding should have a visibly distinct and often smoother texture that contrasts against the main garment fabric. Disregard mixed or textured edges without a clearly defined trim.
+
+Note: Ignore garments with subtle color edging or patterns that do not distinctly frame parts of the garment. Avoid interpreting internal stitching, general color blocking, or patterned details as contrast binding if they lack a defined edge or seam effect.
 """
 
 # Shirring detail guide definition
