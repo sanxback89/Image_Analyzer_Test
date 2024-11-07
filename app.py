@@ -58,42 +58,14 @@ Please analyze the ORIGINAL designed sleeve length, not how it's currently style
 
 # Mix media guide definition
 mix_media_guide = """
-For Mix Media analysis, please consider these important factors:
+Analyze the image to identify any Mixed Media details. Follow these guidelines to ensure accurate classification:
 
-1. Definition of Mix Media:
-- Different TEXTURES or MATERIALS used in main garment parts
-- Must be distinctly different fabric constructions or materials
-- Focus on physical texture and material differences ONLY
-- Must be intentional design using multiple fabric types
+1. Distinct Textures and Materials: Focus on identifying two or more distinct textures or materials used within the same garment. Mixed media generally includes differences in fabric between sections, such as a smooth fabric on the body and a knit, lace, mesh, or textured material on the sleeves.
+2. Clear Physical Differences: Look for obvious physical differences in texture or thickness between different parts of the garment. Examples include combinations like cotton with wool, knit with woven fabric, or mesh with velvet.
+3. Distinguish from Color Variations: Do not classify as Mixed Media if the sections differ only in color without a change in texture or material. Mixed Media requires a tangible physical difference in the fabric or material, not just color blocking.
+4. Layered Materials: Recognize cases where multiple materials are layered or used independently in different sections of the garment, such as the body being one fabric and the sleeves another. This intentional use of contrasting materials qualifies as Mixed Media.
 
-2. What qualifies as Mix Media:
-- Different fabric types between body and sleeves (e.g. woven body with knit sleeves)
-- Different knit patterns between sections (e.g. cable knit sleeves with jersey body)
-- Combination of materials like:
-  * Mesh with solid fabric
-  * Lace with jersey
-  * Velvet with chiffon
-  * Leather with knit
-- Distinctly different fabric weights or constructions in main sections
-
-3. What does NOT qualify as Mix Media:
-- Color blocking (different colors of the same fabric)
-- Different colored binding or trim
-- Rib trims on edges (neckline, hem, cuffs)
-- Print or pattern changes in same fabric
-- Decorative elements (buttons, embroidery)
-- Different colors or prints of same material
-- Contrast stitching or seam details
-- Layering of same fabric type
-- Binding in different colors
-- Appliqué or patches on same base fabric
-
-4. Key Assessment Points:
-- Look for PHYSICAL texture differences
-- Must be different fabric constructions
-- Ignore all color variations
-- Focus on material changes only
-- Check for actual fabric type changes
+Identify and confirm Mixed Media if these characteristics are present, and exclude any instances where the difference is merely a color change without a texture or material distinction.
 
 Remember: Mix Media is strictly about different MATERIALS and TEXTURES, not about color variations or decorative elements. Color blocking, contrast binding, or different colored sections of the same fabric type do NOT qualify as mix media.
 """
@@ -629,7 +601,7 @@ def main():
                             st.error(f"ZIP 파일 내 이미지 처리 중 오류 발생: {str(e)}")
             
             if images:
-                with st.spinner('이미지 처리 및 분석 중...'):
+                with st.spinner('이미지 처리 중...'):
                     # 이미지 처리와 분석을 한 번에 진행
                     processed_images = process_images(images)
                     
@@ -647,26 +619,27 @@ def main():
                     
                     completed_images = 0
                     
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                        for batch in batch_images(batch_data, batch_size):
-                            future_to_image = {executor.submit(analyze_image_batch, data): data 
-                                             for data in batch}
-                            
-                            for future in concurrent.futures.as_completed(future_to_image):
-                                result = future.result()
-                                if result and isinstance(result, dict):
-                                    image_data = future_to_image[future]
-                                    image = image_data[0]
-                                    
-                                    for option, detected in result.items():
-                                        if option in selected_options:
-                                            if option == "Details" and isinstance(detected, list):
-                                                for detail in detected:
-                                                    aggregated_results[option][detail] += 1
-                                                    image_categories[option][detail].append(image)
-                                            else:
-                                                aggregated_results[option][detected] += 1
-                                                image_categories[option][detected].append(image)
+                    with st.spinner('이미지 분석 중...'):
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                            for batch in batch_images(batch_data, batch_size):
+                                future_to_image = {executor.submit(analyze_image_batch, data): data 
+                                                 for data in batch}
+                                
+                                for future in concurrent.futures.as_completed(future_to_image):
+                                    result = future.result()
+                                    if result and isinstance(result, dict):
+                                        image_data = future_to_image[future]
+                                        image = image_data[0]
+                                        
+                                        for option, detected in result.items():
+                                            if option in selected_options:
+                                                if option == "Details" and isinstance(detected, list):
+                                                    for detail in detected:
+                                                        aggregated_results[option][detail] += 1
+                                                        image_categories[option][detail].append(image)
+                                                else:
+                                                    aggregated_results[option][detected] += 1
+                                                    image_categories[option][detected].append(image)
                                 
                                 completed_images += 1
                                 progress = completed_images / total_images
