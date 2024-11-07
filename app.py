@@ -67,6 +67,7 @@ Analyze the garment to identify any mixed media characteristics, focusing strict
 
 Key Reminder: Classify as mixed media only if there are differences in material or texture. Do not include garments that have variations only in color or decorative elements without a true change in fabric type or physical texture. Color blocking, contrast binding, or differently colored sections of the same fabric do not meet the criteria for mixed media
 """
+
 # Contrast binding detail guide definition
 contrast_binding_detail_guide = """
 For Contrast Binding Detail analysis, carefully examine contrasting trim elements:
@@ -78,6 +79,16 @@ For Contrast Binding Detail analysis, carefully examine contrasting trim element
 5. Texture and Fabric Type Consistency with Binding: Contrast binding usually appears as a visibly raised or separate fabric trim sewn onto the main garment, often with a smooth or elastic texture that stands out against the base fabric.
 Do not include garments with mixed textures or materials that create different segments or panels without a defined binding line.
 Identify and confirm Contrast Binding if these features are present, and disregard general color patterns or internal color contrasts that do not form distinct edge or seam lines.
+"""
+
+# Shirring detail guide definition
+shirring_detail_guide = """
+Focus on areas where shirring details typically appear, such as on the shoulder, side seams, and other specific areas. Here are some refined prompts for identifying shirring:
+
+1.Highlighting Shoulder Shirring: "Identify garments with gathered or ruched fabric on the shoulder area, showcasing a textured and pleated appearance along the seam.
+2.Side Seam Shirring Detection: "Look for garments featuring shirring along the side seams, where fabric gathers into a wavy, ruched texture creating depth and dimension on the side.
+3.General Shirring Characteristics: "Identify garments with shirring details, focusing on areas with gathered or pleated fabric along seams or edges, where fabric appears textured and ruched.
+4.Shirring on Other Areas: "Recognize shirring in various parts of the garment, such as along waistlines, cuffs, or necklines, where fabric gathers into visible folds or pleats.
 """
 
 # Beading detail guide definition
