@@ -154,7 +154,7 @@ def get_image_hash(image):
         # 이미 numpy 배열인 경우
         img_array = image
     
-    # 이미지를 32x32로 리사이즈하고 평균 해시 계산
+    # 이미지를 32x32로 리이즈하고 평균 해시 계산
     resized = cv2.resize(img_array, (32, 32))
     gray = cv2.cvtColor(resized, cv2.COLOR_RGB2GRAY)
     avg = gray.mean()
@@ -412,10 +412,15 @@ def initialize_session_state():
         st.session_state.analysis_results = {}
     if 'image_categories' not in st.session_state:
         st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
+    if 'needs_rerun' not in st.session_state:
+        st.session_state.needs_rerun = False
 
-# 이미지 제거 함수 추가
+# 이미지 삭제 함수 추가
 def remove_image(option, value, image_index):
-    if option in st.session_state.analysis_results and value in st.session_state.image_categories[option]:
+    """
+    특정 카테고리에서 이미지를 삭제하고 차트 데이터 업데이트
+    """
+    if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
         # 이미지 리스트에서 제거
         st.session_state.image_categories[option][value].pop(image_index)
         
@@ -428,35 +433,111 @@ def remove_image(option, value, image_index):
             st.session_state.analysis_results[option][value] -= 1
         
         # 세션 상태 업데이트 트리거
-        st.session_state.update_charts = True
+        st.session_state.needs_rerun = True
 
-# 이미지 이동 함수 추가
-def move_image(from_option, from_value, to_value, image_index):
-    if (from_option in st.session_state.image_categories and 
-        from_value in st.session_state.image_categories[from_option]):
-        # 이미지 가져오기
-        image = st.session_state.image_categories[from_option][from_value][image_index]
-        
-        # 원래 카테고리에서 이미지 제거
-        st.session_state.image_categories[from_option][from_value].pop(image_index)
-        st.session_state.analysis_results[from_option][from_value] -= 1
-        
-        # 카운트가 0이 되면 카테고리 제거
-        if st.session_state.analysis_results[from_option][from_value] == 0:
-            del st.session_state.analysis_results[from_option][from_value]
-            del st.session_state.image_categories[from_option][from_value]
-        
-        # 새 카테고리에 이미지 추가
-        st.session_state.image_categories[from_option][to_value].append(image)
+# 이미지 이동을 위한 새로운 함수
+def move_selected_images(from_option, from_value, to_value, selected_indices):
+    """
+    선택된 이미지들을 한 카테고리에서 다른 카테고리로 이동
+    """
+    if not selected_indices:
+        return False
+    
+    # 인덱스를 내림차순으로 정렬 (높은 인덱스부터 제거)
+    selected_indices.sort(reverse=True)
+    
+    moved_images = []
+    for idx in selected_indices:
+        if (from_option in st.session_state.image_categories and 
+            from_value in st.session_state.image_categories[from_option] and
+            idx < len(st.session_state.image_categories[from_option][from_value])):
+            
+            # 이미지 가져오기
+            image = st.session_state.image_categories[from_option][from_value][idx]
+            moved_images.append(image)
+            
+            # 원래 카테고리에서 이미지 제거
+            st.session_state.image_categories[from_option][from_value].pop(idx)
+            st.session_state.analysis_results[from_option][from_value] -= 1
+            
+            # 카운트가 0이 되면 카테고리 제거
+            if st.session_state.analysis_results[from_option][from_value] == 0:
+                del st.session_state.analysis_results[from_option][from_value]
+                del st.session_state.image_categories[from_option][from_value]
+    
+    # 새 카테고리에 이미지들 추가
+    if moved_images:
+        st.session_state.image_categories[from_option][to_value].extend(moved_images)
         st.session_state.analysis_results[from_option][to_value] = (
-            st.session_state.analysis_results[from_option].get(to_value, 0) + 1
+            st.session_state.analysis_results[from_option].get(to_value, 0) + len(moved_images)
         )
-        
+        st.session_state.needs_rerun = True
         return True
+    
     return False
+
+# main 함수 내의 결과 표시 부분 수정
+def display_images_with_controls(option, value, images, category):
+    """
+    체크박스와 이동 컨트롤이 있는 이미지 그리드 표시
+    """
+    st.markdown(f"**{value}** (Count: {len(images)})")
+    
+    # 현재 카테고리의 다른 옵션들 가져오기
+    other_options = [opt for opt in analysis_options[category][option] 
+                    if opt != value]
+    
+    # 이동 컨트롤을 상단에 배치하고 정렬
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        move_to = st.selectbox(
+            "Move to:",
+            other_options,
+            key=f"move_to_{option}_{value}",
+            label_visibility="collapsed"
+        )
+    with col2:
+        move_button = st.button(
+            "Move",
+            key=f"move_btn_{option}_{value}",
+            use_container_width=True
+        )
+    
+    # 이미지 그리드 생성
+    selected_indices = []
+    cols = st.columns(5)
+    
+    for idx, img in enumerate(images):
+        with cols[idx % 5]:
+            # 컨테이너로 이미지와 컨트롤을 감싸기
+            with st.container():
+                # 삭제 버튼과 체크박스를 위한 작은 컬럼
+                ctrl_col1, ctrl_col2 = st.columns([1, 9])
+                with ctrl_col1:
+                    if st.checkbox("", key=f"select_{option}_{value}_{idx}", label_visibility="collapsed"):
+                        selected_indices.append(idx)
+                with ctrl_col2:
+                    if st.button("×", key=f"delete_{option}_{value}_{idx}", help="Remove image"):
+                        remove_image(option, value, idx)
+                        st.rerun()
+                
+                # 이미지 표시 (클릭 확대 없이)
+                st.image(img, use_column_width=True)
+            
+            # 5개 이미지마다 새로운 행 시작
+            if (idx + 1) % 5 == 0:
+                st.write("")
+    
+    # 이동 버튼 동작 처리
+    if move_button and selected_indices:
+        if move_selected_images(option, value, move_to, selected_indices):
+            st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
+            st.rerun()
 
 # Modified main app logic (image list part)
 def main():
+    initialize_session_state()
+    
     st.set_page_config(layout="centered")
     
     st.markdown("""
@@ -493,133 +574,66 @@ def main():
                                         type=["xlsx", "xls", "png", "jpg", "jpeg", "jfif", "zip"], 
                                         accept_multiple_files=True)
         
-        if uploaded_files and selected_options:  # 파일과 분석 항목이 모두 선택된 경우
-            images = []
-            for uploaded_file in uploaded_files:
-                if uploaded_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
-                    try:
-                        excel_images = extract_images_from_excel(uploaded_file)
-                        if excel_images:
-                            images.extend(excel_images[1:])
-                    except Exception as e:
-                        st.error(f"Excel 파일에서 이미지 추출 중 오류 발생: {str(e)}")
-                elif uploaded_file.type.startswith('image/'):
-                    try:
-                        img = Image.open(uploaded_file)
-                        if img.mode != 'RGB':
-                            img = img.convert('RGB')
-                        images.append(img)
-                    except Exception as e:
-                        st.error(f"이지 파일 처리 중 오류 발생: {str(e)}")
-                elif uploaded_file.type == 'application/zip':
-                    for _, img_data in process_zip_file(uploaded_file):
-                        try:
-                            img = Image.open(io.BytesIO(img_data))
-                            if img.mode != 'RGB':
-                                img = img.convert('RGB')
+        if uploaded_files and selected_options:
+            # 새로운 파일이 업로드된 경우에만 이미지 분석 수행
+            if 'previous_files' not in st.session_state or st.session_state.previous_files != uploaded_files:
+                # 이미지 처리 및 분석 결과를 세션 상태에 저장
+                images = []
+                for uploaded_file in uploaded_files:
+                    # 파일 형식에 따른 이미지 추출
+                    if uploaded_file.name.lower().endswith(('.xlsx', '.xls')):
+                        images.extend(extract_images_from_excel(uploaded_file))
+                    elif uploaded_file.name.lower().endswith('.zip'):
+                        for file_name, file_content in process_zip_file(uploaded_file):
+                            img = Image.open(io.BytesIO(file_content))
                             images.append(img)
-                        except Exception as e:
-                            st.error(f"ZIP 파일 내 이미지 처리 중 오류 발생: {str(e)}")
-            
-            if images:
-                status_message = st.empty()  # 상태 메시지를 위한 컨테이너 생성
-                status_message.text('이미지 처리 중...')
+                    else:
+                        img = Image.open(uploaded_file)
+                        images.append(img)
                 
                 # 이미지 처리
                 processed_images = process_images(images)
                 
-                # 이미지 처리가 끝나면 상태 메시지 업데이트
-                status_message.text('이미지 분석 중...')
+                # 분석 결과 초기화
+                st.session_state.analysis_results = defaultdict(lambda: defaultdict(int))
+                st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
                 
-                progress_bar = st.progress(0)
-                status_text = st.empty()
+                # 이미지 분석
+                for img in processed_images:
+                    results = analyze_single_image(img, selected_category, selected_options)
+                    for option, value in results.items():
+                        if isinstance(value, list):  # Details의 경우
+                            for v in value:
+                                st.session_state.analysis_results[option][v] += 1
+                                st.session_state.image_categories[option][v].append(img)
+                        else:
+                            st.session_state.analysis_results[option][value] += 1
+                            st.session_state.image_categories[option][value].append(img)
                 
-                aggregated_results = {option: Counter() for option in selected_options}
-                image_categories = defaultdict(lambda: defaultdict(list))
-                
-                total_images = len(processed_images)
-                batch_size = 4
-                
-                batch_data = [(img, selected_category, selected_options) 
-                             for img in processed_images]
-                
-                completed_images = 0
-                
-                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                    for batch in batch_images(batch_data, batch_size):
-                        future_to_image = {executor.submit(analyze_image_batch, data): data 
-                                         for data in batch}
-                        
-                        for future in concurrent.futures.as_completed(future_to_image):
-                            result = future.result()
-                            if result and isinstance(result, dict):
-                                image_data = future_to_image[future]
-                                image = image_data[0]
-                                
-                                for option, detected in result.items():
-                                    if option in selected_options:
-                                        if option == "Details" and isinstance(detected, list):
-                                            for detail in detected:
-                                                aggregated_results[option][detail] += 1
-                                                image_categories[option][detail].append(image)
-                                        else:
-                                            aggregated_results[option][detected] += 1
-                                            image_categories[option][detected].append(image)
-                                
-                            completed_images += 1
-                            progress = completed_images / total_images
-                            progress_bar.progress(progress)
-                            status_text.text(f"이미지 분석 중: {completed_images}/{total_images}")
-
-                # 분석 완료 후 상태 메시지와 프로그레스 바 삭제
-                progress_bar.empty()
-                status_text.empty()
-                status_message.empty()
-                
-                # 분석 결과를 세션 상태에 저장
-                st.session_state.analysis_results = aggregated_results
-                st.session_state.image_categories = image_categories
-                
-                # 결과 표시
-                st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
-                st.markdown("<hr>", unsafe_allow_html=True)
-                st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
-                st.markdown("<div class='results-container'>", unsafe_allow_html=True)
-                
-                # 각 분석 항목에 대한 고유한 색상 세트 생성
-                color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최 카테고리 
-                
-                for i, (option, results) in enumerate(aggregated_results.items()):
-                    if results:
-                        st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
-                        fig = create_donut_chart(results, option, color_sets[i])
-                        st.plotly_chart(fig, use_container_width=True)
-                        
-                        with st.expander(f"{option} Details"):
-                            for value, count in results.items():
-                                st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
-                                if option in image_categories and value in image_categories[option]:
-                                    images = image_categories[option][value]
-                                    cols = st.columns(5)
-                                    for j, img in enumerate(images):
-                                        with cols[j % 5]:
-                                            st.image(img, use_column_width=True)
-                                        if (j + 1) % 5 == 0:
-                                            st.write("")
-                                else:
-                                    st.write("No Matching Images Found.")
-                                st.write("---")
-                        st.markdown("</div>", unsafe_allow_html=True)
-                    else:
-                        st.write(f"No Data Available for {option}.")
+                st.session_state.previous_files = uploaded_files
+            
+            # 색상 세트 생성 (차트용)
+            color_sets = list(generate_unique_color_sets(len(selected_options), 20))
+            
+            # 결과 표시
+            for i, (option, results) in enumerate(st.session_state.analysis_results.items()):
+                if results:
+                    st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
+                    fig = create_donut_chart(results, option, color_sets[i])
+                    st.plotly_chart(fig, use_container_width=True)
                     
-                    # 2개의 차트마다 새 줄 시작
-                    if (i + 1) % 2 == 0:
-                        st.markdown("</div><div class='results-container'>", unsafe_allow_html=True)
-                
-                st.markdown("</div></div>", unsafe_allow_html=True)
-            else:
-                st.markdown("<p><span class='emoji'>⚠️</span> No Images Found in the Uploaded File.</p>", unsafe_allow_html=True)
+                    with st.expander(f"{option} Details"):
+                        for value, count in results.items():
+                            if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
+                                display_images_with_controls(option, value, st.session_state.image_categories[option][value], selected_category)
+                            else:
+                                st.write("No Matching Images Found.")
+                            st.write("---")
+            
+            # 페이지 리로드가 필요한 경우에만 rerun
+            if st.session_state.needs_rerun:
+                st.session_state.needs_rerun = False
+                st.rerun()
     else:
         st.info("로그인이 필요합니다. 위의 인증 정보를 입력해주세요.")
 
@@ -669,6 +683,82 @@ st.markdown("""
     }
     .stButton > button:hover {
         background-color: #e0e2e6;
+    }
+    /* 체크박스 스타일 */
+    .stCheckbox {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        z-index: 1;
+    }
+    
+    /* 이미지 컨테이너 스타일 */
+    .image-container {
+        position: relative;
+        margin-bottom: 10px;
+    }
+    
+    /* 이동 컨트롤 스타일 */
+    .move-controls {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    /* 이동 버튼 스타일 */
+    .stButton.move-button > button {
+        background-color: #007AFF;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        width: auto;
+    }
+    
+    /* 체크박스와 삭제 버튼 컨테이너 */
+    .stButton > button {
+        padding: 0px 8px;
+        height: 24px;
+        line-height: 24px;
+        font-size: 14px;
+        border-radius: 4px;
+        margin: 0;
+    }
+    
+    /* 삭제 버튼 스타일 */
+    .delete-button {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(255, 255, 255, 0.8);
+        border: none;
+        border-radius: 3px;
+        padding: 2px 6px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    
+    /* 이미지 컨테이너 스타일 */
+    .image-container {
+        position: relative;
+        margin-bottom: 10px;
+    }
+    
+    /* Move 컨트롤 정렬 */
+    .move-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    /* 선택박스와 버튼 정렬 */
+    .stSelectbox {
+        margin-bottom: 0 !important;
+    }
+    
+    .stButton.move-button {
+        margin-top: 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
