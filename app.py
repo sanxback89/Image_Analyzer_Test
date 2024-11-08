@@ -412,6 +412,8 @@ def initialize_session_state():
         st.session_state.analysis_results = {}
     if 'image_categories' not in st.session_state:
         st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
+    if 'needs_rerun' not in st.session_state:
+        st.session_state.needs_rerun = False
 
 # 이미지 제거 함수 추가
 def remove_image(option, value, image_index):
@@ -466,6 +468,7 @@ def move_selected_images(from_option, from_value, to_value, selected_indices):
         st.session_state.analysis_results[from_option][to_value] = (
             st.session_state.analysis_results[from_option].get(to_value, 0) + len(moved_images)
         )
+        st.session_state.needs_rerun = True
         return True
     
     return False
@@ -489,7 +492,7 @@ def display_images_with_controls(option, value, images, category):
         with cols[idx % 5]:
             # 체크박스 추가
             checkbox_key = f"{option}_{value}_{idx}"
-            if st.checkbox("", key=checkbox_key):
+            if st.checkbox("", key=checkbox_key, value=False):
                 selected_indices.append(idx)
             
             # 이미지 표시
@@ -512,12 +515,11 @@ def display_images_with_controls(option, value, images, category):
             if st.button("Move", key=f"move_btn_{option}_{value}"):
                 if move_selected_images(option, value, move_to, selected_indices):
                     st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
-                    st.experimental_rerun()
-                else:
-                    st.error("Failed to move images")
 
 # Modified main app logic (image list part)
 def main():
+    initialize_session_state()
+    
     st.set_page_config(layout="centered")
     
     st.markdown("""
@@ -554,126 +556,66 @@ def main():
                                         type=["xlsx", "xls", "png", "jpg", "jpeg", "jfif", "zip"], 
                                         accept_multiple_files=True)
         
-        if uploaded_files and selected_options:  # 파일과 분석 항목이 모두 선택된 경우
-            images = []
-            for uploaded_file in uploaded_files:
-                if uploaded_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
-                    try:
-                        excel_images = extract_images_from_excel(uploaded_file)
-                        if excel_images:
-                            images.extend(excel_images[1:])
-                    except Exception as e:
-                        st.error(f"Excel 파일에서 이미지 추출 중 오류 발생: {str(e)}")
-                elif uploaded_file.type.startswith('image/'):
-                    try:
-                        img = Image.open(uploaded_file)
-                        if img.mode != 'RGB':
-                            img = img.convert('RGB')
-                        images.append(img)
-                    except Exception as e:
-                        st.error(f"이지 파일 처리 중 오류 발생: {str(e)}")
-                elif uploaded_file.type == 'application/zip':
-                    for _, img_data in process_zip_file(uploaded_file):
-                        try:
-                            img = Image.open(io.BytesIO(img_data))
-                            if img.mode != 'RGB':
-                                img = img.convert('RGB')
+        if uploaded_files and selected_options:
+            # 새로운 파일이 업로드된 경우에만 이미지 분석 수행
+            if 'previous_files' not in st.session_state or st.session_state.previous_files != uploaded_files:
+                # 이미지 처리 및 분석 결과를 세션 상태에 저장
+                images = []
+                for uploaded_file in uploaded_files:
+                    # 파일 형식에 따른 이미지 추출
+                    if uploaded_file.name.lower().endswith(('.xlsx', '.xls')):
+                        images.extend(extract_images_from_excel(uploaded_file))
+                    elif uploaded_file.name.lower().endswith('.zip'):
+                        for file_name, file_content in process_zip_file(uploaded_file):
+                            img = Image.open(io.BytesIO(file_content))
                             images.append(img)
-                        except Exception as e:
-                            st.error(f"ZIP 파일 내 이미지 처리 중 오류 발생: {str(e)}")
-            
-            if images:
-                status_message = st.empty()  # 상태 메시지를 위한 컨테이너 생성
-                status_message.text('이미지 처리 중...')
+                    else:
+                        img = Image.open(uploaded_file)
+                        images.append(img)
                 
                 # 이미지 처리
                 processed_images = process_images(images)
                 
-                # 이미지 처리가 끝나면 상태 메시지 업데이트
-                status_message.text('이미지 분석 중...')
+                # 분석 결과 초기화
+                st.session_state.analysis_results = defaultdict(lambda: defaultdict(int))
+                st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
                 
-                progress_bar = st.progress(0)
-                status_text = st.empty()
+                # 이미지 분석
+                for img in processed_images:
+                    results = analyze_single_image(img, selected_category, selected_options)
+                    for option, value in results.items():
+                        if isinstance(value, list):  # Details의 경우
+                            for v in value:
+                                st.session_state.analysis_results[option][v] += 1
+                                st.session_state.image_categories[option][v].append(img)
+                        else:
+                            st.session_state.analysis_results[option][value] += 1
+                            st.session_state.image_categories[option][value].append(img)
                 
-                aggregated_results = {option: Counter() for option in selected_options}
-                image_categories = defaultdict(lambda: defaultdict(list))
-                
-                total_images = len(processed_images)
-                batch_size = 4
-                
-                batch_data = [(img, selected_category, selected_options) 
-                             for img in processed_images]
-                
-                completed_images = 0
-                
-                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                    for batch in batch_images(batch_data, batch_size):
-                        future_to_image = {executor.submit(analyze_image_batch, data): data 
-                                         for data in batch}
-                        
-                        for future in concurrent.futures.as_completed(future_to_image):
-                            result = future.result()
-                            if result and isinstance(result, dict):
-                                image_data = future_to_image[future]
-                                image = image_data[0]
-                                
-                                for option, detected in result.items():
-                                    if option in selected_options:
-                                        if option == "Details" and isinstance(detected, list):
-                                            for detail in detected:
-                                                aggregated_results[option][detail] += 1
-                                                image_categories[option][detail].append(image)
-                                        else:
-                                            aggregated_results[option][detected] += 1
-                                            image_categories[option][detected].append(image)
-                                
-                            completed_images += 1
-                            progress = completed_images / total_images
-                            progress_bar.progress(progress)
-                            status_text.text(f"이미지 분석 중: {completed_images}/{total_images}")
-
-                # 분석 완료 후 상태 메시지와 프로그레스 바 삭제
-                progress_bar.empty()
-                status_text.empty()
-                status_message.empty()
-                
-                # 분석 결과를 세션 상태에 저장
-                st.session_state.analysis_results = aggregated_results
-                st.session_state.image_categories = image_categories
-                
-                # 결과 표시
-                st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
-                st.markdown("<hr>", unsafe_allow_html=True)
-                st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
-                st.markdown("<div class='results-container'>", unsafe_allow_html=True)
-                
-                # 각 분석 항목에 대한 고유한 색상 세트 생성
-                color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최 카테고리 
-                
-                for i, (option, results) in enumerate(aggregated_results.items()):
-                    if results:
-                        st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
-                        fig = create_donut_chart(results, option, color_sets[i])
-                        st.plotly_chart(fig, use_container_width=True)
-                        
-                        with st.expander(f"{option} Details"):
-                            for value, count in results.items():
-                                if option in image_categories and value in image_categories[option]:
-                                    display_images_with_controls(option, value, image_categories[option][value], selected_category)
-                                else:
-                                    st.write("No Matching Images Found.")
-                                st.write("---")
-                        st.markdown("</div>", unsafe_allow_html=True)
-                    else:
-                        st.write(f"No Data Available for {option}.")
+                st.session_state.previous_files = uploaded_files
+            
+            # 색상 세트 생성 (차트용)
+            color_sets = list(generate_unique_color_sets(len(selected_options), 20))
+            
+            # 결과 표시
+            for i, (option, results) in enumerate(st.session_state.analysis_results.items()):
+                if results:
+                    st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
+                    fig = create_donut_chart(results, option, color_sets[i])
+                    st.plotly_chart(fig, use_container_width=True)
                     
-                    # 2개의 차트마다 새 줄 시작
-                    if (i + 1) % 2 == 0:
-                        st.markdown("</div><div class='results-container'>", unsafe_allow_html=True)
-                
-                st.markdown("</div></div>", unsafe_allow_html=True)
-            else:
-                st.markdown("<p><span class='emoji'>⚠️</span> No Images Found in the Uploaded File.</p>", unsafe_allow_html=True)
+                    with st.expander(f"{option} Details"):
+                        for value, count in results.items():
+                            if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
+                                display_images_with_controls(option, value, st.session_state.image_categories[option][value], selected_category)
+                            else:
+                                st.write("No Matching Images Found.")
+                            st.write("---")
+            
+            # 페이지 리로드가 필요한 경우에만 rerun
+            if st.session_state.needs_rerun:
+                st.session_state.needs_rerun = False
+                st.rerun()
     else:
         st.info("로그인이 필요합니다. 위의 인증 정보를 입력해주세요.")
 
