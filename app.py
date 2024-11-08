@@ -249,59 +249,44 @@ def is_valid_image(image):
     이미지가 유효한지 검사하는 함수
     """
     try:
-        # 이미지 크기가 ���무 작은 경우 제외
+        # 이미지 크기가 너무 작은 경우 제외
         if image.size[0] < 10 or image.size[1] < 10:
             return False
             
-        # 이미지를 numpy 배열로 변환
+        # 이미지가 단색인지 확인
         img_array = np.array(image)
-        
-        # 이미지가 단색이거나 대부분이 검정색인 경우 제외
         if len(img_array.shape) < 3:  # 흑백 이미지
             unique_pixels = np.unique(img_array)
-            if len(unique_pixels) <= 2:  # 흑백만 있는 경우
-                return False
+            return len(unique_pixels) > 2  # 2개 이하의 고유한 픽셀 값은 제외
         else:  # 컬러 이미지
-            # 검정색 픽셀의 비율 계산
-            black_pixels = np.sum(np.all(img_array < 30, axis=2))  # RGB 값이 모두 30 미만인 픽셀
-            total_pixels = img_array.shape[0] * img_array.shape[1]
-            black_ratio = black_pixels / total_pixels
-            
-            # 이미지의 90% 이상이 검정색인 경우 제외
-            if black_ratio > 0.9:
-                return False
-                
-            # 단색 이미지 체크
-            unique_colors = np.unique(img_array.reshape(-1, img_array.shape[-1]), axis=0)
-            if len(unique_colors) <= 2:  # 2가지 이하의 색상만 있는 경우
-                return False
-            
-        return True
+            unique_pixels = np.unique(img_array.reshape(-1, img_array.shape[-1]), axis=0)
+            return len(unique_pixels) > 2  # 2개 이하의 고유한 색상은 제외
             
     except Exception as e:
         print(f"Image validation error: {e}")
         return False
 
 def extract_images_from_excel(uploaded_file):
-    """
-    엑셀 파일에서 이미지를 추출하는 함수
-    """
     wb = openpyxl.load_workbook(io.BytesIO(uploaded_file.getvalue()))
     sheet = wb.active
+    image_loader = SheetImageLoader(sheet)
     
     images = []
-    for image in sheet._images:
-        try:
-            # image.ref 대신 image._data() 사용
-            img_data = image._data()
-            img = Image.open(io.BytesIO(img_data))
-            if img.format.lower() in ['png', 'jpg', 'jpeg']:
-                images.append(img)
-        except Exception as e:
-            st.warning(f"Error extracting image from Excel: {str(e)}")
-            continue
+    for row in sheet.iter_rows():
+        for cell in row:
+            try:
+                if image_loader.image_in(cell.coordinate):
+                    image = image_loader.get(cell.coordinate)
+                    # 이미지 유효성 검사 추가
+                    if is_valid_image(image):
+                        images.append(image)
+            except Exception as e:
+                if "I/O operation on closed file" not in str(e):
+                    st.warning(f"Error Extracting Image from Cell {cell.coordinate}: {str(e)}")
+                continue
     
-    return images
+    # 첫 번째 이미지 제외 (보통 헤더나 장식용 이미지)
+    return images[1:] if images else []
 
 # ZIP file processing function
 def process_zip_file(uploaded_file):
@@ -818,7 +803,7 @@ st.markdown("""
         z-index: 1;
     }
     
-    /* 이미지 컨테이너 스타일 */
+    /* 이��지 컨테이너 스타일 */
     .image-container {
         position: relative;
         margin-bottom: 10px;
