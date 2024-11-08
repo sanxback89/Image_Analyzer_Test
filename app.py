@@ -244,6 +244,28 @@ def preprocess_response(response):
     return response
 
 # Function to extract images from Excel
+def is_valid_image(image):
+    """
+    이미지가 유효한지 검사하는 함수
+    """
+    try:
+        # 이미지 크기가 너무 작은 경우 제외
+        if image.size[0] < 10 or image.size[1] < 10:
+            return False
+            
+        # 이미지가 단색인지 확인
+        img_array = np.array(image)
+        if len(img_array.shape) < 3:  # 흑백 이미지
+            unique_pixels = np.unique(img_array)
+            return len(unique_pixels) > 2  # 2개 이하의 고유한 픽셀 값은 제외
+        else:  # 컬러 이미지
+            unique_pixels = np.unique(img_array.reshape(-1, img_array.shape[-1]), axis=0)
+            return len(unique_pixels) > 2  # 2개 이하의 고유한 색상은 제외
+            
+    except Exception as e:
+        print(f"Image validation error: {e}")
+        return False
+
 def extract_images_from_excel(uploaded_file):
     wb = openpyxl.load_workbook(io.BytesIO(uploaded_file.getvalue()))
     sheet = wb.active
@@ -255,7 +277,9 @@ def extract_images_from_excel(uploaded_file):
             try:
                 if image_loader.image_in(cell.coordinate):
                     image = image_loader.get(cell.coordinate)
-                    images.append(image)
+                    # 유효한 이미지인 경우에만 추가
+                    if is_valid_image(image):
+                        images.append(image)
             except Exception as e:
                 if "I/O operation on closed file" not in str(e):
                     st.warning(f"Error Extracting Image from Cell {cell.coordinate}: {str(e)}")
@@ -276,22 +300,22 @@ def process_images(images):
     processed_images = []
     total_images = len(images)
     
-    # 진행 상태 표시 컴포넌트 생성
+    # Create progress indicators
     progress_bar = st.progress(0)
     status_text = st.empty()
-    status_text.text("이미지 처리 중...")
+    status_text.text("Processing images...")
     
     for i, img in enumerate(images):
         processed_img = enhance_image(img)
         processed_images.append(processed_img)
         
-        # 진행률 업데이트
+        # Update progress
         progress = (i + 1) / total_images
         progress_bar.progress(progress)
-        status_text.text(f"이미지 처리 중... ({i+1}/{total_images})")
+        status_text.text(f"Processing images... ({i+1}/{total_images})")
     
-    status_text.text("이미지 처리 완료!")
-    time.sleep(1)  # 완료 메시지를 잠시 표시
+    status_text.text("Image processing complete!")
+    time.sleep(1)
     progress_bar.empty()
     status_text.empty()
     
@@ -497,7 +521,7 @@ def move_selected_images(from_option, from_value, to_value, selected_indices):
     
     return False
 
-# main 함수 내의 결과 표시 부분 수정
+# main 함수 내의 결과 표시 부분 정
 def display_images_with_controls(option, value, images, category):
     """
     체크박스와 이동 컨트롤이 있는 이미지 그리드 표시
@@ -636,14 +660,14 @@ def main():
             if 'previous_files' not in st.session_state or st.session_state.previous_files != uploaded_files:
                 images = []
                 
-                # 파일 업로드 진행률 표시
+                # File upload progress
                 upload_progress = st.progress(0)
                 upload_status = st.empty()
-                upload_status.text("파일 업로드 중...")
+                upload_status.text("Uploading files...")
                 
                 total_files = len(uploaded_files)
                 for i, uploaded_file in enumerate(uploaded_files):
-                    # 파일 형식에 따른 이미지 추출
+                    # File processing logic remains the same
                     if uploaded_file.name.lower().endswith(('.xlsx', '.xls')):
                         images.extend(extract_images_from_excel(uploaded_file))
                     elif uploaded_file.name.lower().endswith('.zip'):
@@ -654,26 +678,26 @@ def main():
                         img = Image.open(uploaded_file)
                         images.append(img)
                     
-                    # 업로드 진행률 업데이트
+                    # Update upload progress
                     upload_progress.progress((i + 1) / total_files)
-                    upload_status.text(f"파일 업로드 중... ({i+1}/{total_files})")
+                    upload_status.text(f"Uploading files... ({i+1}/{total_files})")
                 
-                upload_status.text("파일 업로드 완료!")
+                upload_status.text("File upload complete!")
                 time.sleep(1)
                 upload_progress.empty()
                 upload_status.empty()
                 
-                # 이미지 처리
+                # Process images
                 processed_images = process_images(images)
                 
-                # 분석 결과 초기화
+                # Initialize analysis results
                 st.session_state.analysis_results = defaultdict(lambda: defaultdict(int))
                 st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
                 
-                # 이미지 분석 진행률 표시
+                # Image analysis progress
                 analysis_progress = st.progress(0)
                 analysis_status = st.empty()
-                analysis_status.text("이미지 분석 중...")
+                analysis_status.text("Analyzing images...")
                 
                 total_images = len(processed_images)
                 for i, img in enumerate(processed_images):
@@ -687,11 +711,11 @@ def main():
                             st.session_state.analysis_results[option][value] += 1
                             st.session_state.image_categories[option][value].append(img)
                     
-                    # 분석 진행률 업데이트
+                    # Update analysis progress
                     analysis_progress.progress((i + 1) / total_images)
-                    analysis_status.text(f"이미지 분석 중... ({i+1}/{total_images})")
+                    analysis_status.text(f"Analyzing images... ({i+1}/{total_images})")
                 
-                analysis_status.text("이미지 분석 완료!")
+                analysis_status.text("Image analysis complete!")
                 time.sleep(1)
                 analysis_progress.empty()
                 analysis_status.empty()
