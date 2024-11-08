@@ -307,7 +307,7 @@ def process_images(images):
     status_text.text("Processing images...")
     
     # 병렬 처리를 위한 배치 크기 설정
-    batch_size = 16
+    batch_size = 4
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         future_to_image = {executor.submit(enhance_image, img): img for img in images}
