@@ -59,6 +59,7 @@ Please analyze the ORIGINAL designed sleeve length, not how it's currently style
 # 허용된 사용자 딕셔너리 (이메일: 비밀번호)
 ALLOWED_USERS = {
     "baekdoo28@gmail.com": "Yakjin135#",
+    "doosan.back@yakjin.com": "Yakjin135#",
     "jenna.lee@yakjin.com": "Yakjin135#",
     "cielito@yakjin.com": "Yakjin135#",
     "jesssieyun@yakjin.com": "Yakjin135#",
