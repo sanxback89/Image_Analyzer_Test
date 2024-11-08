@@ -455,6 +455,142 @@ def move_image(from_option, from_value, to_value, image_index):
         return True
     return False
 
+# 이미지 이동을 위한 새로운 함수 추가
+def move_selected_images(from_option, from_value, to_value, selected_indices):
+    """
+    선택된 이미지들을 한 카테고리에서 다른 카테고리로 이동
+    """
+    if not selected_indices:
+        return False
+    
+    # 인덱스를 내림차순으로 정렬 (높은 인덱스부터 제거)
+    selected_indices.sort(reverse=True)
+    
+    moved_images = []
+    for idx in selected_indices:
+        if (from_option in st.session_state.image_categories and 
+            from_value in st.session_state.image_categories[from_option] and
+            idx < len(st.session_state.image_categories[from_option][from_value])):
+            
+            # 이미지 가져오기
+            image = st.session_state.image_categories[from_option][from_value][idx]
+            moved_images.append(image)
+            
+            # 원래 카테고리에서 이미지 제거
+            st.session_state.image_categories[from_option][from_value].pop(idx)
+            st.session_state.analysis_results[from_option][from_value] -= 1
+            
+            # 카운트가 0이 되면 카테고리 제거
+            if st.session_state.analysis_results[from_option][from_value] == 0:
+                del st.session_state.analysis_results[from_option][from_value]
+                del st.session_state.image_categories[from_option][from_value]
+    
+    # 새 카테고리에 이미지들 추가
+    if moved_images:
+        st.session_state.image_categories[from_option][to_value].extend(moved_images)
+        st.session_state.analysis_results[from_option][to_value] = (
+            st.session_state.analysis_results[from_option].get(to_value, 0) + len(moved_images)
+        )
+        st.session_state.needs_rerun = True
+        return True
+    
+    return False
+
+# 수정된 display_images_with_controls 함수
+def display_images_with_controls(option, value, images, category):
+    """
+    체크박스와 이동 컨트롤이 있는 이미지 그리드 표시
+    """
+    st.markdown(f"""
+        <div style="margin-bottom: 5px;">
+            <strong>{value}</strong> (Count: {len(images)})
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # 이미지 그리드 생성
+    cols = st.columns(5)
+    selected_indices = []
+    
+    # 이미지 크기 계산
+    image_width = 150
+    new_image_width = int(image_width * 1.5)
+    
+    # 체크박스 상태를 저장할 고유한 키 생성
+    checkbox_key = f"checkbox_state_{option}_{value}"
+    
+    # 체크박스 상태 초기화 또는 업데이트
+    if checkbox_key not in st.session_state or len(st.session_state[checkbox_key]) != len(images):
+        st.session_state[checkbox_key] = [False] * len(images)
+    
+    for idx, img in enumerate(images):
+        with cols[idx % 5]:
+            with st.container():
+                st.markdown(
+                    """
+                    <div style="position: relative; padding: 10px 0 0 10px;">
+                        <div style="position: absolute; top: 10px; left: 10px; z-index: 1;">
+                    """,
+                    unsafe_allow_html=True
+                )
+                
+                # 체크박스 상태 관리
+                checkbox_unique_key = f"select_{option}_{value}_{idx}_{hash(str(img))}"
+                if st.checkbox("", key=checkbox_unique_key,
+                             value=st.session_state[checkbox_key][idx],
+                             label_visibility="collapsed"):
+                    selected_indices.append(idx)
+                    st.session_state[checkbox_key][idx] = True
+                else:
+                    st.session_state[checkbox_key][idx] = False
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+                # 이미지 표시
+                img_resized = img.resize((new_image_width, int(new_image_width * img.size[1] / img.size[0])))
+                st.image(img_resized, use_column_width=True)
+    
+    # 컨트롤 버튼들을 하단에 배치
+    st.markdown("<div style='margin-top: 15px;'>", unsafe_allow_html=True)
+    
+    # Move와 Remove 컨트롤을 같은 행에 배치
+    col1, col2, col3 = st.columns([4, 1, 1])
+    with col1:
+        other_options = ["Select Category"] + [opt for opt in analysis_options[category][option] 
+                                             if opt != value]
+        move_to = st.selectbox(
+            "Move to:",
+            other_options,
+            key=f"move_to_{option}_{value}_{hash(str(images))}",
+            label_visibility="collapsed"
+        )
+    
+    with col2:
+        if st.button("Move", key=f"move_btn_{option}_{value}_{hash(str(images))}", use_container_width=True):
+            if move_to == "Select Category":
+                st.warning("Please select a category to move to")
+            elif selected_indices:
+                if move_selected_images(option, value, move_to, selected_indices):
+                    # 체크박스 상태 초기화
+                    st.session_state[checkbox_key] = [False] * len(images)
+                    st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
+                    st.rerun()
+            else:
+                st.warning("Please select images to move")
+    
+    with col3:
+        if st.button("Remove", key=f"remove_btn_{option}_{value}_{hash(str(images))}", use_container_width=True):
+            if selected_indices:
+                for idx in sorted(selected_indices, reverse=True):
+                    remove_image(option, value, idx)
+                # 체크박스 상태 초기화
+                st.session_state[checkbox_key] = [False] * len(images)
+                st.success(f"Successfully removed {len(selected_indices)} images")
+                st.rerun()
+            else:
+                st.warning("Please select images to remove")
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
 # Modified main app logic (image list part)
 def main():
     st.set_page_config(layout="centered")
@@ -669,6 +805,62 @@ st.markdown("""
     }
     .stButton > button:hover {
         background-color: #e0e2e6;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# CSS 스타일 업데이트
+st.markdown("""
+<style>
+    /* 기존 스타일 유지 */
+    .stMultiSelect [data-baseweb="tag"] {
+        background-color: #007AFF !important;
+    }
+    // ... (기존 스타일 유지)
+
+    /* 새로운 이미지 컨트롤 관련 스타일 */
+    .stCheckbox {
+        margin: 0;
+        padding: 0;
+    }
+    
+    .stButton > button {
+        height: 38px;
+        margin-top: 0 !important;
+        border-radius: 4px;
+        background-color: #f0f2f6 !important;
+        color: #000000 !important;
+    }
+    
+    /* Move와 Remove 버튼 스타일 */
+    [data-testid="stButton"] button[key*="move_btn"] {
+        background-color: #007AFF !important;
+        color: white !important;
+    }
+    
+    [data-testid="stButton"] button[key*="remove_btn"] {
+        background-color: #FF3B30 !important;
+        color: white !important;
+    }
+    
+    /* 이미지 컨테이너 스타일 */
+    .stImage {
+        padding: 5px;
+    }
+    
+    /* 마진 관련 스타일 */
+    .stMarkdown {
+        margin-bottom: 0 !important;
+    }
+    
+    .row-widget {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+    }
+    
+    /* View fullscreen 버튼 숨기기 */
+    button[title="View fullscreen"] {
+        display: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
