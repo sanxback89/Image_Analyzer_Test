@@ -418,7 +418,7 @@ def initialize_session_state():
 # 이미지 삭제 함수 추가
 def remove_image(option, value, image_index):
     """
-    특정 카테고리에서 이미지를 삭제하고 차트 데이터 업데이트
+    특정 카테고리에서 이미지를 삭제하 차트 데이터 업데이트
     """
     if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
         # 이미지 리스트에서 제거
@@ -483,16 +483,12 @@ def display_images_with_controls(option, value, images, category):
     """
     st.markdown(f"**{value}** (Count: {len(images)})")
     
-    # 현재 카테고리의 다른 옵션들 가져오기
-    other_options = [opt for opt in analysis_options[category][option] 
-                    if opt != value]
-    
     # 이동 컨트롤을 상단에 배치하고 정렬
     col1, col2 = st.columns([4, 1])
     with col1:
         move_to = st.selectbox(
             "Move to:",
-            other_options,
+            [opt for opt in analysis_options[category][option] if opt != value],
             key=f"move_to_{option}_{value}",
             label_visibility="collapsed"
         )
@@ -509,24 +505,35 @@ def display_images_with_controls(option, value, images, category):
     
     for idx, img in enumerate(images):
         with cols[idx % 5]:
-            # 컨테이너로 이미지와 컨트롤을 감싸기
+            # 이미지 컨테이너
             with st.container():
-                # 삭제 버튼과 체크박스를 위한 작은 컬럼
-                ctrl_col1, ctrl_col2 = st.columns([1, 9])
-                with ctrl_col1:
-                    if st.checkbox("", key=f"select_{option}_{value}_{idx}", label_visibility="collapsed"):
-                        selected_indices.append(idx)
-                with ctrl_col2:
-                    if st.button("×", key=f"delete_{option}_{value}_{idx}", help="Remove image"):
-                        remove_image(option, value, idx)
-                        st.rerun()
+                # 이미지와 컨트롤을 포함할 div 생성
+                st.markdown(f"""
+                    <div class="image-container">
+                        <div class="image-controls">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" id="check_{option}_{value}_{idx}" 
+                                    {'checked' if idx in selected_indices else ''}>
+                            </div>
+                            <button class="delete-button" onclick="delete_image({idx})">×</button>
+                        </div>
+                        <div class="image-wrapper">
+                            <img src="data:image/png;base64,{img}" style="width:100%;">
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
                 
-                # 이미지 표시 (클릭 확대 없이)
-                st.image(img, use_column_width=True)
-            
-            # 5개 이미지마다 새로운 행 시작
-            if (idx + 1) % 5 == 0:
-                st.write("")
+                # 체크박스 상태 확인 (숨겨진 체크박스)
+                if st.checkbox("", key=f"select_{option}_{value}_{idx}", 
+                             label_visibility="collapsed", 
+                             value=False):
+                    selected_indices.append(idx)
+                
+                # 삭제 버튼 (숨겨진 버튼)
+                if st.button("", key=f"delete_{option}_{value}_{idx}", 
+                            help="Remove image"):
+                    remove_image(option, value, idx)
+                    st.rerun()
     
     # 이동 버튼 동작 처리
     if move_button and selected_indices:
@@ -695,53 +702,72 @@ st.markdown("""
     /* 이미지 컨테이너 스타일 */
     .image-container {
         position: relative;
+        width: 100%;
         margin-bottom: 10px;
     }
     
-    /* 이동 컨트롤 스타일 */
-    .move-controls {
-        margin-top: 10px;
-        padding: 10px;
-        background-color: #f8f9fa;
-        border-radius: 5px;
+    /* 이미지 컨트롤 래퍼 */
+    .image-controls {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        right: 5px;
+        z-index: 1;
+        display: flex;
+        justify-content: space-between;
     }
     
-    /* 이동 버튼 스타일 */
-    .stButton.move-button > button {
-        background-color: #007AFF;
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 5px;
-        width: auto;
+    /* 체크박스 스타일 */
+    .checkbox-wrapper {
+        position: relative;
+        width: 16px;
+        height: 16px;
     }
     
-    /* 체크박스와 삭제 버튼 컨테이너 */
-    .stButton > button {
-        padding: 0px 8px;
-        height: 24px;
-        line-height: 24px;
-        font-size: 14px;
-        border-radius: 4px;
+    .checkbox-wrapper input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
         margin: 0;
+        cursor: pointer;
+        opacity: 0.8;
+        background-color: white;
+        border: 1px solid #ccc;
     }
     
     /* 삭제 버튼 스타일 */
     .delete-button {
-        position: absolute;
-        top: 5px;
-        right: 5px;
+        padding: 0;
+        width: 16px;
+        height: 16px;
+        line-height: 14px;
+        text-align: center;
         background: rgba(255, 255, 255, 0.8);
         border: none;
-        border-radius: 3px;
-        padding: 2px 6px;
-        font-size: 12px;
+        border-radius: 2px;
+        font-size: 14px;
         cursor: pointer;
+        color: #666;
     }
     
-    /* 이미지 컨테이너 스타일 */
-    .image-container {
+    .delete-button:hover {
+        background: rgba(255, 255, 255, 0.9);
+        color: #333;
+    }
+    
+    /* 이미지 래퍼 */
+    .image-wrapper {
+        width: 100%;
         position: relative;
-        margin-bottom: 10px;
+    }
+    
+    .image-wrapper img {
+        width: 100%;
+        display: block;
+    }
+    
+    /* Streamlit 기본 요소 숨기기 */
+    [data-testid="stImage"] {
+        pointer-events: none;
     }
     
     /* Move 컨트롤 정렬 */
@@ -752,7 +778,6 @@ st.markdown("""
         margin-bottom: 15px;
     }
     
-    /* 선택박스와 버튼 정렬 */
     .stSelectbox {
         margin-bottom: 0 !important;
     }
