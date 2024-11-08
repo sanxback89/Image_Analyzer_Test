@@ -56,9 +56,21 @@ For Sleeve Length analysis, please consider these important factors:
 Please analyze the ORIGINAL designed sleeve length, not how it's currently styled or worn.
 """
 
+# Mixed Media guide definition
+mixed_media_guide = """
+Analyze the garment to identify any mixed media characteristics, focusing strictly on the use of distinct materials and textures. Follow these guidelines to ensure accurate classification:
+
+1. Distinct Textures and Materials: Identify garments that use two or more different textures or materials within the same piece. Look for fabric variations between sections, such as smooth material on the body with contrasting knit, lace, mesh, or textured fabric on the sleeves. Mixed media garments typically showcase an intentional contrast in fabric types.
+2. Clear Physical Differences: Observe the garment for obvious physical differences in thickness or texture between different parts. This could include combinations such as cotton paired with wool, knit mixed with woven fabric, or mesh alongside velvet. The presence of varied textures signals a mixed media approach.
+3. Exclude Color Variations Alone: Do not classify the garment as mixed media if the sections differ only in color without a change in texture or material. Mixed media requires a physical contrast in fabric or material, not just color blocking or decorative stitching.
+4. Layered or Separate Materials: Recognize cases where multiple materials are layered or independently used in distinct garment sections, like a body of one fabric type and sleeves of another. This deliberate use of contrasting materials qualifies as mixed media.
+5. Exclude Designs with Single Fabric: If the garment uses one consistent material with no layered or contrasting segments, do not classify it as mixed media, even if the appearance changes due to design or draping.
+Key Reminder: Classify as mixed media only if there are differences in material or texture. Do not include garments that have variations only in color or decorative elements without a true change in fabric type or physical texture. Color blocking, contrast binding, or differently colored sections of the same fabric do not meet the criteria for mixed media
+"""
+
 # 허용된 사용자 딕셔너리 (이메일: 비밀번호)
 ALLOWED_USERS = {
-    "baekdoo28@gmail.com": "Yakjin135#",
+    "doosan.back@yakjin.com": "Yakjin135#",
     "jenna.lee@yakjin.com": "Yakjin135#",
     "cielito@yakjin.com": "Yakjin135#",
     "jesssieyun@yakjin.com": "Yakjin135#",
@@ -171,6 +183,8 @@ def analyze_single_image(image, category, options):
     for option in options:
         if option == "Sleeves":
             prompt += f"\n{sleeve_length_guide}\n"
+        elif option == "Details" and "mixed_media" in analysis_options[category]["Details"]:
+            prompt += f"\n{mixed_media_guide}\n"
         
         if option == "Details":
             prompt += f"{option}: Select ALL that apply from [{', '.join(analysis_options[category][option])}]\n"
@@ -281,7 +295,7 @@ def enhance_image(image, scale_factor=1):
     # PIL 이미지를 OpenCV 형식으로 변환
     cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     
-    # 1. 이미지 크기 조정 (최적 크기로 조정)
+    # 1. 이��지 크기 조정 (최적 크기로 조정)
     min_dimension = 800  # 최소 크기 제한
     max_dimension = 1200  # 최대 크기 제한
     height, width = cv_image.shape[:2]
@@ -418,7 +432,7 @@ def initialize_session_state():
 # 이미지 삭제 함수 추가
 def remove_image(option, value, image_index):
     """
-    특정 카테고리에서 이미지를 삭제하고 차트 데이터 업데이트
+    특정 카테고리서 이미지를 삭제 트 데이터 업데이트
     """
     if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
         # 이미지 리스트에서 제거
@@ -481,58 +495,93 @@ def display_images_with_controls(option, value, images, category):
     """
     체크박스와 이동 컨트롤이 있는 이미지 그리드 표시
     """
-    st.markdown(f"**{value}** (Count: {len(images)})")
-    
-    # 현재 카테고리의 다른 옵션들 가져오기
-    other_options = [opt for opt in analysis_options[category][option] 
-                    if opt != value]
-    
-    # 이동 컨트롤을 상단에 배치하고 정렬
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        move_to = st.selectbox(
-            "Move to:",
-            other_options,
-            key=f"move_to_{option}_{value}",
-            label_visibility="collapsed"
-        )
-    with col2:
-        move_button = st.button(
-            "Move",
-            key=f"move_btn_{option}_{value}",
-            use_container_width=True
-        )
+    st.markdown(f"""
+        <div style="margin-bottom: 5px;">
+            <strong>{value}</strong> (Count: {len(images)})
+        </div>
+    """, unsafe_allow_html=True)
     
     # 이미지 그리드 생성
-    selected_indices = []
     cols = st.columns(5)
+    selected_indices = []
+    
+    # 이미지 크기 계산
+    image_width = 150
+    new_image_width = int(image_width * 1.5)
+    
+    # 체크박스 상태를 저장할 고유한 키 생성
+    checkbox_key = f"checkbox_state_{option}_{value}"
+    if checkbox_key not in st.session_state:
+        st.session_state[checkbox_key] = [False] * len(images)
     
     for idx, img in enumerate(images):
         with cols[idx % 5]:
-            # 컨테이너로 이미지와 컨트롤을 감싸기
             with st.container():
-                # 삭제 버튼과 체크박스를 위한 작은 컬럼
-                ctrl_col1, ctrl_col2 = st.columns([1, 9])
-                with ctrl_col1:
-                    if st.checkbox("", key=f"select_{option}_{value}_{idx}", label_visibility="collapsed"):
-                        selected_indices.append(idx)
-                with ctrl_col2:
-                    if st.button("×", key=f"delete_{option}_{value}_{idx}", help="Remove image"):
-                        remove_image(option, value, idx)
-                        st.rerun()
+                st.markdown(
+                    """
+                    <div style="position: relative; padding: 10px 0 0 10px;">
+                        <div style="position: absolute; top: 10px; left: 10px; z-index: 1;">
+                    """,
+                    unsafe_allow_html=True
+                )
                 
-                # 이미지 표시 (클릭 확대 없이)
-                st.image(img, use_column_width=True)
-            
-            # 5개 이미지마다 새로운 행 시작
-            if (idx + 1) % 5 == 0:
-                st.write("")
+                # 체크박스 상태 관리
+                checkbox_unique_key = f"select_{option}_{value}_{idx}_{hash(str(img))}"
+                if st.checkbox("", key=checkbox_unique_key,
+                             value=st.session_state[checkbox_key][idx],
+                             label_visibility="collapsed"):
+                    selected_indices.append(idx)
+                    st.session_state[checkbox_key][idx] = True
+                else:
+                    st.session_state[checkbox_key][idx] = False
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+                # 이미지 표시
+                img_resized = img.resize((new_image_width, int(new_image_width * img.size[1] / img.size[0])))
+                st.image(img_resized, use_column_width=True)
     
-    # 이동 버튼 동작 처리
-    if move_button and selected_indices:
-        if move_selected_images(option, value, move_to, selected_indices):
-            st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
-            st.rerun()
+    # 컨트롤 버튼들을 하단에 배치
+    st.markdown("<div style='margin-top: 15px;'>", unsafe_allow_html=True)
+    
+    # Move와 Remove 컨트롤을 같은 행에 배치
+    col1, col2, col3 = st.columns([4, 1, 1])
+    with col1:
+        other_options = ["Select Category"] + [opt for opt in analysis_options[category][option] 
+                                             if opt != value]
+        move_to = st.selectbox(
+            "Move to:",
+            other_options,
+            key=f"move_to_{option}_{value}_{hash(str(images))}",  # 고유한 키 추가
+            label_visibility="collapsed"
+        )
+    
+    with col2:
+        if st.button("Move", key=f"move_btn_{option}_{value}_{hash(str(images))}", use_container_width=True):
+            if move_to == "Select Category":
+                st.warning("Please select a category to move to")
+            elif selected_indices:
+                if move_selected_images(option, value, move_to, selected_indices):
+                    # 체크박스 상태 초기화
+                    st.session_state[checkbox_key] = [False] * len(images)
+                    st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
+                    st.rerun()
+            else:
+                st.warning("Please select images to move")
+    
+    with col3:
+        if st.button("Remove", key=f"remove_btn_{option}_{value}_{hash(str(images))}", use_container_width=True):
+            if selected_indices:
+                for idx in sorted(selected_indices, reverse=True):
+                    remove_image(option, value, idx)
+                # 체크박스 상태 초기화
+                st.session_state[checkbox_key] = [False] * len(images)
+                st.success(f"Successfully removed {len(selected_indices)} images")
+                st.rerun()
+            else:
+                st.warning("Please select images to remove")
+    
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # Modified main app logic (image list part)
 def main():
@@ -752,13 +801,118 @@ st.markdown("""
         margin-bottom: 15px;
     }
     
-    /* 선택박스와 버튼 정렬 */
+    /* 선택스와 버튼 정렬 */
     .stSelectbox {
         margin-bottom: 0 !important;
     }
     
     .stButton.move-button {
         margin-top: 0 !important;
+    }
+    
+    /* 컨트롤 버튼 컨테이너 스타일 */
+    .control-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+    
+    /* 선택박스와 버튼 정렬 */
+    .stSelectbox {
+        margin-bottom: 0 !important;
+    }
+    
+    /* 버튼 스타일 통일 */
+    .stButton > button {
+        height: 38px;
+        margin-top: 0 !important;
+        border-radius: 4px;
+    }
+    
+    /* Move 버튼 스타일 */
+    [data-testid="stButton"] button:first-child {
+        background-color: #007AFF;
+        color: white;
+    }
+    
+    /* Remove 버튼 스타일 */
+    [data-testid="stButton"] button:last-child {
+        background-color: #FF3B30;
+        color: white;
+    }
+    
+    /* 체크박스 스타일 */
+    .stCheckbox {
+        margin-bottom: 5px;
+    }
+    
+    /* 이미지 컨테이너 스타일 */
+    .stImage {
+        margin-top: 5px;
+    }
+    
+    /* Move와 Remove 버튼 스타일을 특정 클래스나 ID로 제한 */
+    [data-testid="stButton"] button[key*="move_btn"] {
+        background-color: #007AFF;
+        color: white;
+    }
+    
+    [data-testid="stButton"] button[key*="remove_btn"] {
+        background-color: #FF3B30;
+        color: white;
+    }
+    
+    /* Authentication 버튼 스타일 복원 */
+    [data-testid="stButton"] button:not([key*="move_btn"]):not([key*="remove_btn"]) {
+        background-color: #ffffff;
+        color: #000000;
+    }
+
+    /* View fullscreen 버튼 숨기기 */
+    button[title="View fullscreen"] {
+        display: none !important;
+    }
+    
+    /* 체크박스 컨테이너 스타일 */
+    .stCheckbox {
+        margin: 0;
+        padding: 0;
+    }
+    
+    /* 버튼 스타일 통일 */
+    .stButton > button {
+        height: 38px;
+        margin-top: 0 !important;
+        border-radius: 4px;
+        background-color: #f0f2f6 !important;
+        color: #000000 !important;
+    }
+    
+    /* 카테고리 제목과 컨텐츠 사이 간격 조정 */
+    .element-container {
+        margin-bottom: 0 !important;
+    }
+    
+    /* View fullscreen 버튼 숨기기 */
+    button[title="View fullscreen"] {
+        display: none !important;
+    }
+    
+    /* 이미지 컨테이너 패딩 */
+    .stImage {
+        padding: 5px;
+    }
+
+    /* 새로 추가: 마진 관련 스타일 */
+    .stMarkdown {
+        margin-bottom: 0 !important;
+    }
+    
+    .row-widget {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
