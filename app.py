@@ -72,20 +72,22 @@ ALLOWED_USERS = {
 
 # User authentication and usage tracking
 def authenticate_user():
-    st.markdown("<h1 class='emoji-title'>Yakjin Fashion Image Analyzer</h1>", unsafe_allow_html=True)
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
     
-    email = st.text_input("Enter your email address")
-    password = st.text_input("Enter your password", type="password")
-    
-    # Authentication 버튼을 패스워드 입력 필드 바로 아래에 배치
-    if st.button("Authentication"):
-        if email == "baekdoo28@gmail.com" and password == "yakjin123":
-            st.success("로그인이 필요합니다. 위의 인증 정보를 입력해주세요.")
-            return True
-        else:
-            st.error("Invalid credentials. Please try again.")
-            return False
-    return False
+    if not st.session_state.authenticated:
+        email = st.text_input("Enter your email address")
+        password = st.text_input("Enter your password", type="password")
+        if st.button("Authentication"):
+            if email in ALLOWED_USERS and ALLOWED_USERS[email] == password:
+                st.session_state.authenticated = True
+                st.session_state.email = email
+                st.success("Authentication succeeded.")
+                return True
+            else:
+                st.error("This is an unverified email address or incorrect password. Access denied.")
+                return False
+    return st.session_state.authenticated
 
 # Analysis options definition (modified)
 analysis_options = {
