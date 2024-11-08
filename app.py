@@ -418,7 +418,7 @@ def initialize_session_state():
 # 이미지 삭제 함수 추가
 def remove_image(option, value, image_index):
     """
-    특정 카테고리��서 이미지를 삭제하고 차트 데이터 업데이트
+    특정 카테고리서 이미지를 삭제하고 차트 데이터 업데이트
     """
     if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
         # 이미지 리스트에서 제거
@@ -484,59 +484,39 @@ def display_images_with_controls(option, value, images, category):
     st.markdown(f"**{value}** (Count: {len(images)})")
     
     # 이미지 그리드 생성
-    selected_indices = []
     cols = st.columns(5)
+    selected_indices = []
     
     for idx, img in enumerate(images):
         with cols[idx % 5]:
             # 컨테이너로 이미지와 컨트롤을 감싸기
             with st.container():
-                # 체크박스와 이미지를 포함하는 컨테이너
-                st.checkbox("", key=f"select_{option}_{value}_{idx}", 
-                          label_visibility="collapsed")
+                # 체크박스
+                if st.checkbox("", key=f"select_{option}_{value}_{idx}", 
+                             label_visibility="collapsed"):
+                    selected_indices.append(idx)
                 
-                # 이미지와 삭제 버튼을 포함하는 div
-                st.markdown(
-                    f"""
-                    <div style="position: relative;">
-                        <button 
-                            onclick="document.querySelector('#delete_{option}_{value}_{idx}').click()"
-                            style="position: absolute; top: 5px; right: 5px; z-index: 1; 
-                                   background: rgba(255, 255, 255, 0.8); border: none; 
-                                   border-radius: 3px; padding: 2px 6px; cursor: pointer;">
-                            ×
-                        </button>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-                
-                # 숨겨진 삭제 버튼
-                if st.button("", key=f"delete_{option}_{value}_{idx}", 
-                           style="display: none;"):
-                    remove_image(option, value, idx)
-                    st.rerun()
-                
-                # 이미지 표시
-                st.image(img, use_column_width=True)
-            
-            # 5개 이미지마다 새로운 행 시작
-            if (idx + 1) % 5 == 0:
-                st.write("")
+                # 삭제 버튼과 이미지를 포함하는 컨테이너
+                col1, col2 = st.columns([0.9, 0.1])
+                with col1:
+                    st.image(img, use_column_width=True)
+                with col2:
+                    if st.button("×", key=f"delete_{option}_{value}_{idx}"):
+                        remove_image(option, value, idx)
+                        st.rerun()
+    
+    # 5개 이미지마다 새로운 행 시작
+    if len(images) % 5 != 0:
+        st.write("")
     
     # 현재 카테고리의 다른 옵션들 가져오기
     other_options = [opt for opt in analysis_options[category][option] 
                     if opt != value]
     
-    # 이동 컨트롤을 하단에 배치하고 정렬
-    st.markdown(
-        """
-        <div style="display: flex; align-items: center; gap: 10px; 
-                    margin-top: 15px; margin-bottom: 15px;">
-        """,
-        unsafe_allow_html=True
-    )
+    # 이동 컨트롤을 하단에 배치
+    st.markdown("<div style='margin-top: 15px;'>", unsafe_allow_html=True)
     
+    # Move 컨트롤을 같은 행에 배치
     col1, col2 = st.columns([4, 1])
     with col1:
         move_to = st.selectbox(
@@ -546,19 +526,15 @@ def display_images_with_controls(option, value, images, category):
             label_visibility="collapsed"
         )
     with col2:
-        move_button = st.button(
-            "Move",
-            key=f"move_btn_{option}_{value}",
-            use_container_width=True
-        )
+        if st.button("Move", key=f"move_btn_{option}_{value}", use_container_width=True):
+            if selected_indices:
+                if move_selected_images(option, value, move_to, selected_indices):
+                    st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
+                    st.rerun()
+            else:
+                st.warning("Please select images to move")
     
     st.markdown("</div>", unsafe_allow_html=True)
-    
-    # 이동 버튼 동작 처리
-    if move_button and selected_indices:
-        if move_selected_images(option, value, move_to, selected_indices):
-            st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
-            st.rerun()
 
 # Modified main app logic (image list part)
 def main():
