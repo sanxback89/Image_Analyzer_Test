@@ -296,6 +296,55 @@ def process_zip_file(uploaded_file):
                 with zip_ref.open(file_name) as file:
                     yield file_name, file.read()
 
+# 이미지 최적화 함수를 process_images 함수 위로 이동
+def optimize_image_for_analysis(image):
+    """이미지를 AI 분석에 최적화된 형태로 변환"""
+    try:
+        # PIL 이미지를 numpy 배열로 변환
+        if isinstance(image, Image.Image):
+            img_array = np.array(image)
+        else:
+            img_array = image
+
+        # 이미지가 RGBA인 경우 RGB로 변환
+        if img_array.shape[-1] == 4:
+            img_array = cv2.cvtColor(img_array, cv2.COLOR_RGBA2RGB)
+
+        # 목표 크기 설정 (OpenAI API 최적 크기)
+        TARGET_SIZE = (512, 512)
+        
+        # 이미지 크기 최적화
+        height, width = img_array.shape[:2]
+        if height > TARGET_SIZE[0] or width > TARGET_SIZE[1]:
+            # 비율 유지하면서 리사이즈
+            aspect_ratio = width / height
+            if width > height:
+                new_width = TARGET_SIZE[0]
+                new_height = int(new_width / aspect_ratio)
+            else:
+                new_height = TARGET_SIZE[1]
+                new_width = int(new_height * aspect_ratio)
+            
+            img_array = cv2.resize(img_array, (new_width, new_height), 
+                                 interpolation=cv2.INTER_AREA)
+
+        # JPEG 품질 최적화 (85% 품질)
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 85]
+        _, img_encoded = cv2.imencode('.jpg', img_array, encode_param)
+        
+        # 최적화된 이미지를 PIL Image로 변환
+        optimized_image = Image.fromarray(cv2.imdecode(img_encoded, cv2.IMREAD_COLOR))
+        
+        # 메모리 최적화
+        img_array = None
+        img_encoded = None
+        
+        return optimized_image
+
+    except Exception as e:
+        st.error(f"Image optimization error: {e}")
+        return image  # 에러 발생 시 원본 이미지 반환
+
 # Image processing
 def process_images(images):
     processed_images = []
@@ -974,53 +1023,4 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
-# 이미지 최적화 함수 추가
-def optimize_image_for_analysis(image):
-    """이미지를 AI 분석에 최적화된 형태로 변환"""
-    try:
-        # PIL 이미지를 numpy 배열로 변환
-        if isinstance(image, Image.Image):
-            img_array = np.array(image)
-        else:
-            img_array = image
-
-        # 이미지가 RGBA인 경우 RGB로 변환
-        if img_array.shape[-1] == 4:
-            img_array = cv2.cvtColor(img_array, cv2.COLOR_RGBA2RGB)
-
-        # 목표 크기 설정 (OpenAI API 최적 크기)
-        TARGET_SIZE = (512, 512)
-        
-        # 이미지 크기 최적화
-        height, width = img_array.shape[:2]
-        if height > TARGET_SIZE[0] or width > TARGET_SIZE[1]:
-            # 비율 유지하면서 리사이즈
-            aspect_ratio = width / height
-            if width > height:
-                new_width = TARGET_SIZE[0]
-                new_height = int(new_width / aspect_ratio)
-            else:
-                new_height = TARGET_SIZE[1]
-                new_width = int(new_height * aspect_ratio)
-            
-            img_array = cv2.resize(img_array, (new_width, new_height), 
-                                 interpolation=cv2.INTER_AREA)
-
-        # JPEG 품질 최적화 (85% 품질)
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 85]
-        _, img_encoded = cv2.imencode('.jpg', img_array, encode_param)
-        
-        # 최적화된 이미지를 PIL Image로 변환
-        optimized_image = Image.fromarray(cv2.imdecode(img_encoded, cv2.IMREAD_COLOR))
-        
-        # 메모리 최적화
-        img_array = None
-        img_encoded = None
-        
-        return optimized_image
-
-    except Exception as e:
-        st.error(f"Image optimization error: {e}")
-        return image  # 에러 발생 시 원본 이미지 반환
 
