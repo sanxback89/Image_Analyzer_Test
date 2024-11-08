@@ -430,25 +430,30 @@ def remove_image(option, value, image_index):
         # 세션 상태 업데이트 트리거
         st.session_state.update_charts = True
 
-# 이미지 일괄 삭제 함수 추가
-def remove_multiple_images(option, value, image_indices):
-    if option in st.session_state.analysis_results and value in st.session_state.image_categories[option]:
-        # 인덱스를 내림차순으로 정렬 (큰 인덱스부터 삭제)
-        for index in sorted(image_indices, reverse=True):
-            # 이미지 리스트에서 제거
-            if index < len(st.session_state.image_categories[option][value]):
-                st.session_state.image_categories[option][value].pop(index)
-                
-                # 카운터 업데이트
-                if option == "Details":
-                    st.session_state.analysis_results[option][value] -= 1
-                    if st.session_state.analysis_results[option][value] == 0:
-                        del st.session_state.analysis_results[option][value]
-                else:
-                    st.session_state.analysis_results[option][value] -= 1
+# 이미지 이동 함수 추가
+def move_image(from_option, from_value, to_value, image_index):
+    if (from_option in st.session_state.image_categories and 
+        from_value in st.session_state.image_categories[from_option]):
+        # 이미지 가져오기
+        image = st.session_state.image_categories[from_option][from_value][image_index]
         
-        # 세션 상태 업데이트 트리거
-        st.session_state.update_charts = True
+        # 원래 카테고리에서 이미지 제거
+        st.session_state.image_categories[from_option][from_value].pop(image_index)
+        st.session_state.analysis_results[from_option][from_value] -= 1
+        
+        # 카운트가 0이 되면 카테고리 제거
+        if st.session_state.analysis_results[from_option][from_value] == 0:
+            del st.session_state.analysis_results[from_option][from_value]
+            del st.session_state.image_categories[from_option][from_value]
+        
+        # 새 카테고리에 이미지 추가
+        st.session_state.image_categories[from_option][to_value].append(image)
+        st.session_state.analysis_results[from_option][to_value] = (
+            st.session_state.analysis_results[from_option].get(to_value, 0) + 1
+        )
+        
+        return True
+    return False
 
 # Modified main app logic (image list part)
 def main():
@@ -595,28 +600,23 @@ def main():
                                 st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
                                 if option in image_categories and value in image_categories[option]:
                                     images = image_categories[option][value]
-                                    
-                                    # 이미지 선택을 위한 체크박스 추가
-                                    selected_images = []
                                     cols = st.columns(5)
                                     for j, img in enumerate(images):
                                         with cols[j % 5]:
-                                            # 각 이미지에 체크박스 추가
-                                            selected = st.checkbox(f"Select_{option}_{value}_{j}", 
-                                                         label_visibility="collapsed", 
-                                                         key=f"select_{option}_{value}_{j}")
-                                            if selected:
-                                                selected_images.append(j)
                                             st.image(img, use_column_width=True)
+                                        if option == "Details":  # Details 옵션에 대해서만 이동 기능 제공
+                                            # 이동할 카테고리 선택
+                                            move_to = st.selectbox(
+                                                "Move to:",
+                                                options=[x for x in analysis_options[selected_category]["Details"] if x != value],
+                                                key=f"move_{option}_{value}_{j}"
+                                            )
+                                            if st.button("Move Image", key=f"move_btn_{option}_{value}_{j}"):
+                                                if move_image(option, value, move_to, j):
+                                                    st.success(f"Image moved from {value} to {move_to}")
+                                                    st.rerun()
                                         if (j + 1) % 5 == 0:
                                             st.write("")
-                                    
-                                    # 선택된 이미지가 있을 경우 삭제 버튼 표시
-                                    if selected_images:
-                                        if st.button(f"Delete Selected Images ({len(selected_images)})", 
-                                                   key=f"delete_{option}_{value}"):
-                                            remove_multiple_images(option, value, selected_images)
-                                            st.experimental_rerun()
                                 else:
                                     st.write("No Matching Images Found.")
                                 st.write("---")
