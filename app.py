@@ -626,6 +626,19 @@ def display_images_with_controls(option, value, images, category):
     
     st.markdown("</div>", unsafe_allow_html=True)
 
+# 수정된 배치 처리 함수
+def analyze_batch(batch):
+    """배치 단위로 이미지를 분석하는 함수"""
+    results = []
+    for img, category, options in batch:
+        try:
+            result = analyze_single_image(img, category, options)
+            results.append((result, img))
+        except Exception as e:
+            st.error(f"Error analyzing image: {e}")
+            results.append(({}, img))
+    return results
+
 # Modified main app logic (image list part)
 def main():
     initialize_session_state()
@@ -697,22 +710,48 @@ def main():
                 upload_progress.empty()
                 upload_status.empty()
                 
-                # Process images
+                # 이미지 처리 최적화
                 processed_images = process_images(images)
                 
-                # Initialize analysis results
-                st.session_state.analysis_results = defaultdict(lambda: defaultdict(int))
-                st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
+                # 배치 크기 최적화
+                BATCH_SIZE = 8  # 더 큰 배치 사이즈 사용
                 
-                # Image analysis progress
+                # 분석 준비
+                analysis_tasks = [(img, selected_category, selected_options) 
+                                for img in processed_images]
+                batches = [analysis_tasks[i:i + BATCH_SIZE] 
+                          for i in range(0, len(analysis_tasks), BATCH_SIZE)]
+                
+                # 진행 상태 표시
                 analysis_progress = st.progress(0)
                 analysis_status = st.empty()
                 analysis_status.text("Analyzing images...")
                 
-                total_images = len(processed_images)
-                for i, img in enumerate(processed_images):
-                    results = analyze_single_image(img, selected_category, selected_options)
-                    for option, value in results.items():
+                # ThreadPoolExecutor를 사용한 병렬 처리
+                results = []
+                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                    future_to_batch = {executor.submit(analyze_batch, batch): batch 
+                                     for batch in batches}
+                    
+                    completed_images = 0
+                    total_images = len(processed_images)
+                    
+                    for future in concurrent.futures.as_completed(future_to_batch):
+                        batch_results = future.result()
+                        results.extend(batch_results)
+                        
+                        # 진행률 업데이트
+                        completed_images += len(batch_results)
+                        progress = completed_images / total_images
+                        analysis_progress.progress(progress)
+                        analysis_status.text(f"Analyzing images... ({completed_images}/{total_images})")
+                
+                # 결과 처리
+                st.session_state.analysis_results = defaultdict(lambda: defaultdict(int))
+                st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
+                
+                for result, img in results:
+                    for option, value in result.items():
                         if isinstance(value, list):
                             for v in value:
                                 st.session_state.analysis_results[option][v] += 1
@@ -720,10 +759,6 @@ def main():
                         else:
                             st.session_state.analysis_results[option][value] += 1
                             st.session_state.image_categories[option][value].append(img)
-                    
-                    # Update analysis progress
-                    analysis_progress.progress((i + 1) / total_images)
-                    analysis_status.text(f"Analyzing images... ({i+1}/{total_images})")
                 
                 analysis_status.text("Image analysis complete!")
                 time.sleep(1)
