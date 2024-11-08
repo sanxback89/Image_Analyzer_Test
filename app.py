@@ -161,7 +161,7 @@ def get_image_hash(image):
     hash_str = ''.join(['1' if pixel > avg else '0' for pixel in gray.flatten()])
     return hash_str
 
-# 수정된 분석 함수
+# 수정된 분 함수
 @st.cache_data(ttl=24*3600, show_spinner=False, hash_funcs={Image.Image: get_image_hash})
 def analyze_single_image(image, category, options):
     base64_image = encode_image(image)
@@ -299,7 +299,7 @@ def enhance_image(image, scale_factor=1):
         new_height = int(height * scale)
         cv_image = cv2.resize(cv_image, (new_width, new_height), interpolation=cv2.INTER_AREA)
     
-    # 2. 기본적인 노이즈 제거 (빠른 처리를 위해 파라미터 조정)
+    # 2. 기본적인 노이즈 제거 (빠른 처리를 위해 파라미터 정)
     denoised = cv2.fastNlMeansDenoisingColored(cv_image, None, 7, 7, 5, 12)
     
     return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
@@ -406,7 +406,7 @@ def generate_colors(n):
         colors.append(hex_color)
     return colors
 
-# 세션 상태에 분석 결과 저장을 위한 초기화 함수 추가
+# 세션 상태에 분석 과 저장을 위한 초기화 함수 추가
 def initialize_session_state():
     if 'analysis_results' not in st.session_state:
         st.session_state.analysis_results = {}
@@ -428,6 +428,7 @@ def remove_image(option, value, image_index):
             st.session_state.analysis_results[option][value] -= 1
         
         st.session_state.needs_rerun = True
+        st.experimental_rerun()
 
 # 이미지 이동 함수 추가
 def move_selected_images(from_option, from_value, to_value, selected_indices):
@@ -458,6 +459,7 @@ def move_selected_images(from_option, from_value, to_value, selected_indices):
             st.session_state.analysis_results[from_option].get(to_value, 0) + len(moved_images)
         )
         st.session_state.needs_rerun = True
+        st.experimental_rerun()
         return True
     
     return False
@@ -545,6 +547,7 @@ def display_images_with_controls(option, value, images, category):
 # Modified main app logic (image list part)
 def main():
     st.set_page_config(layout="centered")
+    initialize_session_state()
     
     st.markdown("""
     <style>
@@ -606,7 +609,7 @@ def main():
                                 img = img.convert('RGB')
                             images.append(img)
                         except Exception as e:
-                            st.error(f"ZIP 파일 내 ���미지 처리 중 오류 발생: {str(e)}")
+                            st.error(f"ZIP 파일 내 미지 처리 중 오류 발생: {str(e)}")
             
             if images:
                 status_message = st.empty()  # 상태 메시지를 위한 컨테이너 생성
@@ -687,12 +690,7 @@ def main():
                                 st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
                                 if option in image_categories and value in image_categories[option]:
                                     images = image_categories[option][value]
-                                    cols = st.columns(5)
-                                    for j, img in enumerate(images):
-                                        with cols[j % 5]:
-                                            st.image(img, use_column_width=True)
-                                        if (j + 1) % 5 == 0:
-                                            st.write("")
+                                    display_images_with_controls(option, value, images, selected_category)
                                 else:
                                     st.write("No Matching Images Found.")
                                 st.write("---")
