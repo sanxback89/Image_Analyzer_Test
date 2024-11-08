@@ -487,52 +487,51 @@ def display_images_with_controls(option, value, images, category):
     other_options = [opt for opt in analysis_options[category][option] 
                     if opt != value]
     
-    # 이동 컨트롤을 상단에 배치하고 정렬
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        move_to = st.selectbox(
-            "Move to:",
-            other_options,
-            key=f"move_to_{option}_{value}",
-            label_visibility="collapsed"
-        )
-    with col2:
-        move_button = st.button(
-            "Move",
-            key=f"move_btn_{option}_{value}",
-            use_container_width=True
-        )
-    
     # 이미지 그리드 생성
     selected_indices = []
     cols = st.columns(5)
+    
+    # 전체 선택 체크박스 추가
+    select_all = st.checkbox("Select All", key=f"select_all_{option}_{value}")
     
     for idx, img in enumerate(images):
         with cols[idx % 5]:
             # 컨테이너로 이미지와 컨트롤을 감싸기
             with st.container():
-                # 삭제 버튼과 체크박스를 위한 작은 컬럼
-                ctrl_col1, ctrl_col2 = st.columns([1, 9])
+                # 체크박스와 삭제 버튼을 위한 작은 컬럼들
+                ctrl_col1, ctrl_col2 = st.columns([9, 1])
                 with ctrl_col1:
-                    if st.checkbox("", key=f"select_{option}_{value}_{idx}", label_visibility="collapsed"):
+                    if select_all or st.checkbox("", key=f"select_{option}_{value}_{idx}", 
+                                               label_visibility="collapsed"):
                         selected_indices.append(idx)
                 with ctrl_col2:
-                    if st.button("×", key=f"delete_{option}_{value}_{idx}", help="Remove image"):
+                    if st.checkbox("", key=f"delete_{option}_{value}_{idx}", 
+                                 label_visibility="collapsed",
+                                 help="Remove image"):
                         remove_image(option, value, idx)
                         st.rerun()
                 
-                # 이미지 표시 (클릭 확대 없이)
+                # 이미지 표시
                 st.image(img, use_column_width=True)
             
             # 5개 이미지마다 새로운 행 시작
             if (idx + 1) % 5 == 0:
                 st.write("")
     
-    # 이동 버튼 동작 처리
-    if move_button and selected_indices:
-        if move_selected_images(option, value, move_to, selected_indices):
-            st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
-            st.rerun()
+    # 이동 컨트롤을 하단에 배치
+    if selected_indices:
+        move_col1, move_col2 = st.columns([4, 1])
+        with move_col1:
+            move_to = st.selectbox(
+                "Move selected images to:",
+                other_options,
+                key=f"move_to_{option}_{value}"
+            )
+        with move_col2:
+            if st.button("Move", key=f"move_btn_{option}_{value}", use_container_width=True):
+                if move_selected_images(option, value, move_to, selected_indices):
+                    st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
+                    st.rerun()
 
 # Modified main app logic (image list part)
 def main():
@@ -759,6 +758,60 @@ st.markdown("""
     
     .stButton.move-button {
         margin-top: 0 !important;
+    }
+    
+    /* 체크박스 스타일 통일 */
+    .stCheckbox > label > div[role="checkbox"] {
+        width: 20px !important;
+        height: 20px !important;
+        border-radius: 4px !important;
+        border: 2px solid #ccc !important;
+    }
+    
+    /* 삭제 체크박스 스타일 */
+    .stCheckbox.delete-checkbox > label > div[role="checkbox"] {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background-color: white;
+    }
+    
+    /* 이미지 컨테이너 스타일 */
+    .image-container {
+        position: relative;
+        margin-bottom: 15px;
+    }
+    
+    /* 이동 컨트롤 컨테이너 */
+    .move-controls-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        margin-top: 15px;
+    }
+    
+    /* Select All 체크박스 스타일 */
+    .select-all-checkbox {
+        margin-bottom: 10px;
+    }
+    
+    /* 이동 버튼과 선택박스 정렬 */
+    .move-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .move-controls .stSelectbox {
+        flex-grow: 1;
+    }
+    
+    .move-controls .stButton {
+        min-width: 100px;
     }
 </style>
 """, unsafe_allow_html=True)
