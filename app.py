@@ -418,7 +418,7 @@ def initialize_session_state():
 # 이미지 삭제 함수 추가
 def remove_image(option, value, image_index):
     """
-    특정 카테고리서 이미지를 삭제��� 트 데이터 업데이트
+    특정 카테고리서 이미지를 삭제 트 데이터 업데이트
     """
     if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
         # 이미지 리스트에서 제거
@@ -481,13 +481,18 @@ def display_images_with_controls(option, value, images, category):
     """
     체크박스와 이동 컨트롤이 있는 이미지 그리드 표시
     """
-    st.markdown(f"**{value}** (Count: {len(images)})")
+    # 카테고리 제목과 이미지 사이 간격 줄이기
+    st.markdown(f"""
+        <div style="margin-bottom: 5px;">
+            <strong>{value}</strong> (Count: {len(images)})
+        </div>
+    """, unsafe_allow_html=True)
     
     # 이미지 그리드 생성
     cols = st.columns(5)
     selected_indices = []
     
-    # 이미지 크기 계산 (1.5배 증가)
+    # 이미지 크기 계산
     image_width = 150
     new_image_width = int(image_width * 1.5)
     
@@ -859,13 +864,8 @@ st.markdown("""
         color: #000000 !important;
     }
     
-    /* 버튼 호버 효과 */
-    .stButton > button:hover {
-        background-color: #e0e2e6 !important;
-    }
-    
-    /* 선택박스 스타일 */
-    .stSelectbox {
+    /* 카테고리 제목과 컨텐츠 사이 간격 조정 */
+    .element-container {
         margin-bottom: 0 !important;
     }
     
@@ -877,6 +877,16 @@ st.markdown("""
     /* 이미지 컨테이너 패딩 */
     .stImage {
         padding: 5px;
+    }
+
+    /* 새로 추가: 마진 관련 스타일 */
+    .stMarkdown {
+        margin-bottom: 0 !important;
+    }
+    
+    .row-widget {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
