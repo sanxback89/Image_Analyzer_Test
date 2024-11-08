@@ -249,18 +249,34 @@ def is_valid_image(image):
     이미지가 유효한지 검사하는 함수
     """
     try:
-        # 이미지 크기가 너무 작은 경우 제외
+        # 이미지 크기가 ���무 작은 경우 제외
         if image.size[0] < 10 or image.size[1] < 10:
             return False
             
-        # 이미지가 단색인지 확인
+        # 이미지를 numpy 배열로 변환
         img_array = np.array(image)
+        
+        # 이미지가 단색이거나 대부분이 검정색인 경우 제외
         if len(img_array.shape) < 3:  # 흑백 이미지
             unique_pixels = np.unique(img_array)
-            return len(unique_pixels) > 2  # 2개 이하의 고유한 픽셀 값은 제외
+            if len(unique_pixels) <= 2:  # 흑백만 있는 경우
+                return False
         else:  # 컬러 이미지
-            unique_pixels = np.unique(img_array.reshape(-1, img_array.shape[-1]), axis=0)
-            return len(unique_pixels) > 2  # 2개 이하의 고유한 색상은 제외
+            # 검정색 픽셀의 비율 계산
+            black_pixels = np.sum(np.all(img_array < 30, axis=2))  # RGB 값이 모두 30 미만인 픽셀
+            total_pixels = img_array.shape[0] * img_array.shape[1]
+            black_ratio = black_pixels / total_pixels
+            
+            # 이미지의 90% 이상이 검정색인 경우 제외
+            if black_ratio > 0.9:
+                return False
+                
+            # 단색 이미지 체크
+            unique_colors = np.unique(img_array.reshape(-1, img_array.shape[-1]), axis=0)
+            if len(unique_colors) <= 2:  # 2가지 이하의 색상만 있는 경우
+                return False
+            
+        return True
             
     except Exception as e:
         print(f"Image validation error: {e}")
