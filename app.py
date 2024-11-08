@@ -418,7 +418,7 @@ def initialize_session_state():
 # 이미지 삭제 함수 추가
 def remove_image(option, value, image_index):
     """
-    특정 카테고리서 이미지를 삭제하고 차트 데이터 업데이트
+    특정 카테고리서 이미지를 삭제하고 트 데이터 업데이트
     """
     if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
         # 이미지 리스트에서 제거
@@ -487,23 +487,22 @@ def display_images_with_controls(option, value, images, category):
     cols = st.columns(5)
     selected_indices = []
     
+    # 이미지 크기 계산 (1.5배 증가)
+    image_width = 150  # 기본 크기
+    new_image_width = int(image_width * 1.5)
+    
     for idx, img in enumerate(images):
         with cols[idx % 5]:
-            # 컨테이너로 이미지와 컨트롤을 감싸기
+            # 컨테이너로 이미지와 체크박스를 감싸기
             with st.container():
                 # 체크박스
                 if st.checkbox("", key=f"select_{option}_{value}_{idx}", 
                              label_visibility="collapsed"):
                     selected_indices.append(idx)
                 
-                # 삭제 버튼과 이미지를 포함하는 컨테이너
-                col1, col2 = st.columns([0.9, 0.1])
-                with col1:
-                    st.image(img, use_column_width=True)
-                with col2:
-                    if st.button("×", key=f"delete_{option}_{value}_{idx}"):
-                        remove_image(option, value, idx)
-                        st.rerun()
+                # 이미지 표시 (크기 1.5배 증가)
+                img_resized = img.resize((new_image_width, int(new_image_width * img.size[1] / img.size[0])))
+                st.image(img_resized, use_column_width=True)
     
     # 5개 이미지마다 새로운 행 시작
     if len(images) % 5 != 0:
@@ -513,11 +512,11 @@ def display_images_with_controls(option, value, images, category):
     other_options = [opt for opt in analysis_options[category][option] 
                     if opt != value]
     
-    # 이동 컨트롤을 하단에 배치
+    # 컨트롤 버튼들을 하단에 배치
     st.markdown("<div style='margin-top: 15px;'>", unsafe_allow_html=True)
     
-    # Move 컨트롤을 같은 행에 배치
-    col1, col2 = st.columns([4, 1])
+    # Move와 Remove 컨트롤을 같은 행에 배치
+    col1, col2, col3 = st.columns([4, 1, 1])
     with col1:
         move_to = st.selectbox(
             "Move to:",
@@ -533,6 +532,16 @@ def display_images_with_controls(option, value, images, category):
                     st.rerun()
             else:
                 st.warning("Please select images to move")
+    with col3:
+        if st.button("Remove", key=f"remove_btn_{option}_{value}", use_container_width=True):
+            if selected_indices:
+                # 선택된 모든 이미지 삭제
+                for idx in sorted(selected_indices, reverse=True):
+                    remove_image(option, value, idx)
+                st.success(f"Successfully removed {len(selected_indices)} images")
+                st.rerun()
+            else:
+                st.warning("Please select images to remove")
     
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -754,13 +763,56 @@ st.markdown("""
         margin-bottom: 15px;
     }
     
-    /* 선택박스와 버튼 정렬 */
+    /* 선택���스와 버튼 정렬 */
     .stSelectbox {
         margin-bottom: 0 !important;
     }
     
     .stButton.move-button {
         margin-top: 0 !important;
+    }
+    
+    /* 컨트롤 버튼 컨테이너 스타일 */
+    .control-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+    
+    /* 선택박스와 버튼 정렬 */
+    .stSelectbox {
+        margin-bottom: 0 !important;
+    }
+    
+    /* 버튼 스타일 통일 */
+    .stButton > button {
+        height: 38px;
+        margin-top: 0 !important;
+        border-radius: 4px;
+    }
+    
+    /* Move 버튼 스타일 */
+    [data-testid="stButton"] button:first-child {
+        background-color: #007AFF;
+        color: white;
+    }
+    
+    /* Remove 버튼 스타일 */
+    [data-testid="stButton"] button:last-child {
+        background-color: #FF3B30;
+        color: white;
+    }
+    
+    /* 체크박스 스타일 */
+    .stCheckbox {
+        margin-bottom: 5px;
+    }
+    
+    /* 이미지 컨테이너 스타일 */
+    .stImage {
+        margin-top: 5px;
     }
 </style>
 """, unsafe_allow_html=True)
