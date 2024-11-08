@@ -16,62 +16,113 @@ import cv2
 import numpy as np
 import time
 import colorsys
+import concurrent.futures
+from itertools import islice
 
-# OpenAI API 키 설정 (Streamlit Cloud의 secrets에서 가져옴)
+# OpenAI API key setup (fetched from Streamlit Cloud secrets)
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# 프로그레스 바 및 상태 메시지를 위한 전역 변수
+# Global variables for progress bar and status message
 progress_bar = None
 status_text = None
 
-# 사용자 인증 및 사용량 추적
+# Sleeve length guide definition
+sleeve_length_guide = """
+For Sleeve Length analysis, please consider these important factors:
+
+1. Look for design intention and original garment construction:
+- Check for cuffs, hem finishing, or design details that indicate the intended sleeve length
+- Observe if there are buttons or tabs designed for rolling up sleeves
+- Look for permanent design elements like elastic bands or fixed cuffs
+
+2. Important: Distinguish between designed length vs. styled wearing:
+- If sleeves appear rolled up or pushed up, analyze the original intended length
+- Look for fabric bunching or gathering that suggests rolled-up long sleeves
+- Consider the overall garment style and category to determine original design
+
+3. Length definitions:
+- Long Sleeves: Full arm length to wrist, even if currently rolled up
+- Three-Quarter Sleeves: Designed to end between elbow and wrist
+- Short Sleeves: Designed to end at or above elbow
+- Cap Sleeves: Very short, just covering shoulder
+- Sleeveless: No sleeve coverage
+
+4. Key indicators of rolled-up long sleeves:
+- Visible fabric bunching or folding
+- Uneven or casual sleeve ending
+- Presence of cuffs or buttons above current sleeve end
+- Wrinkles or creases indicating temporary folding
+
+Please analyze the ORIGINAL designed sleeve length, not how it's currently styled or worn.
+"""
+
+# 허용된 사용자 딕셔너리 (이메일: 비밀번호)
+ALLOWED_USERS = {
+    "baekdoo28@gmail.com": "Yakjin135#",
+    "jenna.lee@yakjin.com": "Yakjin135#",
+    "cielito@yakjin.com": "Yakjin135#",
+    "jesssieyun@yakjin.com": "Yakjin135#",
+    "jake@yakjin.com": "Yakjin135#",
+    "zoe.choi@yakjin.com": "Yakjin135#",
+    "silvia@yakjin.com": "Yakjin135#",
+    "jiwoo.shin@yakjin.com": "Yakjin135#",
+    "elena.lee@yakjin.com": "Yakjin135#",
+    "eunh.choi@yakjin.com": "Yakjin135#"
+}
+
+# User authentication and usage tracking
 def authenticate_user():
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
     
     if not st.session_state.authenticated:
-        email = st.text_input("이메일 주소를 입력하세요")
-        if st.button("인증"):
-            if email.endswith("@yakjin.com"):
+        email = st.text_input("Enter your email address")
+        password = st.text_input("Enter your password", type="password")
+        if st.button("Authentication"):
+            if email in ALLOWED_USERS and ALLOWED_USERS[email] == password:
                 st.session_state.authenticated = True
                 st.session_state.email = email
-                st.success("인증되었습니다.")
+                st.success("Authentication succeeded.")
                 return True
             else:
-                st.error("허용되지 않은 이메일 주소입니다. @yakjin.com 도메인의 이메일만 사용 가능합니다.")
+                st.error("This is an unverified email address or incorrect password. Access denied.")
                 return False
     return st.session_state.authenticated
 
-# 분석 항목 정의 (수정됨)
+# Analysis options definition (modified)
 analysis_options = {
     "Top": {
-        "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Oversized"],
-        "Neckline": ["Crew Neck", "V-Neck", "Scoop Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
-        "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Puff Sleeves"],
+        "Fit": ["Slim Fit", "Loose Fit", "Oversized"],
+        "Neckline": ["Crew Neck", "V-Neck", "Square Neck", "Scoop Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
+        "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Half Sleeves", "Puff Sleeves"],
+        "Sleeves Construction": ["Set-In", "Raglan", "Dolman", "Drop Shoulder"],
         "Length": ["Crop", "Regular", "Long"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
-        "Pattern": ["Solid", "Striped", "Polka Dot", "Floral", "Plaid", "Checkered", "Animal Print"],
+        "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
-        "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué", "Buttons", "Zippers", "Pockets"]
+        "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué",
+                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Seam detail", "Cut out", "Seamless", "Binding"]
     },
     "Bottom": {
         "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Skinny", "Straight", "Bootcut", "Flare", "Wide Leg"],
         "Length": ["Short", "Knee Length", "Ankle Length", "Full Length"],
         "Rise": ["Low Rise", "Mid Rise", "High Rise"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
-        "Pattern": ["Solid", "Striped", "Polka Dot", "Plaid", "Checkered"],
+        "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Denim", "Cotton", "Polyester", "Wool", "Leather"],
         "Details": ["Distressed", "Ripped", "Embroidery", "Pockets", "Belt Loops", "Pleats"]
     },
     "Dress": {
-        "Fit": ["Bodycon", "A-Line", "Shift", "Wrap", "Sheath", "Empire Waist"],
-        "Neckline": ["V-Neck", "Scoop Neck", "Halter Neck", "Off-Shoulder", "Sweetheart"],
-        "Sleeves": ["Sleeveless", "Short Sleeves", "Long Sleeves", "Cap Sleeves", "Puff Sleeves"],
-        "Length": ["Mini", "Midi", "Maxi"],
+        "Fit": ["Bodycon", "A-Line", "Fit&Flare", "Shift", "Sheath", "Empire Waist"],
+        "Neckline": ["Crew Neck", "V-Neck", "Square Neck", "Scoop Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
+        "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Half Sleeves", "Puff Sleeves"],
+        "Sleeves Construction": ["Set-In", "Raglan", "Dolman", "Drop Shoulder"],
+        "Length": ["Mini", "Midi", "Maxi", "Above Knee", "Knee Length", "Below Knee"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
-        "Pattern": ["Solid", "Floral", "Polka Dot", "Striped", "Animal Print"],
+        "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
         "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
-        "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Belt", "Pockets"]
+        "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading",  
+                   "Shirring", "Wrap", "Twist", "Knot", "Mix media", "Cut out", "Binding"]
     },
     "Outerwear": {
         "Type": ["Jacket", "Coat", "Blazer", "Cardigan", "Vest"],
@@ -79,20 +130,54 @@ analysis_options = {
         "Length": ["Cropped", "Hip Length", "Knee Length", "Long"],
         "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
         "Material": ["Leather", "Denim", "Wool", "Cotton", "Polyester"],
-        "Details": ["Pockets", "Buttons", "Zippers", "Hood", "Fur Trim", "Quilted"]
+        "Details": ["Pockets", "Buttons", "Zippers", "Hood", "Fur Trim", "Quilted"],
+        "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"]
     }
 }
 
-# 개별 이미지 분석 함수 (캐싱 적용)
-@st.cache_data
+# 배치 처리를 위한 헬퍼 함수
+def batch_images(iterable, batch_size):
+    iterator = iter(iterable)
+    return iter(lambda: list(islice(iterator, batch_size)), [])
+
+# 병렬 처리를 위한 분석 함수
+def analyze_image_batch(batch_data):
+    image, category, options = batch_data
+    return analyze_single_image(image, category, options)
+
+# 이미지 해시 함수 추가
+def get_image_hash(image):
+    if isinstance(image, Image.Image):
+        # PIL 이미지를 numpy 배열로 변환
+        img_array = np.array(image)
+    else:
+        # 이미 numpy 배열인 경우
+        img_array = image
+    
+    # 이미지를 32x32로 리사이즈하고 평균 해시 계산
+    resized = cv2.resize(img_array, (32, 32))
+    gray = cv2.cvtColor(resized, cv2.COLOR_RGB2GRAY)
+    avg = gray.mean()
+    hash_str = ''.join(['1' if pixel > avg else '0' for pixel in gray.flatten()])
+    return hash_str
+
+# 수정된 분석 함수
+@st.cache_data(ttl=24*3600, show_spinner=False, hash_funcs={Image.Image: get_image_hash})
 def analyze_single_image(image, category, options):
     base64_image = encode_image(image)
     
-    prompt = f"이미지에 있는 {category} 의류 아이템을 분석하고 다음 측면에 대한 정보를 제공해주세요. 각 옵션에 대해 가장 적합한 하나의 선택지만 선택해주세요:\n\n"
-    for option in options:
-        prompt += f"{option}: {', '.join(analysis_options[category][option])}\n"
+    prompt = f"Analyze the {category} clothing item in the image and provide information on the following aspects:\n\n"
     
-    prompt += "\n결과를 선택된 측면을 키로 하고 감지된 옵션을 값으로 하는 JSON 객체로 제공해주세요. 각 키에 대해 하나의 값만 선택해야 합니다."
+    for option in options:
+        if option == "Sleeves":
+            prompt += f"\n{sleeve_length_guide}\n"
+        
+        if option == "Details":
+            prompt += f"{option}: Select ALL that apply from [{', '.join(analysis_options[category][option])}]\n"
+        else:
+            prompt += f"{option}: Select ONE from [{', '.join(analysis_options[category][option])}]\n"
+    
+    prompt += "\nProvide the result as a JSON object with the selected aspects as keys and the detected options as values. For 'Details', provide an array of all applicable options. For other aspects, provide a single value."
 
     try:
         response = client.chat.completions.create(
@@ -106,27 +191,45 @@ def analyze_single_image(image, category, options):
                     ]
                 }
             ],
-            max_tokens=300
+            max_tokens=300,
+            temperature=0.0,
+            seed=42
         )
         
         result = response.choices[0].message.content.strip()
-        return preprocess_response(result)
+        processed_result = preprocess_response(result)
+        
+        try:
+            return json.loads(processed_result)
+        except json.JSONDecodeError:
+            st.error(f"JSON Parsing Error: {processed_result}")
+            return {}
+            
     except Exception as e:
-        st.error(f"이미지 분석 중 오류 발생: {e}")
-        return ""
+        st.error(f"Error During Image Analysis: {e}")
+        return {}
 
-# 이미지 인코딩 함수
-def encode_image(image_file):
-    return base64.b64encode(image_file.getvalue()).decode('utf-8')
+# Image encoding function
+def encode_image(image):
+    if isinstance(image, Image.Image):
+        # If it's a PIL Image object
+        buffered = io.BytesIO()
+        image.save(buffered, format="PNG")
+        return base64.b64encode(buffered.getvalue()).decode('utf-8')
+    elif hasattr(image, 'getvalue'):
+        # If it's a BytesIO or file object
+        return base64.b64encode(image.getvalue()).decode('utf-8')
+    else:
+        raise ValueError("Unsupported Image Type")
 
-# 응답 전처리 함수
+# Response preprocessing function
 def preprocess_response(response):
     json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
     if json_match:
         return json_match.group(1)
     return response
 
-# 엑셀에서 이미지 추출 함수
+# Function to extract images from Excel
 def extract_images_from_excel(uploaded_file):
     wb = openpyxl.load_workbook(io.BytesIO(uploaded_file.getvalue()))
     sheet = wb.active
@@ -141,12 +244,12 @@ def extract_images_from_excel(uploaded_file):
                     images.append(image)
             except Exception as e:
                 if "I/O operation on closed file" not in str(e):
-                    st.warning(f"셀 {cell.coordinate}에서 이미지를 추출하는 중 오류가 발생했습니다: {str(e)}")
+                    st.warning(f"Error Extracting Image from Cell {cell.coordinate}: {str(e)}")
                 continue
     
     return images
 
-# ZIP 파일 처리 함수
+# ZIP file processing function
 def process_zip_file(uploaded_file):
     with zipfile.ZipFile(io.BytesIO(uploaded_file.getvalue()), 'r') as zip_ref:
         for file_name in zip_ref.namelist():
@@ -154,7 +257,7 @@ def process_zip_file(uploaded_file):
                 with zip_ref.open(file_name) as file:
                     yield file_name, file.read()
 
-# 이미지 처리 함수
+# Image processing
 def process_images(images):
     processed_images = []
     progress_bar = st.progress(0)
@@ -164,16 +267,16 @@ def process_images(images):
         processed_img = enhance_image(img)
         processed_images.append(processed_img)
         
-        # 진행 상황 업데이트
+        # Update progress
         progress = (i + 1) / len(images)
         progress_bar.progress(progress)
-        status_text.text(f"이미지 처리 중: {i+1}/{len(images)}")
+        status_text.text(f"Processing Images: {i+1}/{len(images)}")
     
     progress_bar.empty()
     status_text.empty()
     return processed_images
 
-# 이미지 향상 함수
+# Image enhancement function
 def enhance_image(image, scale_factor=2):
     cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     height, width = cv_image.shape[:2]
@@ -183,15 +286,41 @@ def enhance_image(image, scale_factor=2):
     denoised = cv2.fastNlMeansDenoisingColored(sharpened, None, 10, 10, 7, 21)
     return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
 
-# 도넛 차트 생성 함수 수정
-def create_donut_chart(data, title):
+# 고유한 색상 세트를 생성하는 함수
+def generate_unique_color_sets(num_sets, colors_per_set):
+    all_colors = []
+    for _ in range(num_sets):
+        set_colors = []
+        for _ in range(colors_per_set):
+            while True:
+                hue = random.random()
+                saturation = 0.5 + random.random() * 0.5
+                lightness = 0.4 + random.random() * 0.2
+                rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
+                hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
+                if hex_color not in all_colors:
+                    set_colors.append(hex_color)
+                    all_colors.append(hex_color)
+                    break
+        yield set_colors
+
+# 수정된 create_donut_chart 함수
+def create_donut_chart(data, title, color_set):
     labels = list(data.keys())
     values = list(data.values())
     
     if title.lower() == 'color':
         colors = [get_color(label) for label in labels]
+        colors = ['#F0F0F0' if color == '#FFFFFF' else color for color in colors]
     else:
-        colors = generate_colors(len(labels))
+        colors = color_set[:len(labels)]
+    
+    def get_text_color(background_color):
+        r, g, b = int(background_color[1:3], 16), int(background_color[3:5], 16), int(background_color[5:7], 16)
+        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        return '#000000' if luminance > 0.5 else '#FFFFFF'
+    
+    text_colors = [get_text_color(color) for color in colors]
     
     fig = go.Figure(data=[go.Pie(
         labels=labels,
@@ -199,44 +328,55 @@ def create_donut_chart(data, title):
         hole=.3,
         marker_colors=colors,
         textinfo='percent',
+        textfont=dict(size=14, color=text_colors),
         hoverinfo='label+percent+text',
         text=[f'Count: {v}' for v in values],
         hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
     )])
     
+    # 레이아웃 설정 (이전과 동일)
     fig.update_layout(
-        title=dict(
-            text=f'<b>{title}</b>',
-            font=dict(size=31),  # 텍스트 크기 조정
-            x=0.5,
-            y=0.95
-        ),
+        showlegend=True,
         legend=dict(
             orientation='h',
-            yanchor='top',
-            y=-0.1,  # 범례 위치 조정
+            yanchor='bottom',
+            y=-0.3,
             xanchor='center',
-            x=0.2,
-            font=dict(size=12)
+            x=0.5,
+            font=dict(size=15),
+            itemsizing='constant',
+            itemwidth=30
         ),
-        width=600,  # 그래프 너비 조정
-        height=450,  # 그래프 높이 조정
-        margin=dict(t=80, b=80, l=20, r=20)  # 마진 조정
+        width=500,
+        height=450,
+        margin=dict(t=70, b=90, l=20, r=20),
+        annotations=[
+            dict(
+                text=f'<b>{title}</b>',
+                x=0.5,
+                y=1.2,
+                xref='paper',
+                yref='paper',
+                showarrow=False,
+                font=dict(size=32, color='black'),
+                align='center'
+            )
+        ]
     )
     
     return fig
 
-# 색상 매핑 함수
+# Modified color mapping function
 def get_color(label):
     color_map = {
         'Red': '#FF0000', 'Blue': '#0000FF', 'Green': '#00FF00',
         'Yellow': '#FFFF00', 'Purple': '#800080', 'Orange': '#FFA500',
         'Pink': '#FFC0CB', 'Brown': '#A52A2A', 'Black': '#000000',
-        'White': '#E0E0E0', 'Gray': '#808080', 'Multicolor': '#FFFFFF'
+        'White': '#FFFFFF', 'Gray': '#808080', 'Multicolor': '#FFFFFF'
     }
     return color_map.get(label, '#000000')
 
-# 색상 생성 함수
+# Color generation function
 def generate_colors(n):
     colors = []
     for _ in range(n):
@@ -248,74 +388,83 @@ def generate_colors(n):
         colors.append(hex_color)
     return colors
 
-# 메인 앱 로직
+# Modified main app logic (image list part)
 def main():
-    global progress_bar, status_text
-    
-    st.set_page_config(layout="centered")  # 레이아웃을 중앙 정렬로 변경
+    st.set_page_config(layout="centered")
     
     st.markdown("""
     <style>
-    .emoji-title { font-size: 2.4em; }
+    .emoji-title { 
+        font-size: 2.4em; 
+        text-align: center;
+    }
     .emoji { font-size: 0.8em; }
+    .results-container { display: flex; flex-wrap: wrap; justify-content: space-between; }
+    .chart-container { width: 48%; margin-bottom: 20px; }
+    .fullwidth { width: 100vw; position: relative; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; }
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown("<h1 class='emoji-title'>패션 이미지 분석기</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='emoji-title'>Yakjin Fashion Image Analyzer</h1>", unsafe_allow_html=True)
     
     if authenticate_user():
-        progress_bar = st.empty()
-        status_text = st.empty()
+        st.markdown("<h3><span class='emoji'>👚</span> Step 1: Select Clothing Category</h3>", unsafe_allow_html=True)
+        selected_category = st.selectbox(
+            "Choose a Clothing Category",
+            options=list(analysis_options.keys())
+        )
         
-        step1 = st.empty()
-        step1.markdown("<h3><span class='emoji'>📁</span> 1단계: 파일 업로드</h3>", unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("파일 선택", type=["xlsx", "xls", "png", "jpg", "jpeg", "zip"])
+        st.markdown("<h3><span class='emoji'>🔍</span> Step 2: Select Analysis Items</h3>", unsafe_allow_html=True)
+        selected_options = st.multiselect(
+            label="Choose Analysis Items",
+            options=list(analysis_options[selected_category].keys()),
+            key="analysis_options"
+        )
         
-        if uploaded_file is not None:
-            step1.empty()
-            
-            step2 = st.empty()
-            step2.markdown("<h3><span class='emoji'>🖼️</span> 2단계: 이미지 처리</h3>", unsafe_allow_html=True)
+        st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload File</h3>", unsafe_allow_html=True)
+        uploaded_files = st.file_uploader("Choose File(s)", 
+                                        type=["xlsx", "xls", "png", "jpg", "jpeg", "jfif", "zip"], 
+                                        accept_multiple_files=True)
+        
+        if uploaded_files:
+            st.markdown("<h3><span class='emoji'>🖼️</span> Step 4: Image Processing</h3>", unsafe_allow_html=True)
             
             images = []
-            if uploaded_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
-                try:
-                    images = extract_images_from_excel(uploaded_file)
-                    if images:
-                        images = images[1:]  # 첫 번째 이미지(로고) 제외
-                except Exception as e:
-                    st.error(f"엑셀 파일에서 이미지를 추출하는 중 오류가 발생했습니다: {str(e)}")
-            elif uploaded_file.type.startswith('image/'):
-                images = [Image.open(uploaded_file)]
-            elif uploaded_file.type == 'application/zip':
-                images = [Image.open(io.BytesIO(img_data)) for _, img_data in process_zip_file(uploaded_file)]
+            for uploaded_file in uploaded_files:
+                if uploaded_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]:
+                    try:
+                        excel_images = extract_images_from_excel(uploaded_file)
+                        if excel_images:
+                            images.extend(excel_images[1:])
+                    except Exception as e:
+                        st.error(f"Excel 파일에서 이미지 추출 중 오류 발생: {str(e)}")
+                elif uploaded_file.type.startswith('image/'):
+                    try:
+                        img = Image.open(uploaded_file)
+                        if img.mode != 'RGB':
+                            img = img.convert('RGB')
+                        images.append(img)
+                    except Exception as e:
+                        st.error(f"이미지 파일 처리 중 오류 발생: {str(e)}")
+                elif uploaded_file.type == 'application/zip':
+                    for _, img_data in process_zip_file(uploaded_file):
+                        try:
+                            img = Image.open(io.BytesIO(img_data))
+                            if img.mode != 'RGB':
+                                img = img.convert('RGB')
+                            images.append(img)
+                        except Exception as e:
+                            st.error(f"ZIP 파일 내 이미지 처리 중 오류 발생: {str(e)}")
             
             if images:
-                st.markdown("<h3><span class='emoji'>🖼️</span> 2단계: 이미지 처리</h3>", unsafe_allow_html=True)
-                
                 with st.spinner('이미지 처리 중...'):
                     processed_images = process_images(images)
                 
-                st.success(f"{len(processed_images)}개의 이미지가 처리되었습니다.")
+                st.success(f"{len(processed_images)}개의 이미지가 성공적으로 처리되습니다.")
                 
-                st.markdown("<h3><span class='emoji'>👚</span> 3단계: 의상 복종 선택</h3>", unsafe_allow_html=True)
-                
-                selected_category = st.selectbox(
-                    "의상 복종을 선택하세요",
-                    options=list(analysis_options.keys())
-                )
-                
-                st.markdown("<h3><span class='emoji'>🔍</span> 4단계: 분석 항목 선택</h3>", unsafe_allow_html=True)
-                
-                selected_options = st.multiselect(
-                    label="분석할 항목 선택",
-                    options=list(analysis_options[selected_category].keys()),
-                    key="analysis_options"
-                )
-                
-                if st.button("🚀 분석 시작"):
+                if st.button("🚀 Step 5: Start analysing", key="start_analysis"):
                     if not selected_options:
-                        st.markdown("<p><span class='emoji'>⚠️</span> 분석할 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
+                        st.markdown("<p><span class='emoji'>️</span> 분석 항목을 하나 이상 선택해주세요.</p>", unsafe_allow_html=True)
                     else:
                         progress_bar = st.progress(0)
                         status_text = st.empty()
@@ -323,51 +472,95 @@ def main():
                         aggregated_results = {option: Counter() for option in selected_options}
                         image_categories = defaultdict(lambda: defaultdict(list))
                         
-                        for i, image in enumerate(processed_images):
-                            result = analyze_single_image(image, selected_category, selected_options)
-                            if result:
-                                for option, detected in result.items():
-                                    aggregated_results[option][detected] += 1
-                                    image_categories[option][detected].append(image)
-                            
-                            # 진행 상황 업데이트
-                            progress = (i + 1) / len(processed_images)
-                            progress_bar.progress(progress)
-                            status_text.text(f"이미지 분석 중: {i+1}/{len(processed_images)}")
+                        total_images = len(processed_images)
+                        batch_size = 4  # 한 번에 처리할 이미지 수
                         
+                        # 병렬 처리를 위한 데이터 준비
+                        batch_data = [(img, selected_category, selected_options) 
+                                     for img in processed_images]
+                        
+                        completed_images = 0
+                        
+                        # ThreadPoolExecutor를 사용한 병렬 처리
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                            for batch in batch_images(batch_data, batch_size):
+                                # 배치 단위로 병렬 처리
+                                future_to_image = {executor.submit(analyze_image_batch, data): data 
+                                                 for data in batch}
+                                
+                                for future in concurrent.futures.as_completed(future_to_image):
+                                    result = future.result()
+                                    if result and isinstance(result, dict):
+                                        image_data = future_to_image[future]
+                                        image = image_data[0]
+                                        
+                                        for option, detected in result.items():
+                                            if option in selected_options:
+                                                if option == "Details" and isinstance(detected, list):
+                                                    # Details의 경우 리스트로 받은 각 항목을 개별적으로 처리
+                                                    for detail in detected:
+                                                        aggregated_results[option][detail] += 1
+                                                        image_categories[option][detail].append(image)
+                                                else:
+                                                    # 다른 옵션들은 기존 방식대로 처리
+                                                    aggregated_results[option][detected] += 1
+                                                    image_categories[option][detected].append(image)
+                                    
+                                    completed_images += 1
+                                    progress = completed_images / total_images
+                                    progress_bar.progress(progress)
+                                    status_text.text(f"이미지 분석 중: {completed_images}/{total_images}")
+
                         progress_bar.empty()
                         status_text.empty()
                         
-                        st.markdown("<h3 style='text-align: center;'><span class='emoji'>📊</span> 분석 결과</h3>", unsafe_allow_html=True)
+                        # 결과 표시
+                        st.markdown("<div class='fullwidth'>", unsafe_allow_html=True)
+                        st.markdown("<hr>", unsafe_allow_html=True)
+                        st.markdown("<h2 style='text-align: center;'>📊 Analysis Results</h2>", unsafe_allow_html=True)
+                        st.markdown("<div class='results-container'>", unsafe_allow_html=True)
                         
-                        for option, results in aggregated_results.items():
+                        # 각 분석 항목에 대한 고유한 색상 세트 생성
+                        color_sets = list(generate_unique_color_sets(len(selected_options), 12))  # 12는 최대 카테고리 수
+                        
+                        for i, (option, results) in enumerate(aggregated_results.items()):
                             if results:
-                                fig = create_donut_chart(results, option)
+                                st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
+                                fig = create_donut_chart(results, option, color_sets[i])
                                 st.plotly_chart(fig, use_container_width=True)
                                 
-                                # 토글 형태로 이미지 표시
-                                with st.expander(f"{option} 세부 결과"):
+                                with st.expander(f"{option} Details"):
                                     for value, count in results.items():
-                                        if st.button(f"{value} (Count: {count})", key=f"{option}_{value}"):
-                                            if option in image_categories and value in image_categories[option]:
-                                                images = image_categories[option][value]
-                                                cols = st.columns(5)
-                                                for i, img in enumerate(images):
-                                                    with cols[i % 5]:
-                                                        st.image(img, use_column_width=True)
-                                                    if (i + 1) % 5 == 0:
-                                                        st.write("")  # 새 줄 추가
-                                            else:
-                                                st.write("해당하는 이미지가 없습니다.")
+                                        st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
+                                        if option in image_categories and value in image_categories[option]:
+                                            images = image_categories[option][value]
+                                            cols = st.columns(5)
+                                            for j, img in enumerate(images):
+                                                with cols[j % 5]:
+                                                    st.image(img, use_column_width=True)
+                                                if (j + 1) % 5 == 0:
+                                                    st.write("")
+                                        else:
+                                            st.write("No Matching Images Found.")
+                                        st.write("---")
+                                st.markdown("</div>", unsafe_allow_html=True)
                             else:
-                                st.write(f"{option}에 대한 데이터가 없습니다.")
+                                st.write(f"No Data Available for {option}.")
+                            
+                            # 2개의 차트마다 새 줄 시작
+                            if (i + 1) % 2 == 0:
+                                st.markdown("</div><div class='results-container'>", unsafe_allow_html=True)
+                        
+                        st.markdown("</div></div>", unsafe_allow_html=True)
             else:
-                st.markdown("<p><span class='emoji'>⚠️</span> 업로드된 파일에서 이미지를 찾을 수 없습니다.</p>", unsafe_allow_html=True)
+                st.markdown("<p><span class='emoji'>⚠️</span> No Images Found in the Uploaded File.</p>", unsafe_allow_html=True)
+    else:
+        st.info("로그인이 필요합니다. 위의 인증 정보를 입력해주세요.")
 
 if __name__ == "__main__":
     main()
 
-# Streamlit 테마 설정을 위한 CSS
+# CSS for Streamlit theme settings
 st.markdown("""
 <style>
     .stMultiSelect [data-baseweb="tag"] {
@@ -394,6 +587,10 @@ st.markdown("""
         border-radius: 0 !important;
         background-color: transparent !important;
     }
+    .stExpander > div:first-child > div:first-child > p {
+        font-size: 25px !important;
+        font-weight: bold;
+    }
     .stButton > button {
         width: 100%;
         text-align: left;
@@ -402,9 +599,11 @@ st.markdown("""
         border: none;
         border-radius: 0.3rem;
         margin-bottom: 0.5rem;
+        font-weight: bold;
     }
     .stButton > button:hover {
         background-color: #e0e2e6;
     }
 </style>
 """, unsafe_allow_html=True)
+
