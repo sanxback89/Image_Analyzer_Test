@@ -154,7 +154,7 @@ def get_image_hash(image):
         # 이미 numpy 배열인 경우
         img_array = image
     
-    # 이미지를 32x32로 리사이즈하고 평균 해시 계산
+    # 이미지를 32x32로 리이즈하고 평균 해시 계산
     resized = cv2.resize(img_array, (32, 32))
     gray = cv2.cvtColor(resized, cv2.COLOR_RGB2GRAY)
     avg = gray.mean()
@@ -430,30 +430,91 @@ def remove_image(option, value, image_index):
         # 세션 상태 업데이트 트리거
         st.session_state.update_charts = True
 
-# 이미지 이동 함수 추가
-def move_image(from_option, from_value, to_value, image_index):
-    if (from_option in st.session_state.image_categories and 
-        from_value in st.session_state.image_categories[from_option]):
-        # 이미지 가져오기
-        image = st.session_state.image_categories[from_option][from_value][image_index]
-        
-        # 원래 카테고리에서 이미지 제거
-        st.session_state.image_categories[from_option][from_value].pop(image_index)
-        st.session_state.analysis_results[from_option][from_value] -= 1
-        
-        # 카운트가 0이 되면 카테고리 제거
-        if st.session_state.analysis_results[from_option][from_value] == 0:
-            del st.session_state.analysis_results[from_option][from_value]
-            del st.session_state.image_categories[from_option][from_value]
-        
-        # 새 카테고리에 이미지 추가
-        st.session_state.image_categories[from_option][to_value].append(image)
+# 이미지 이동을 위한 새로운 함수
+def move_selected_images(from_option, from_value, to_value, selected_indices):
+    """
+    선택된 이미지들을 한 카테고리에서 다른 카테고리로 이동
+    """
+    if not selected_indices:
+        return False
+    
+    # 인덱스를 내림차순으로 정렬 (높은 인덱스부터 제거)
+    selected_indices.sort(reverse=True)
+    
+    moved_images = []
+    for idx in selected_indices:
+        if (from_option in st.session_state.image_categories and 
+            from_value in st.session_state.image_categories[from_option] and
+            idx < len(st.session_state.image_categories[from_option][from_value])):
+            
+            # 이미지 가져오기
+            image = st.session_state.image_categories[from_option][from_value][idx]
+            moved_images.append(image)
+            
+            # 원래 카테고리에서 이미지 제거
+            st.session_state.image_categories[from_option][from_value].pop(idx)
+            st.session_state.analysis_results[from_option][from_value] -= 1
+            
+            # 카운트가 0이 되면 카테고리 제거
+            if st.session_state.analysis_results[from_option][from_value] == 0:
+                del st.session_state.analysis_results[from_option][from_value]
+                del st.session_state.image_categories[from_option][from_value]
+    
+    # 새 카테고리에 이미지들 추가
+    if moved_images:
+        st.session_state.image_categories[from_option][to_value].extend(moved_images)
         st.session_state.analysis_results[from_option][to_value] = (
-            st.session_state.analysis_results[from_option].get(to_value, 0) + 1
+            st.session_state.analysis_results[from_option].get(to_value, 0) + len(moved_images)
         )
-        
         return True
+    
     return False
+
+# main 함수 내의 결과 표시 부분 수정
+def display_images_with_controls(option, value, images):
+    """
+    체크박스와 이동 컨트롤이 있는 이미지 그리드 표시
+    """
+    st.markdown(f"**{value}** (Count: {len(images)})")
+    
+    # 현재 카테고리의 다른 옵션들 가져오기
+    other_options = [opt for opt in analysis_options[st.session_state.current_category][option] 
+                    if opt != value]
+    
+    # 이미지 그리드 생성
+    cols = st.columns(5)
+    selected_indices = []
+    
+    for idx, img in enumerate(images):
+        with cols[idx % 5]:
+            # 체크박스 추가
+            checkbox_key = f"{option}_{value}_{idx}"
+            if st.checkbox("", key=checkbox_key):
+                selected_indices.append(idx)
+            
+            # 이미지 표시
+            st.image(img, use_column_width=True)
+            
+            # 5개 이미지마다 새로운 행 시작
+            if (idx + 1) % 5 == 0:
+                st.write("")
+    
+    # 이동 컨트롤
+    if selected_indices:
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            move_to = st.selectbox(
+                "Move to:",
+                other_options,
+                key=f"move_to_{option}_{value}"
+            )
+        with col2:
+            if st.button("Move", key=f"move_btn_{option}_{value}"):
+                if move_selected_images(option, value, move_to, selected_indices):
+                    st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
+                    st.experimental_rerun()
+                else:
+                    st.error("Failed to move images")
 
 # Modified main app logic (image list part)
 def main():
@@ -597,26 +658,8 @@ def main():
                         
                         with st.expander(f"{option} Details"):
                             for value, count in results.items():
-                                st.markdown(f"**{value}** (Count: {count})", unsafe_allow_html=True)
                                 if option in image_categories and value in image_categories[option]:
-                                    images = image_categories[option][value]
-                                    cols = st.columns(5)
-                                    for j, img in enumerate(images):
-                                        with cols[j % 5]:
-                                            st.image(img, use_column_width=True)
-                                        if option == "Details":  # Details 옵션에 대해서만 이동 기능 제공
-                                            # 이동할 카테고리 선택
-                                            move_to = st.selectbox(
-                                                "Move to:",
-                                                options=[x for x in analysis_options[selected_category]["Details"] if x != value],
-                                                key=f"move_{option}_{value}_{j}"
-                                            )
-                                            if st.button("Move Image", key=f"move_btn_{option}_{value}_{j}"):
-                                                if move_image(option, value, move_to, j):
-                                                    st.success(f"Image moved from {value} to {move_to}")
-                                                    st.rerun()
-                                        if (j + 1) % 5 == 0:
-                                            st.write("")
+                                    display_images_with_controls(option, value, image_categories[option][value])
                                 else:
                                     st.write("No Matching Images Found.")
                                 st.write("---")
@@ -680,6 +723,36 @@ st.markdown("""
     }
     .stButton > button:hover {
         background-color: #e0e2e6;
+    }
+    /* 체크박스 스타일 */
+    .stCheckbox {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        z-index: 1;
+    }
+    
+    /* 이미지 컨테이너 스타일 */
+    .image-container {
+        position: relative;
+        margin-bottom: 10px;
+    }
+    
+    /* 이동 컨트롤 스타일 */
+    .move-controls {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    /* 이동 버튼 스타일 */
+    .stButton.move-button > button {
+        background-color: #007AFF;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        width: auto;
     }
 </style>
 """, unsafe_allow_html=True)
