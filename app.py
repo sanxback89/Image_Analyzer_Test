@@ -242,28 +242,6 @@ def preprocess_response(response):
     return response
 
 # Function to extract images from Excel
-def is_valid_image(image):
-    """
-    이미지가 유효한지 검사하는 함수
-    """
-    try:
-        # 이미지 크기가 너무 작은 경우 제외
-        if image.size[0] < 10 or image.size[1] < 10:
-            return False
-            
-        # 이미지가 단색인지 확인
-        img_array = np.array(image)
-        if len(img_array.shape) < 3:  # 흑백 이미지
-            unique_pixels = np.unique(img_array)
-            return len(unique_pixels) > 2  # 2개 이하의 고유한 픽셀 값은 제외
-        else:  # 컬러 이미지
-            unique_pixels = np.unique(img_array.reshape(-1, img_array.shape[-1]), axis=0)
-            return len(unique_pixels) > 2  # 2개 이하의 고유한 색상은 제외
-            
-    except Exception as e:
-        print(f"Image validation error: {e}")
-        return False
-
 def extract_images_from_excel(uploaded_file):
     wb = openpyxl.load_workbook(io.BytesIO(uploaded_file.getvalue()))
     sheet = wb.active
@@ -275,16 +253,13 @@ def extract_images_from_excel(uploaded_file):
             try:
                 if image_loader.image_in(cell.coordinate):
                     image = image_loader.get(cell.coordinate)
-                    # 이미지 유효성 검사 추가
-                    if is_valid_image(image):
-                        images.append(image)
+                    images.append(image)
             except Exception as e:
                 if "I/O operation on closed file" not in str(e):
                     st.warning(f"Error Extracting Image from Cell {cell.coordinate}: {str(e)}")
                 continue
     
-    # 첫 번째 이미지 제외 (보통 헤더나 장식용 이미지)
-    return images[1:] if images else []
+    return images
 
 # ZIP file processing function
 def process_zip_file(uploaded_file):
