@@ -418,7 +418,7 @@ def initialize_session_state():
 # 이미지 삭제 함수 추가
 def remove_image(option, value, image_index):
     """
-    특정 카테고리에서 이미지를 삭제하고 차트 데이터 업데이트
+    특정 카테고리에서 이미지를 삭���하고 차트 데이터 업데이트
     """
     if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
         # 이미지 리스트에서 제거
@@ -483,26 +483,6 @@ def display_images_with_controls(option, value, images, category):
     """
     st.markdown(f"**{value}** (Count: {len(images)})")
     
-    # 현재 카테고리의 다른 옵션들 가져오기
-    other_options = [opt for opt in analysis_options[category][option] 
-                    if opt != value]
-    
-    # 이동 컨트롤을 상단에 배치하고 정렬
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        move_to = st.selectbox(
-            "Move to:",
-            other_options,
-            key=f"move_to_{option}_{value}",
-            label_visibility="collapsed"
-        )
-    with col2:
-        move_button = st.button(
-            "Move",
-            key=f"move_btn_{option}_{value}",
-            use_container_width=True
-        )
-    
     # 이미지 그리드 생성
     selected_indices = []
     cols = st.columns(5)
@@ -511,22 +491,63 @@ def display_images_with_controls(option, value, images, category):
         with cols[idx % 5]:
             # 컨테이너로 이미지와 컨트롤을 감싸기
             with st.container():
-                # 삭제 버튼과 체크박스를 위한 작은 컬럼
-                ctrl_col1, ctrl_col2 = st.columns([1, 9])
-                with ctrl_col1:
-                    if st.checkbox("", key=f"select_{option}_{value}_{idx}", label_visibility="collapsed"):
-                        selected_indices.append(idx)
-                with ctrl_col2:
-                    if st.button("×", key=f"delete_{option}_{value}_{idx}", help="Remove image"):
-                        remove_image(option, value, idx)
-                        st.rerun()
+                # 이미지와 컨트롤을 포함할 div
+                st.markdown(
+                    f"""
+                    <div class="image-wrapper">
+                        <div class="control-overlay">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" id="select_{option}_{value}_{idx}">
+                            </div>
+                            <div class="delete-wrapper">
+                                <button class="delete-button">×</button>
+                            </div>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
                 
-                # 이미지 표시 (클릭 확대 없이)
+                # 체크박스
+                if st.checkbox("", key=f"select_{option}_{value}_{idx}", 
+                             label_visibility="collapsed"):
+                    selected_indices.append(idx)
+                
+                # 삭제 버튼 (체크박스와 동일한 스타일)
+                if st.checkbox("×", key=f"delete_{option}_{value}_{idx}", 
+                             help="Remove image", label_visibility="collapsed"):
+                    remove_image(option, value, idx)
+                    st.rerun()
+                
+                # 이미지 표시
                 st.image(img, use_column_width=True)
             
             # 5개 이미지마다 새로운 행 시작
             if (idx + 1) % 5 == 0:
                 st.write("")
+    
+    # 이동 컨트롤을 하단에 배치
+    st.markdown("<div class='move-controls-wrapper'>", unsafe_allow_html=True)
+    
+    # 현재 카테고리의 다른 옵션들 가져오기
+    other_options = [opt for opt in analysis_options[category][option] 
+                    if opt != value]
+    
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        move_to = st.selectbox(
+            "Move to:",
+            other_options,
+            key=f"move_to_{option}_{value}"
+        )
+    with col2:
+        move_button = st.button(
+            "Move",
+            key=f"move_btn_{option}_{value}",
+            use_container_width=True
+        )
+    
+    st.markdown("</div>", unsafe_allow_html=True)
     
     # 이동 버튼 동작 처리
     if move_button and selected_indices:
@@ -753,6 +774,74 @@ st.markdown("""
     }
     
     /* 선택박스와 버튼 정렬 */
+    .stSelectbox {
+        margin-bottom: 0 !important;
+    }
+    
+    .stButton.move-button {
+        margin-top: 0 !important;
+    }
+    
+    /* 이미지 래퍼 스타일 */
+    .image-wrapper {
+        position: relative;
+        margin-bottom: 15px;
+    }
+    
+    /* 컨트롤 오버레이 스타일 */
+    .control-overlay {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        right: 5px;
+        display: flex;
+        justify-content: space-between;
+        z-index: 1;
+    }
+    
+    /* 체크박스 래퍼 스타일 */
+    .checkbox-wrapper {
+        background: white;
+        border-radius: 3px;
+        padding: 2px;
+        width: 20px;
+        height: 20px;
+    }
+    
+    /* 삭제 버튼 래퍼 스타일 */
+    .delete-wrapper {
+        background: white;
+        border-radius: 3px;
+        padding: 2px;
+        width: 20px;
+        height: 20px;
+    }
+    
+    /* 삭제 버튼 스타일 */
+    .delete-button {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: none;
+        background: none;
+        font-size: 16px;
+        line-height: 1;
+        cursor: pointer;
+        color: #FF0000;
+    }
+    
+    /* 이동 컨트롤 래퍼 스타일 */
+    .move-controls-wrapper {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    /* 선택박스와 이동 버튼 정렬 */
     .stSelectbox {
         margin-bottom: 0 !important;
     }
