@@ -275,9 +275,15 @@ def extract_images_from_excel(uploaded_file):
     
     images = []
     for image in sheet._images:
-        img = Image.open(io.BytesIO(image.ref))
-        if img.format.lower() in ['png', 'jpg', 'jpeg']:
-            images.append(img)
+        try:
+            # image.ref 대신 image._data() 사용
+            img_data = image._data()
+            img = Image.open(io.BytesIO(img_data))
+            if img.format.lower() in ['png', 'jpg', 'jpeg']:
+                images.append(img)
+        except Exception as e:
+            st.warning(f"Error extracting image from Excel: {str(e)}")
+            continue
     
     return images
 
@@ -930,7 +936,7 @@ st.markdown("""
         display: none !important;
     }
     
-    /* 체크박스 컨테이너 스타일 */
+    /* 체크박스 ��테이너 스타일 */
     .stCheckbox {
         margin: 0;
         padding: 0;
