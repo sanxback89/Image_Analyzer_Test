@@ -306,14 +306,23 @@ def process_images(images):
     status_text = st.empty()
     status_text.text("Processing images...")
     
-    for i, img in enumerate(images):
-        processed_img = enhance_image(img)
-        processed_images.append(processed_img)
+    # 병렬 처리를 위한 배치 크기 설정
+    batch_size = 4
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        future_to_image = {executor.submit(enhance_image, img): img for img in images}
         
-        # Update progress
-        progress = (i + 1) / total_images
-        progress_bar.progress(progress)
-        status_text.text(f"Processing images... ({i+1}/{total_images})")
+        for i, future in enumerate(concurrent.futures.as_completed(future_to_image)):
+            try:
+                processed_img = future.result()
+                processed_images.append(processed_img)
+                
+                # Update progress
+                progress = (i + 1) / total_images
+                progress_bar.progress(progress)
+                status_text.text(f"Processing images... ({i+1}/{total_images})")
+            except Exception as e:
+                st.error(f"Error processing image: {e}")
     
     status_text.text("Image processing complete!")
     time.sleep(1)
@@ -327,7 +336,7 @@ def enhance_image(image, scale_factor=1):
     # PIL 이미지를 OpenCV 형식으로 변환
     cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     
-    # 1. 이지 크기 조정 (최적 크기로 조정)
+    # 1. 이미지 크기 조정 (최적 크기로 조정)
     min_dimension = 800  # 최소 크기 제한
     max_dimension = 1200  # 최대 크기 제한
     height, width = cv_image.shape[:2]
@@ -803,7 +812,7 @@ st.markdown("""
         z-index: 1;
     }
     
-    /* 이��지 컨테이너 스타일 */
+    /* 이지 컨테이너 스타일 */
     .image-container {
         position: relative;
         margin-bottom: 10px;
