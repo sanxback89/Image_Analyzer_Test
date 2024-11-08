@@ -656,7 +656,7 @@ def main():
                 # 파일 업로드 진행률 표시
                 upload_progress = st.progress(0)
                 upload_status = st.empty()
-                upload_status.text("파일 업로드 중...")
+                upload_status.text("Uploading files...")
                 
                 # 병렬 처리를 위한 ThreadPoolExecutor 설정
                 with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
@@ -675,7 +675,11 @@ def main():
                             images.append(img)
                         
                         upload_progress.progress((i + 1) / total_files)
-                        upload_status.text(f"파일 업로드 중... ({i+1}/{total_files})")
+                        upload_status.text(f"Uploading files... ({i+1}/{total_files})")
+                    
+                    # 업로드 완료 후 progress bar와 상태 텍스트 제거
+                    upload_progress.empty()
+                    upload_status.empty()
                     
                     # 이미지 전처리 병렬 처리
                     processed_images = list(executor.map(enhance_image, images))
@@ -687,7 +691,7 @@ def main():
                     # 이미지 분석 진행률
                     analysis_progress = st.progress(0)
                     analysis_status = st.empty()
-                    analysis_status.text("이미지 분석 중...")
+                    analysis_status.text("Analyzing images...")
                     
                     # 배치 처리로 이미지 분석
                     total_images = len(processed_images)
@@ -715,12 +719,11 @@ def main():
                         # 진행률 업데이트
                         progress = min((i + batch_size) / total_images, 1.0)
                         analysis_progress.progress(progress)
-                        analysis_status.text(f"이미지 분석 중... ({min(i + batch_size, total_images)}/{total_images})")
-                
-                analysis_status.text("Image analysis complete!")
-                time.sleep(1)
-                analysis_progress.empty()
-                analysis_status.empty()
+                        analysis_status.text(f"Analyzing images... ({min(i + batch_size, total_images)}/{total_images})")
+                    
+                    # 분석 완료 후 progress bar와 상태 텍스트 제거
+                    analysis_progress.empty()
+                    analysis_status.empty()
                 
                 st.session_state.previous_files = uploaded_files
             
