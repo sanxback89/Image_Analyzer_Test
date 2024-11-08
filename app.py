@@ -518,7 +518,9 @@ def display_images_with_controls(option, value, images, category):
     
     # 체크박스 상태를 저장할 고유한 키 생성
     checkbox_key = f"checkbox_state_{option}_{value}"
-    if checkbox_key not in st.session_state:
+    
+    # 체크박스 상태 초기화 또는 업데이트
+    if checkbox_key not in st.session_state or len(st.session_state[checkbox_key]) != len(images):
         st.session_state[checkbox_key] = [False] * len(images)
     
     for idx, img in enumerate(images):
