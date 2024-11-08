@@ -725,16 +725,16 @@ def main():
                 # 진행 상태 표시
                 analysis_progress = st.progress(0)
                 analysis_status = st.empty()
-                progress_percent = st.empty()  # 퍼센트 표시를 위한 새로운 요소
-                
-                results = []
-                completed_images = 0
-                total_images = len(processed_images)
+                analysis_status.text("Analyzing images...")
                 
                 # ThreadPoolExecutor를 사용한 병렬 처리
+                results = []
                 with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                     future_to_batch = {executor.submit(analyze_batch, batch): batch 
                                      for batch in batches}
+                    
+                    completed_images = 0
+                    total_images = len(processed_images)
                     
                     for future in concurrent.futures.as_completed(future_to_batch):
                         batch_results = future.result()
@@ -744,21 +744,7 @@ def main():
                         completed_images += len(batch_results)
                         progress = completed_images / total_images
                         analysis_progress.progress(progress)
-                        
-                        # 진행 상태 텍스트 업데이트
-                        percent = int(progress * 100)
                         analysis_status.text(f"Analyzing images... ({completed_images}/{total_images})")
-                        progress_percent.markdown(f"<h4 style='text-align: center; color: #007AFF;'>{percent}%</h4>", 
-                                               unsafe_allow_html=True)
-                
-                # 분석 완료 메시지
-                analysis_status.text("Image analysis complete!")
-                progress_percent.markdown("<h4 style='text-align: center; color: #28a745;'>100%</h4>", 
-                                       unsafe_allow_html=True)
-                time.sleep(1)
-                analysis_progress.empty()
-                analysis_status.empty()
-                progress_percent.empty()
                 
                 # 결과 처리
                 st.session_state.analysis_results = defaultdict(lambda: defaultdict(int))
