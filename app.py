@@ -888,6 +888,41 @@ st.markdown("""
         margin-top: 0 !important;
         margin-bottom: 0 !important;
     }
+
+    /* 마진 관련 스타일 강화 */
+    .stMarkdown {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .row-widget {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .element-container {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* 체크박스 컨테이너 스타일 강화 */
+    .stCheckbox {
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1 !important;
+    }
+    
+    /* 이미지 컨테이너 패딩 조정 */
+    .stImage {
+        padding: 0 5px 5px 5px !important;
+        margin-top: 0 !important;
+    }
+    
+    /* 타이틀과 컨텐츠 사이 간격 최소화 */
+    div[data-testid="stVerticalBlock"] > div {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
