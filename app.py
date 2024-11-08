@@ -296,55 +296,6 @@ def process_zip_file(uploaded_file):
                 with zip_ref.open(file_name) as file:
                     yield file_name, file.read()
 
-# 이미지 최적화 함수를 process_images 함수 위로 이동
-def optimize_image_for_analysis(image):
-    """이미지를 AI 분석에 최적화된 형태로 변환"""
-    try:
-        # PIL 이미지를 numpy 배열로 변환
-        if isinstance(image, Image.Image):
-            img_array = np.array(image)
-        else:
-            img_array = image
-
-        # 이미지가 RGBA인 경우 RGB로 변환
-        if img_array.shape[-1] == 4:
-            img_array = cv2.cvtColor(img_array, cv2.COLOR_RGBA2RGB)
-
-        # 목표 크기 설정 (OpenAI API 최적 크기)
-        TARGET_SIZE = (512, 512)
-        
-        # 이미지 크기 최적화
-        height, width = img_array.shape[:2]
-        if height > TARGET_SIZE[0] or width > TARGET_SIZE[1]:
-            # 비율 유지하면서 리사이즈
-            aspect_ratio = width / height
-            if width > height:
-                new_width = TARGET_SIZE[0]
-                new_height = int(new_width / aspect_ratio)
-            else:
-                new_height = TARGET_SIZE[1]
-                new_width = int(new_height * aspect_ratio)
-            
-            img_array = cv2.resize(img_array, (new_width, new_height), 
-                                 interpolation=cv2.INTER_AREA)
-
-        # JPEG 품질 최적화 (85% 품질)
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 85]
-        _, img_encoded = cv2.imencode('.jpg', img_array, encode_param)
-        
-        # 최적화된 이미지를 PIL Image로 변환
-        optimized_image = Image.fromarray(cv2.imdecode(img_encoded, cv2.IMREAD_COLOR))
-        
-        # 메모리 최적화
-        img_array = None
-        img_encoded = None
-        
-        return optimized_image
-
-    except Exception as e:
-        st.error(f"Image optimization error: {e}")
-        return image  # 에러 발생 시 원본 이미지 반환
-
 # Image processing
 def process_images(images):
     processed_images = []
@@ -355,15 +306,13 @@ def process_images(images):
     status_text = st.empty()
     status_text.text("Processing images...")
     
-    # 병렬 처리를 위한 배치 크기 증가
+    # 병렬 처리를 위한 배치 크기 설정
     batch_size = 16
     
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-        futures = []
-        for img in images:
-            futures.append(executor.submit(optimize_image_for_analysis, img))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        future_to_image = {executor.submit(enhance_image, img): img for img in images}
         
-        for i, future in enumerate(concurrent.futures.as_completed(futures)):
+        for i, future in enumerate(concurrent.futures.as_completed(future_to_image)):
             try:
                 processed_img = future.result()
                 processed_images.append(processed_img)
@@ -376,7 +325,7 @@ def process_images(images):
                 st.error(f"Error processing image: {e}")
     
     status_text.text("Image processing complete!")
-    time.sleep(0.5)  # 딜레이 감소
+    time.sleep(1)
     progress_bar.empty()
     status_text.empty()
     
@@ -582,7 +531,7 @@ def move_selected_images(from_option, from_value, to_value, selected_indices):
     
     return False
 
-# main 함수 내의 결과 표시 부 정
+# main 함수 내의 결과 표시 부분 정
 def display_images_with_controls(option, value, images, category):
     """
     체크박스와 이동 컨트롤이 있는 이미지 그리드 표시
@@ -681,24 +630,13 @@ def display_images_with_controls(option, value, images, category):
 def analyze_batch(batch):
     """배치 단위로 이미지를 분석하는 함수"""
     results = []
-    
-    # API 요청 재시도 로직 추가
-    max_retries = 3
-    retry_delay = 1
-    
     for img, category, options in batch:
-        for attempt in range(max_retries):
-            try:
-                result = analyze_single_image(img, category, options)
-                results.append((result, img))
-                break
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    st.error(f"Error analyzing image after {max_retries} attempts: {e}")
-                    results.append(({}, img))
-                else:
-                    time.sleep(retry_delay)
-                    continue
+        try:
+            result = analyze_single_image(img, category, options)
+            results.append((result, img))
+        except Exception as e:
+            st.error(f"Error analyzing image: {e}")
+            results.append(({}, img))
     return results
 
 # Modified main app logic (image list part)
@@ -776,7 +714,7 @@ def main():
                 processed_images = process_images(images)
                 
                 # 배치 크기 최적화
-                BATCH_SIZE = 16  # 배치 크기 증가
+                BATCH_SIZE = 8  # 더 큰 배치 사이즈 사용
                 
                 # 분석 준비
                 analysis_tasks = [(img, selected_category, selected_options) 
@@ -784,14 +722,75 @@ def main():
                 batches = [analysis_tasks[i:i + BATCH_SIZE] 
                           for i in range(0, len(analysis_tasks), BATCH_SIZE)]
                 
-                # 병렬 처리 최적화
-                with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                # 진행 상태 표시
+                analysis_progress = st.progress(0)
+                analysis_status = st.empty()
+                analysis_status.text("Analyzing images...")
+                
+                # ThreadPoolExecutor를 사용한 병렬 처리
+                results = []
+                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                     future_to_batch = {executor.submit(analyze_batch, batch): batch 
                                      for batch in batches}
                     
-                    # ... rest of the analysis code ...
-
-# ... rest of the code ...
+                    completed_images = 0
+                    total_images = len(processed_images)
+                    
+                    for future in concurrent.futures.as_completed(future_to_batch):
+                        batch_results = future.result()
+                        results.extend(batch_results)
+                        
+                        # 진행률 업데이트
+                        completed_images += len(batch_results)
+                        progress = completed_images / total_images
+                        analysis_progress.progress(progress)
+                        analysis_status.text(f"Analyzing images... ({completed_images}/{total_images})")
+                
+                # 결과 처리
+                st.session_state.analysis_results = defaultdict(lambda: defaultdict(int))
+                st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
+                
+                for result, img in results:
+                    for option, value in result.items():
+                        if isinstance(value, list):
+                            for v in value:
+                                st.session_state.analysis_results[option][v] += 1
+                                st.session_state.image_categories[option][v].append(img)
+                        else:
+                            st.session_state.analysis_results[option][value] += 1
+                            st.session_state.image_categories[option][value].append(img)
+                
+                analysis_status.text("Image analysis complete!")
+                time.sleep(1)
+                analysis_progress.empty()
+                analysis_status.empty()
+                
+                st.session_state.previous_files = uploaded_files
+            
+            # 색상 세트 생성 (차트용)
+            color_sets = list(generate_unique_color_sets(len(selected_options), 20))
+            
+            # 결과 표시
+            for i, (option, results) in enumerate(st.session_state.analysis_results.items()):
+                if results:
+                    st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
+                    fig = create_donut_chart(results, option, color_sets[i])
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    with st.expander(f"{option} Details"):
+                        for value, count in results.items():
+                            if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
+                                display_images_with_controls(option, value, st.session_state.image_categories[option][value], selected_category)
+                            else:
+                                st.write("No Matching Images Found.")
+                            st.write("---")
+            
+            # 페이지 리로드가 필요한 경우에만 rerun
+            if st.session_state.needs_rerun:
+                st.session_state.needs_rerun = False
+                st.rerun()
+    else:
+        st.info("로그인이 필요합니다. 위의 인증 정보를 입력해주세요.")
 
 if __name__ == "__main__":
     main()
