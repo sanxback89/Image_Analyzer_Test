@@ -295,7 +295,7 @@ def enhance_image(image, scale_factor=1):
     # PIL 이미지를 OpenCV 형식으로 변환
     cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     
-    # 1. 이미지 크기 조정 (최적 크기로 조정)
+    # 1. 이��지 크기 조정 (최적 크기로 조정)
     min_dimension = 800  # 최소 크기 제한
     max_dimension = 1200  # 최대 크기 제한
     height, width = cv_image.shape[:2]
@@ -495,7 +495,6 @@ def display_images_with_controls(option, value, images, category):
     """
     체크박스와 이동 컨트롤이 있는 이미지 그리드 표시
     """
-    # 카테고리 제목과 이미지 사이 간격 줄이기
     st.markdown(f"""
         <div style="margin-bottom: 5px;">
             <strong>{value}</strong> (Count: {len(images)})
@@ -510,11 +509,14 @@ def display_images_with_controls(option, value, images, category):
     image_width = 150
     new_image_width = int(image_width * 1.5)
     
+    # 체크박스 상태를 저장할 고유한 키 생성
+    checkbox_key = f"checkbox_state_{option}_{value}"
+    if checkbox_key not in st.session_state:
+        st.session_state[checkbox_key] = [False] * len(images)
+    
     for idx, img in enumerate(images):
         with cols[idx % 5]:
-            # 컨테이너로 이미지와 체크박스를 감싸기
             with st.container():
-                # 체크박스와 이미지를 포함하는 div
                 st.markdown(
                     """
                     <div style="position: relative; padding: 10px 0 0 10px;">
@@ -523,10 +525,15 @@ def display_images_with_controls(option, value, images, category):
                     unsafe_allow_html=True
                 )
                 
-                # 체크박스
-                if st.checkbox("", key=f"select_{option}_{value}_{idx}", 
+                # 체크박스 상태 관리
+                checkbox_unique_key = f"select_{option}_{value}_{idx}_{hash(str(img))}"
+                if st.checkbox("", key=checkbox_unique_key,
+                             value=st.session_state[checkbox_key][idx],
                              label_visibility="collapsed"):
                     selected_indices.append(idx)
+                    st.session_state[checkbox_key][idx] = True
+                else:
+                    st.session_state[checkbox_key][idx] = False
                 
                 st.markdown("</div>", unsafe_allow_html=True)
                 
@@ -540,30 +547,35 @@ def display_images_with_controls(option, value, images, category):
     # Move와 Remove 컨트롤을 같은 행에 배치
     col1, col2, col3 = st.columns([4, 1, 1])
     with col1:
-        # 기본값으로 "Select Category" 표시
         other_options = ["Select Category"] + [opt for opt in analysis_options[category][option] 
                                              if opt != value]
         move_to = st.selectbox(
             "Move to:",
             other_options,
-            key=f"move_to_{option}_{value}",
+            key=f"move_to_{option}_{value}_{hash(str(images))}",  # 고유한 키 추가
             label_visibility="collapsed"
         )
+    
     with col2:
-        if st.button("Move", key=f"move_btn_{option}_{value}", use_container_width=True):
+        if st.button("Move", key=f"move_btn_{option}_{value}_{hash(str(images))}", use_container_width=True):
             if move_to == "Select Category":
                 st.warning("Please select a category to move to")
             elif selected_indices:
                 if move_selected_images(option, value, move_to, selected_indices):
+                    # 체크박스 상태 초기화
+                    st.session_state[checkbox_key] = [False] * len(images)
                     st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
                     st.rerun()
             else:
                 st.warning("Please select images to move")
+    
     with col3:
-        if st.button("Remove", key=f"remove_btn_{option}_{value}", use_container_width=True):
+        if st.button("Remove", key=f"remove_btn_{option}_{value}_{hash(str(images))}", use_container_width=True):
             if selected_indices:
                 for idx in sorted(selected_indices, reverse=True):
                     remove_image(option, value, idx)
+                # 체크박스 상태 초기화
+                st.session_state[checkbox_key] = [False] * len(images)
                 st.success(f"Successfully removed {len(selected_indices)} images")
                 st.rerun()
             else:
