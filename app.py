@@ -471,14 +471,14 @@ def move_selected_images(from_option, from_value, to_value, selected_indices):
     return False
 
 # main 함수 내의 결과 표시 부분 수정
-def display_images_with_controls(option, value, images):
+def display_images_with_controls(option, value, images, category):
     """
     체크박스와 이동 컨트롤이 있는 이미지 그리드 표시
     """
     st.markdown(f"**{value}** (Count: {len(images)})")
     
     # 현재 카테고리의 다른 옵션들 가져오기
-    other_options = [opt for opt in analysis_options[st.session_state.current_category][option] 
+    other_options = [opt for opt in analysis_options[category][option] 
                     if opt != value]
     
     # 이미지 그리드 생성
@@ -659,7 +659,7 @@ def main():
                         with st.expander(f"{option} Details"):
                             for value, count in results.items():
                                 if option in image_categories and value in image_categories[option]:
-                                    display_images_with_controls(option, value, image_categories[option][value])
+                                    display_images_with_controls(option, value, image_categories[option][value], selected_category)
                                 else:
                                     st.write("No Matching Images Found.")
                                 st.write("---")
