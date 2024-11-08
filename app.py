@@ -412,14 +412,14 @@ def initialize_session_state():
         st.session_state.analysis_results = {}
     if 'image_categories' not in st.session_state:
         st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
+    if 'needs_rerun' not in st.session_state:
+        st.session_state.needs_rerun = False
 
-# 이미지 제거 함수 추가
+# 이미지 삭제 함수 추가
 def remove_image(option, value, image_index):
-    if option in st.session_state.analysis_results and value in st.session_state.image_categories[option]:
-        # 이미지 리스트에서 제거
+    if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
         st.session_state.image_categories[option][value].pop(image_index)
         
-        # 카운터 업데이트
         if option == "Details":
             st.session_state.analysis_results[option][value] -= 1
             if st.session_state.analysis_results[option][value] == 0:
@@ -427,65 +427,31 @@ def remove_image(option, value, image_index):
         else:
             st.session_state.analysis_results[option][value] -= 1
         
-        # 세션 상태 업데이트 트리거
-        st.session_state.update_charts = True
+        st.session_state.needs_rerun = True
 
 # 이미지 이동 함수 추가
-def move_image(from_option, from_value, to_value, image_index):
-    if (from_option in st.session_state.image_categories and 
-        from_value in st.session_state.image_categories[from_option]):
-        # 이미지 가져오기
-        image = st.session_state.image_categories[from_option][from_value][image_index]
-        
-        # 원래 카테고리에서 이미지 제거
-        st.session_state.image_categories[from_option][from_value].pop(image_index)
-        st.session_state.analysis_results[from_option][from_value] -= 1
-        
-        # 카운트가 0이 되면 카테고리 제거
-        if st.session_state.analysis_results[from_option][from_value] == 0:
-            del st.session_state.analysis_results[from_option][from_value]
-            del st.session_state.image_categories[from_option][from_value]
-        
-        # 새 카테고리에 이미지 추가
-        st.session_state.image_categories[from_option][to_value].append(image)
-        st.session_state.analysis_results[from_option][to_value] = (
-            st.session_state.analysis_results[from_option].get(to_value, 0) + 1
-        )
-        
-        return True
-    return False
-
-# 이미지 이동을 위한 새로운 함수 추가
 def move_selected_images(from_option, from_value, to_value, selected_indices):
-    """
-    선택된 이미지들을 한 카테고리에서 다른 카테고리로 이동
-    """
     if not selected_indices:
         return False
     
-    # 인덱스를 내림차순으로 정렬 (높은 인덱스부터 제거)
     selected_indices.sort(reverse=True)
-    
     moved_images = []
+    
     for idx in selected_indices:
         if (from_option in st.session_state.image_categories and 
             from_value in st.session_state.image_categories[from_option] and
             idx < len(st.session_state.image_categories[from_option][from_value])):
             
-            # 이미지 가져오기
             image = st.session_state.image_categories[from_option][from_value][idx]
             moved_images.append(image)
             
-            # 원래 카테고리에서 이미지 제거
             st.session_state.image_categories[from_option][from_value].pop(idx)
             st.session_state.analysis_results[from_option][from_value] -= 1
             
-            # 카운트가 0이 되면 카테고리 제거
             if st.session_state.analysis_results[from_option][from_value] == 0:
                 del st.session_state.analysis_results[from_option][from_value]
                 del st.session_state.image_categories[from_option][from_value]
     
-    # 새 카테고리에 이미지들 추가
     if moved_images:
         st.session_state.image_categories[from_option][to_value].extend(moved_images)
         st.session_state.analysis_results[from_option][to_value] = (
@@ -498,27 +464,18 @@ def move_selected_images(from_option, from_value, to_value, selected_indices):
 
 # 수정된 display_images_with_controls 함수
 def display_images_with_controls(option, value, images, category):
-    """
-    체크박스와 이동 컨트롤이 있는 이미지 그리드 표시
-    """
     st.markdown(f"""
         <div style="margin-bottom: 5px;">
             <strong>{value}</strong> (Count: {len(images)})
         </div>
     """, unsafe_allow_html=True)
     
-    # 이미지 그리드 생성
     cols = st.columns(5)
     selected_indices = []
-    
-    # 이미지 크기 계산
     image_width = 150
     new_image_width = int(image_width * 1.5)
     
-    # 체크박스 상태를 저장할 고유한 키 생성
     checkbox_key = f"checkbox_state_{option}_{value}"
-    
-    # 체크박스 상태 초기화 또는 업데이트
     if checkbox_key not in st.session_state or len(st.session_state[checkbox_key]) != len(images):
         st.session_state[checkbox_key] = [False] * len(images)
     
@@ -533,7 +490,6 @@ def display_images_with_controls(option, value, images, category):
                     unsafe_allow_html=True
                 )
                 
-                # 체크박스 상태 관리
                 checkbox_unique_key = f"select_{option}_{value}_{idx}_{hash(str(img))}"
                 if st.checkbox("", key=checkbox_unique_key,
                              value=st.session_state[checkbox_key][idx],
@@ -545,14 +501,11 @@ def display_images_with_controls(option, value, images, category):
                 
                 st.markdown("</div>", unsafe_allow_html=True)
                 
-                # 이미지 표시
                 img_resized = img.resize((new_image_width, int(new_image_width * img.size[1] / img.size[0])))
                 st.image(img_resized, use_column_width=True)
     
-    # 컨트롤 버튼들을 하단에 배치
     st.markdown("<div style='margin-top: 15px;'>", unsafe_allow_html=True)
     
-    # Move와 Remove 컨트롤을 같은 행에 배치
     col1, col2, col3 = st.columns([4, 1, 1])
     with col1:
         other_options = ["Select Category"] + [opt for opt in analysis_options[category][option] 
@@ -570,7 +523,6 @@ def display_images_with_controls(option, value, images, category):
                 st.warning("Please select a category to move to")
             elif selected_indices:
                 if move_selected_images(option, value, move_to, selected_indices):
-                    # 체크박스 상태 초기화
                     st.session_state[checkbox_key] = [False] * len(images)
                     st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
                     st.rerun()
@@ -582,7 +534,6 @@ def display_images_with_controls(option, value, images, category):
             if selected_indices:
                 for idx in sorted(selected_indices, reverse=True):
                     remove_image(option, value, idx)
-                # 체크박스 상태 초기화
                 st.session_state[checkbox_key] = [False] * len(images)
                 st.success(f"Successfully removed {len(selected_indices)} images")
                 st.rerun()
@@ -655,7 +606,7 @@ def main():
                                 img = img.convert('RGB')
                             images.append(img)
                         except Exception as e:
-                            st.error(f"ZIP 파일 내 이미지 처리 중 오류 발생: {str(e)}")
+                            st.error(f"ZIP 파일 내 ���미지 처리 중 오류 발생: {str(e)}")
             
             if images:
                 status_message = st.empty()  # 상태 메시지를 위한 컨테이너 생성
