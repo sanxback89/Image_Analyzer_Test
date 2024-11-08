@@ -183,8 +183,6 @@ def analyze_single_image(image, category, options):
     for option in options:
         if option == "Sleeves":
             prompt += f"\n{sleeve_length_guide}\n"
-        elif option == "Details" and "mixed_media" in analysis_options[category]["Details"]:
-            prompt += f"\n{mixed_media_guide}\n"
         
         if option == "Details":
             prompt += f"{option}: Select ALL that apply from [{', '.join(analysis_options[category][option])}]\n"
