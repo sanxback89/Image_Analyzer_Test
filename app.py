@@ -295,7 +295,7 @@ def enhance_image(image, scale_factor=1):
     # PIL 이미지를 OpenCV 형식으로 변환
     cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     
-    # 1. 이지 크기 조정 (최적 ��기로 조정)
+    # 1. 이��지 크기 조정 (최적 크기로 조정)
     min_dimension = 800  # 최소 크기 제한
     max_dimension = 1200  # 최대 크기 제한
     height, width = cv_image.shape[:2]
@@ -495,11 +495,6 @@ def display_images_with_controls(option, value, images, category):
     """
     체크박스와 이동 컨트롤이 있는 이미지 그리드 표시
     """
-    # expander 상태를 위한 고유 키 생성
-    expander_key = f"expander_{option}_{value}"
-    if expander_key not in st.session_state:
-        st.session_state[expander_key] = True  # 기본적으로 열린 상태
-
     st.markdown(f"""
         <div style="margin-bottom: 5px;">
             <strong>{value}</strong> (Count: {len(images)})
@@ -676,13 +671,7 @@ def main():
                     fig = create_donut_chart(results, option, color_sets[i])
                     st.plotly_chart(fig, use_container_width=True)
                     
-                    # expander 상태 관리를 위한 키 생성
-                    for value, count in results.items():
-                        expander_key = f"expander_{option}_{value}"
-                        if expander_key not in st.session_state:
-                            st.session_state[expander_key] = True
-
-                    with st.expander(f"{option} Details", expanded=True):
+                    with st.expander(f"{option} Details"):
                         for value, count in results.items():
                             if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
                                 display_images_with_controls(option, value, st.session_state.image_categories[option][value], selected_category)
