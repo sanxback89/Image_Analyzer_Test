@@ -418,7 +418,7 @@ def initialize_session_state():
 # 이미지 삭제 함수 추가
 def remove_image(option, value, image_index):
     """
-    특정 카테고리서 이미지를 삭제���고 트 데이터 업데이트
+    특정 카테고리서 이미지를 삭제��� 트 데이터 업데이트
     """
     if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
         # 이미지 리스트에서 제거
@@ -488,29 +488,32 @@ def display_images_with_controls(option, value, images, category):
     selected_indices = []
     
     # 이미지 크기 계산 (1.5배 증가)
-    image_width = 150  # 기본 크기
+    image_width = 150
     new_image_width = int(image_width * 1.5)
     
     for idx, img in enumerate(images):
         with cols[idx % 5]:
             # 컨테이너로 이미지와 체크박스를 감싸기
             with st.container():
+                # 체크박스와 이미지를 포함하는 div
+                st.markdown(
+                    """
+                    <div style="position: relative; padding: 10px 0 0 10px;">
+                        <div style="position: absolute; top: 10px; left: 10px; z-index: 1;">
+                    """,
+                    unsafe_allow_html=True
+                )
+                
                 # 체크박스
                 if st.checkbox("", key=f"select_{option}_{value}_{idx}", 
                              label_visibility="collapsed"):
                     selected_indices.append(idx)
                 
-                # 이미지 표시 (크기 1.5배 증가)
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+                # 이미지 표시
                 img_resized = img.resize((new_image_width, int(new_image_width * img.size[1] / img.size[0])))
                 st.image(img_resized, use_column_width=True)
-    
-    # 5개 이미지마다 새로운 행 시작
-    if len(images) % 5 != 0:
-        st.write("")
-    
-    # 현재 카테고리의 다른 옵션들 가져오기
-    other_options = [opt for opt in analysis_options[category][option] 
-                    if opt != value]
     
     # 컨트롤 버튼들을 하단에 배치
     st.markdown("<div style='margin-top: 15px;'>", unsafe_allow_html=True)
@@ -518,6 +521,9 @@ def display_images_with_controls(option, value, images, category):
     # Move와 Remove 컨트롤을 같은 행에 배치
     col1, col2, col3 = st.columns([4, 1, 1])
     with col1:
+        # 기본값으로 "Select Category" 표시
+        other_options = ["Select Category"] + [opt for opt in analysis_options[category][option] 
+                                             if opt != value]
         move_to = st.selectbox(
             "Move to:",
             other_options,
@@ -526,7 +532,9 @@ def display_images_with_controls(option, value, images, category):
         )
     with col2:
         if st.button("Move", key=f"move_btn_{option}_{value}", use_container_width=True):
-            if selected_indices:
+            if move_to == "Select Category":
+                st.warning("Please select a category to move to")
+            elif selected_indices:
                 if move_selected_images(option, value, move_to, selected_indices):
                     st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
                     st.rerun()
@@ -535,7 +543,6 @@ def display_images_with_controls(option, value, images, category):
     with col3:
         if st.button("Remove", key=f"remove_btn_{option}_{value}", use_container_width=True):
             if selected_indices:
-                # 선택된 모든 이미지 삭제
                 for idx in sorted(selected_indices, reverse=True):
                     remove_image(option, value, idx)
                 st.success(f"Successfully removed {len(selected_indices)} images")
@@ -835,6 +842,41 @@ st.markdown("""
     /* View fullscreen 버튼 숨기기 */
     button[title="View fullscreen"] {
         display: none !important;
+    }
+    
+    /* 체크박스 컨테이너 스타일 */
+    .stCheckbox {
+        margin: 0;
+        padding: 0;
+    }
+    
+    /* 버튼 스타일 통일 */
+    .stButton > button {
+        height: 38px;
+        margin-top: 0 !important;
+        border-radius: 4px;
+        background-color: #f0f2f6 !important;
+        color: #000000 !important;
+    }
+    
+    /* 버튼 호버 효과 */
+    .stButton > button:hover {
+        background-color: #e0e2e6 !important;
+    }
+    
+    /* 선택박스 스타일 */
+    .stSelectbox {
+        margin-bottom: 0 !important;
+    }
+    
+    /* View fullscreen 버튼 숨기기 */
+    button[title="View fullscreen"] {
+        display: none !important;
+    }
+    
+    /* 이미지 컨테이너 패딩 */
+    .stImage {
+        padding: 5px;
     }
 </style>
 """, unsafe_allow_html=True)
