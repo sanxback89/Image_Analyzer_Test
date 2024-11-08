@@ -327,26 +327,18 @@ def enhance_image(image, scale_factor=1):
     # PIL 이미지를 OpenCV 형식으로 변환
     cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     
-    # 1. 이지 크기 조정 (최적 크기로 조정)
-    min_dimension = 800  # 최소 크기 제한
-    max_dimension = 1200  # 최대 크기 제한
+    # 1. 이미지 크기를 더 작게 조정 (속도 개선)
+    target_size = 400  # 최대 크기를 400px로 제한
     height, width = cv_image.shape[:2]
     
-    # 작은 이미지는 확대
-    if max(height, width) < min_dimension:
-        scale = min_dimension / max(height, width)
-        new_width = int(width * scale)
-        new_height = int(height * scale)
-        cv_image = cv2.resize(cv_image, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
-    # 큰 이미지는 축소
-    elif max(height, width) > max_dimension:
-        scale = max_dimension / max(height, width)
+    if max(height, width) > target_size:
+        scale = target_size / max(height, width)
         new_width = int(width * scale)
         new_height = int(height * scale)
         cv_image = cv2.resize(cv_image, (new_width, new_height), interpolation=cv2.INTER_AREA)
     
-    # 2. 기본적인 노이즈 제거 (빠른 처리를 위해 파라미터 조정)
-    denoised = cv2.fastNlMeansDenoisingColored(cv_image, None, 7, 7, 5, 12)
+    # 2. 노이즈 제거 단순화 (속도 개선)
+    denoised = cv2.fastNlMeansDenoisingColored(cv_image, None, 5, 5, 3, 9)
     
     return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
 
@@ -661,60 +653,69 @@ def main():
             if 'previous_files' not in st.session_state or st.session_state.previous_files != uploaded_files:
                 images = []
                 
-                # File upload progress
+                # 파일 업로드 진행률 표시
                 upload_progress = st.progress(0)
                 upload_status = st.empty()
-                upload_status.text("Uploading files...")
+                upload_status.text("파일 업로드 중...")
                 
-                total_files = len(uploaded_files)
-                for i, uploaded_file in enumerate(uploaded_files):
-                    # File processing logic remains the same
-                    if uploaded_file.name.lower().endswith(('.xlsx', '.xls')):
-                        images.extend(extract_images_from_excel(uploaded_file))
-                    elif uploaded_file.name.lower().endswith('.zip'):
-                        for file_name, file_content in process_zip_file(uploaded_file):
-                            img = Image.open(io.BytesIO(file_content))
-                            images.append(img)
-                    else:
-                        img = Image.open(uploaded_file)
-                        images.append(img)
+                # 병렬 처리를 위한 ThreadPoolExecutor 설정
+                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                    total_files = len(uploaded_files)
+                    futures = []
                     
-                    # Update upload progress
-                    upload_progress.progress((i + 1) / total_files)
-                    upload_status.text(f"Uploading files... ({i+1}/{total_files})")
-                
-                upload_status.text("File upload complete!")
-                time.sleep(1)
-                upload_progress.empty()
-                upload_status.empty()
-                
-                # Process images
-                processed_images = process_images(images)
-                
-                # Initialize analysis results
-                st.session_state.analysis_results = defaultdict(lambda: defaultdict(int))
-                st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
-                
-                # Image analysis progress
-                analysis_progress = st.progress(0)
-                analysis_status = st.empty()
-                analysis_status.text("Analyzing images...")
-                
-                total_images = len(processed_images)
-                for i, img in enumerate(processed_images):
-                    results = analyze_single_image(img, selected_category, selected_options)
-                    for option, value in results.items():
-                        if isinstance(value, list):
-                            for v in value:
-                                st.session_state.analysis_results[option][v] += 1
-                                st.session_state.image_categories[option][v].append(img)
+                    for i, uploaded_file in enumerate(uploaded_files):
+                        if uploaded_file.name.lower().endswith(('.xlsx', '.xls')):
+                            images.extend(extract_images_from_excel(uploaded_file))
+                        elif uploaded_file.name.lower().endswith('.zip'):
+                            for file_name, file_content in process_zip_file(uploaded_file):
+                                img = Image.open(io.BytesIO(file_content))
+                                images.append(img)
                         else:
-                            st.session_state.analysis_results[option][value] += 1
-                            st.session_state.image_categories[option][value].append(img)
+                            img = Image.open(uploaded_file)
+                            images.append(img)
+                        
+                        upload_progress.progress((i + 1) / total_files)
+                        upload_status.text(f"파일 업로드 중... ({i+1}/{total_files})")
                     
-                    # Update analysis progress
-                    analysis_progress.progress((i + 1) / total_images)
-                    analysis_status.text(f"Analyzing images... ({i+1}/{total_images})")
+                    # 이미지 전처리 병렬 처리
+                    processed_images = list(executor.map(enhance_image, images))
+                    
+                    # 분석 결과 초기화
+                    st.session_state.analysis_results = defaultdict(lambda: defaultdict(int))
+                    st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
+                    
+                    # 이미지 분석 진행률
+                    analysis_progress = st.progress(0)
+                    analysis_status = st.empty()
+                    analysis_status.text("이미지 분석 중...")
+                    
+                    # 배치 처리로 이미지 분석
+                    total_images = len(processed_images)
+                    batch_size = 10
+                    for i in range(0, total_images, batch_size):
+                        batch = processed_images[i:i + batch_size]
+                        batch_data = [(img, selected_category, selected_options) for img in batch]
+                        
+                        # 배치 분석 실행
+                        batch_results = list(executor.map(lambda x: analyze_single_image(*x), batch_data))
+                        
+                        # 결과 처리
+                        for j, results in enumerate(batch_results):
+                            img_index = i + j
+                            if img_index < total_images:
+                                for option, value in results.items():
+                                    if isinstance(value, list):
+                                        for v in value:
+                                            st.session_state.analysis_results[option][v] += 1
+                                            st.session_state.image_categories[option][v].append(processed_images[img_index])
+                                    else:
+                                        st.session_state.analysis_results[option][value] += 1
+                                        st.session_state.image_categories[option][value].append(processed_images[img_index])
+                        
+                        # 진행률 업데이트
+                        progress = min((i + batch_size) / total_images, 1.0)
+                        analysis_progress.progress(progress)
+                        analysis_status.text(f"이미지 분석 중... ({min(i + batch_size, total_images)}/{total_images})")
                 
                 analysis_status.text("Image analysis complete!")
                 time.sleep(1)
@@ -803,7 +804,7 @@ st.markdown("""
         z-index: 1;
     }
     
-    /* 이��지 컨테이너 스타일 */
+    /* 이지 컨테이너 스타일 */
     .image-container {
         position: relative;
         margin-bottom: 10px;
