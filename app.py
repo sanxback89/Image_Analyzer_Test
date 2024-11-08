@@ -418,7 +418,7 @@ def initialize_session_state():
 # 이미지 삭제 함수 추가
 def remove_image(option, value, image_index):
     """
-    특정 카테고리서 이미지를 삭제하고 트 데이터 업데이트
+    특정 카테고리서 이미지를 삭제���고 트 데이터 업데이트
     """
     if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
         # 이미지 리스트에서 제거
@@ -763,7 +763,7 @@ st.markdown("""
         margin-bottom: 15px;
     }
     
-    /* 선택���스와 버튼 정렬 */
+    /* 선택스와 버튼 정렬 */
     .stSelectbox {
         margin-bottom: 0 !important;
     }
@@ -813,6 +813,28 @@ st.markdown("""
     /* 이미지 컨테이너 스타일 */
     .stImage {
         margin-top: 5px;
+    }
+    
+    /* Move와 Remove 버튼 스타일을 특정 클래스나 ID로 제한 */
+    [data-testid="stButton"] button[key*="move_btn"] {
+        background-color: #007AFF;
+        color: white;
+    }
+    
+    [data-testid="stButton"] button[key*="remove_btn"] {
+        background-color: #FF3B30;
+        color: white;
+    }
+    
+    /* Authentication 버튼 스타일 복원 */
+    [data-testid="stButton"] button:not([key*="move_btn"]):not([key*="remove_btn"]) {
+        background-color: #ffffff;
+        color: #000000;
+    }
+
+    /* View fullscreen 버튼 숨기기 */
+    button[title="View fullscreen"] {
+        display: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
