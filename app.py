@@ -306,23 +306,14 @@ def process_images(images):
     status_text = st.empty()
     status_text.text("Processing images...")
     
-    # 병렬 처리를 위한 배치 크기 설정
-    batch_size = 4
-    
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-        future_to_image = {executor.submit(enhance_image, img): img for img in images}
+    for i, img in enumerate(images):
+        processed_img = enhance_image(img)
+        processed_images.append(processed_img)
         
-        for i, future in enumerate(concurrent.futures.as_completed(future_to_image)):
-            try:
-                processed_img = future.result()
-                processed_images.append(processed_img)
-                
-                # Update progress
-                progress = (i + 1) / total_images
-                progress_bar.progress(progress)
-                status_text.text(f"Processing images... ({i+1}/{total_images})")
-            except Exception as e:
-                st.error(f"Error processing image: {e}")
+        # Update progress
+        progress = (i + 1) / total_images
+        progress_bar.progress(progress)
+        status_text.text(f"Processing images... ({i+1}/{total_images})")
     
     status_text.text("Image processing complete!")
     time.sleep(1)
@@ -336,7 +327,7 @@ def enhance_image(image, scale_factor=1):
     # PIL 이미지를 OpenCV 형식으로 변환
     cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     
-    # 1. 이미지 크기 조정 (최적 크기로 조정)
+    # 1. 이지 크기 조정 (최적 크기로 조정)
     min_dimension = 800  # 최소 크기 제한
     max_dimension = 1200  # 최대 크기 제한
     height, width = cv_image.shape[:2]
@@ -626,19 +617,6 @@ def display_images_with_controls(option, value, images, category):
     
     st.markdown("</div>", unsafe_allow_html=True)
 
-# 수정된 배치 처리 함수
-def analyze_batch(batch):
-    """배치 단위로 이미지를 분석하는 함수"""
-    results = []
-    for img, category, options in batch:
-        try:
-            result = analyze_single_image(img, category, options)
-            results.append((result, img))
-        except Exception as e:
-            st.error(f"Error analyzing image: {e}")
-            results.append(({}, img))
-    return results
-
 # Modified main app logic (image list part)
 def main():
     initialize_session_state()
@@ -710,48 +688,22 @@ def main():
                 upload_progress.empty()
                 upload_status.empty()
                 
-                # 이미지 처리 최적화
+                # Process images
                 processed_images = process_images(images)
                 
-                # 배치 크기 최적화
-                BATCH_SIZE = 8  # 더 큰 배치 사이즈 사용
+                # Initialize analysis results
+                st.session_state.analysis_results = defaultdict(lambda: defaultdict(int))
+                st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
                 
-                # 분석 준비
-                analysis_tasks = [(img, selected_category, selected_options) 
-                                for img in processed_images]
-                batches = [analysis_tasks[i:i + BATCH_SIZE] 
-                          for i in range(0, len(analysis_tasks), BATCH_SIZE)]
-                
-                # 진행 상태 표시
+                # Image analysis progress
                 analysis_progress = st.progress(0)
                 analysis_status = st.empty()
                 analysis_status.text("Analyzing images...")
                 
-                # ThreadPoolExecutor를 사용한 병렬 처리
-                results = []
-                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                    future_to_batch = {executor.submit(analyze_batch, batch): batch 
-                                     for batch in batches}
-                    
-                    completed_images = 0
-                    total_images = len(processed_images)
-                    
-                    for future in concurrent.futures.as_completed(future_to_batch):
-                        batch_results = future.result()
-                        results.extend(batch_results)
-                        
-                        # 진행률 업데이트
-                        completed_images += len(batch_results)
-                        progress = completed_images / total_images
-                        analysis_progress.progress(progress)
-                        analysis_status.text(f"Analyzing images... ({completed_images}/{total_images})")
-                
-                # 결과 처리
-                st.session_state.analysis_results = defaultdict(lambda: defaultdict(int))
-                st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
-                
-                for result, img in results:
-                    for option, value in result.items():
+                total_images = len(processed_images)
+                for i, img in enumerate(processed_images):
+                    results = analyze_single_image(img, selected_category, selected_options)
+                    for option, value in results.items():
                         if isinstance(value, list):
                             for v in value:
                                 st.session_state.analysis_results[option][v] += 1
@@ -759,6 +711,10 @@ def main():
                         else:
                             st.session_state.analysis_results[option][value] += 1
                             st.session_state.image_categories[option][value].append(img)
+                    
+                    # Update analysis progress
+                    analysis_progress.progress((i + 1) / total_images)
+                    analysis_status.text(f"Analyzing images... ({i+1}/{total_images})")
                 
                 analysis_status.text("Image analysis complete!")
                 time.sleep(1)
@@ -847,7 +803,7 @@ st.markdown("""
         z-index: 1;
     }
     
-    /* 이지 컨테이너 스타일 */
+    /* 이��지 컨테이너 스타일 */
     .image-container {
         position: relative;
         margin-bottom: 10px;
