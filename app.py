@@ -653,7 +653,7 @@ def main():
         
         st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload and Analyze</h3>", unsafe_allow_html=True)
         uploaded_files = st.file_uploader("Choose File(s)", 
-                                        type=["xlsx", "xls", "png", "jpg", "jpeg", "jfif", "zip"], 
+                                        type=["xlsx", "xls", "png", "jpg", "jpeg", "zip"], 
                                         accept_multiple_files=True)
         
         if uploaded_files and selected_options:
@@ -936,7 +936,7 @@ st.markdown("""
         display: none !important;
     }
     
-    /* 체크박스 ��테이너 스타일 */
+    /* 체크박스 테이너 스타일 */
     .stCheckbox {
         margin: 0;
         padding: 0;
