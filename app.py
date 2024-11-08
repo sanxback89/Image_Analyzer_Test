@@ -418,7 +418,7 @@ def initialize_session_state():
 # 이미지 삭제 함수 추가
 def remove_image(option, value, image_index):
     """
-    특정 카테고리에서 이미지를 삭제하 차트 데이터 업데이트
+    특정 카테고리에서 이미지를 삭하 차트 데이터 업데이트
     """
     if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
         # 이미지 리스트에서 제거
@@ -505,35 +505,38 @@ def display_images_with_controls(option, value, images, category):
     
     for idx, img in enumerate(images):
         with cols[idx % 5]:
-            # 이미지 컨테이너
+            # 컨테이너로 이미지와 컨트롤을 감싸기
             with st.container():
-                # 이미지와 컨트롤을 포함할 div 생성
-                st.markdown(f"""
-                    <div class="image-container">
-                        <div class="image-controls">
-                            <div class="checkbox-wrapper">
-                                <input type="checkbox" id="check_{option}_{value}_{idx}" 
-                                    {'checked' if idx in selected_indices else ''}>
-                            </div>
-                            <button class="delete-button" onclick="delete_image({idx})">×</button>
-                        </div>
-                        <div class="image-wrapper">
-                            <img src="data:image/png;base64,{img}" style="width:100%;">
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
+                # 삭제 버튼과 체크박스를 위한 상단 컨트롤
+                ctrl_col1, ctrl_col2 = st.columns([9, 1])
                 
-                # 체크박스 상태 확인 (숨겨진 체크박스)
+                # 체크박스
                 if st.checkbox("", key=f"select_{option}_{value}_{idx}", 
-                             label_visibility="collapsed", 
-                             value=False):
+                             label_visibility="collapsed"):
                     selected_indices.append(idx)
                 
-                # 삭제 버튼 (숨겨진 버튼)
-                if st.button("", key=f"delete_{option}_{value}_{idx}", 
-                            help="Remove image"):
+                # 삭제 버튼
+                if st.button("×", key=f"delete_{option}_{value}_{idx}", 
+                           help="Remove image"):
                     remove_image(option, value, idx)
                     st.rerun()
+                
+                # 이미지 표시
+                try:
+                    # PIL Image 객체인 경우
+                    if isinstance(img, Image.Image):
+                        st.image(img, use_column_width=True)
+                    # 바이트 스트림이나 파일 경로인 경우
+                    else:
+                        img_data = Image.open(img) if isinstance(img, str) else Image.open(io.BytesIO(img))
+                        st.image(img_data, use_column_width=True)
+                except Exception as e:
+                    st.error(f"Error displaying image: {str(e)}")
+                    st.write("Image data type:", type(img))
+            
+            # 5개 이미지마다 새로운 행 시작
+            if (idx + 1) % 5 == 0:
+                st.write("")
     
     # 이동 버튼 동작 처리
     if move_button and selected_indices:
@@ -784,6 +787,49 @@ st.markdown("""
     
     .stButton.move-button {
         margin-top: 0 !important;
+    }
+    
+    /* 이미지 컨테이너 스타일 */
+    .stImage {
+        position: relative;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    /* 체크박스 컨테이너 */
+    .stCheckbox {
+        position: absolute !important;
+        top: 5px !important;
+        left: 5px !important;
+        z-index: 2 !important;
+        background: rgba(255, 255, 255, 0.8) !important;
+        border-radius: 2px !important;
+        padding: 2px !important;
+    }
+    
+    /* 삭제 버튼 */
+    .stButton button {
+        position: absolute !important;
+        top: 5px !important;
+        right: 5px !important;
+        z-index: 2 !important;
+        padding: 0px !important;
+        width: 20px !important;
+        height: 20px !important;
+        min-height: 20px !important;
+        line-height: 18px !important;
+        font-size: 14px !important;
+        background: rgba(255, 255, 255, 0.8) !important;
+        border: none !important;
+        border-radius: 2px !important;
+        color: #666 !important;
+    }
+    
+    /* 이미지 스타일 */
+    .stImage img {
+        width: 100% !important;
+        height: auto !important;
+        display: block !important;
     }
 </style>
 """, unsafe_allow_html=True)
