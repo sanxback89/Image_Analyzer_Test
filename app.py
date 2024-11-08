@@ -274,20 +274,27 @@ def process_zip_file(uploaded_file):
 # Image processing
 def process_images(images):
     processed_images = []
+    total_images = len(images)
+    
+    # 진행 상태 표시 컴포넌트 생성
     progress_bar = st.progress(0)
     status_text = st.empty()
+    status_text.text("이미지 처리 중...")
     
     for i, img in enumerate(images):
         processed_img = enhance_image(img)
         processed_images.append(processed_img)
         
-        # Update progress
-        progress = (i + 1) / len(images)
+        # 진행률 업데이트
+        progress = (i + 1) / total_images
         progress_bar.progress(progress)
-        status_text.text(f"Processing Images: {i+1}/{len(images)}")
+        status_text.text(f"이미지 처리 중... ({i+1}/{total_images})")
     
+    status_text.text("이미지 처리 완료!")
+    time.sleep(1)  # 완료 메시지를 잠시 표시
     progress_bar.empty()
     status_text.empty()
+    
     return processed_images
 
 # Image enhancement function
@@ -295,7 +302,7 @@ def enhance_image(image, scale_factor=1):
     # PIL 이미지를 OpenCV 형식으로 변환
     cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     
-    # 1. 이��지 크기 조정 (최적 크기로 조정)
+    # 1. 이지 크기 조정 (최적 크기로 조정)
     min_dimension = 800  # 최소 크기 제한
     max_dimension = 1200  # 최대 크기 제한
     height, width = cv_image.shape[:2]
@@ -624,11 +631,16 @@ def main():
                                         accept_multiple_files=True)
         
         if uploaded_files and selected_options:
-            # 새로운 파일이 업로드된 경우에만 이미지 분석 수행
             if 'previous_files' not in st.session_state or st.session_state.previous_files != uploaded_files:
-                # 이미지 처리 및 분석 결과를 세션 상태에 저장
                 images = []
-                for uploaded_file in uploaded_files:
+                
+                # 파일 업로드 진행률 표시
+                upload_progress = st.progress(0)
+                upload_status = st.empty()
+                upload_status.text("파일 업로드 중...")
+                
+                total_files = len(uploaded_files)
+                for i, uploaded_file in enumerate(uploaded_files):
                     # 파일 형식에 따른 이미지 추출
                     if uploaded_file.name.lower().endswith(('.xlsx', '.xls')):
                         images.extend(extract_images_from_excel(uploaded_file))
@@ -639,6 +651,15 @@ def main():
                     else:
                         img = Image.open(uploaded_file)
                         images.append(img)
+                    
+                    # 업로드 진행률 업데이트
+                    upload_progress.progress((i + 1) / total_files)
+                    upload_status.text(f"파일 업로드 중... ({i+1}/{total_files})")
+                
+                upload_status.text("파일 업로드 완료!")
+                time.sleep(1)
+                upload_progress.empty()
+                upload_status.empty()
                 
                 # 이미지 처리
                 processed_images = process_images(images)
@@ -647,17 +668,31 @@ def main():
                 st.session_state.analysis_results = defaultdict(lambda: defaultdict(int))
                 st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
                 
-                # 이미지 분석
-                for img in processed_images:
+                # 이미지 분석 진행률 표시
+                analysis_progress = st.progress(0)
+                analysis_status = st.empty()
+                analysis_status.text("이미지 분석 중...")
+                
+                total_images = len(processed_images)
+                for i, img in enumerate(processed_images):
                     results = analyze_single_image(img, selected_category, selected_options)
                     for option, value in results.items():
-                        if isinstance(value, list):  # Details의 경우
+                        if isinstance(value, list):
                             for v in value:
                                 st.session_state.analysis_results[option][v] += 1
                                 st.session_state.image_categories[option][v].append(img)
                         else:
                             st.session_state.analysis_results[option][value] += 1
                             st.session_state.image_categories[option][value].append(img)
+                    
+                    # 분석 진행률 업데이트
+                    analysis_progress.progress((i + 1) / total_images)
+                    analysis_status.text(f"이미지 분석 중... ({i+1}/{total_images})")
+                
+                analysis_status.text("이미지 분석 완료!")
+                time.sleep(1)
+                analysis_progress.empty()
+                analysis_status.empty()
                 
                 st.session_state.previous_files = uploaded_files
             
