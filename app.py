@@ -415,9 +415,12 @@ def initialize_session_state():
     if 'needs_rerun' not in st.session_state:
         st.session_state.needs_rerun = False
 
-# 이미지 제거 함수 추가
+# 이미지 삭제 함수 추가
 def remove_image(option, value, image_index):
-    if option in st.session_state.analysis_results and value in st.session_state.image_categories[option]:
+    """
+    특정 카테고리에서 이미지를 삭제하고 차트 데이터 업데이트
+    """
+    if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
         # 이미지 리스트에서 제거
         st.session_state.image_categories[option][value].pop(image_index)
         
@@ -430,7 +433,7 @@ def remove_image(option, value, image_index):
             st.session_state.analysis_results[option][value] -= 1
         
         # 세션 상태 업데이트 트리거
-        st.session_state.update_charts = True
+        st.session_state.needs_rerun = True
 
 # 이미지 이동을 위한 새로운 함수
 def move_selected_images(from_option, from_value, to_value, selected_indices):
@@ -484,37 +487,52 @@ def display_images_with_controls(option, value, images, category):
     other_options = [opt for opt in analysis_options[category][option] 
                     if opt != value]
     
+    # 이동 컨트롤을 상단에 배치하고 정렬
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        move_to = st.selectbox(
+            "Move to:",
+            other_options,
+            key=f"move_to_{option}_{value}",
+            label_visibility="collapsed"
+        )
+    with col2:
+        move_button = st.button(
+            "Move",
+            key=f"move_btn_{option}_{value}",
+            use_container_width=True
+        )
+    
     # 이미지 그리드 생성
-    cols = st.columns(5)
     selected_indices = []
+    cols = st.columns(5)
     
     for idx, img in enumerate(images):
         with cols[idx % 5]:
-            # 체크박스 추가
-            checkbox_key = f"{option}_{value}_{idx}"
-            if st.checkbox("", key=checkbox_key, value=False):
-                selected_indices.append(idx)
-            
-            # 이미지 표시
-            st.image(img, use_column_width=True)
+            # 컨테이너로 이미지와 컨트롤을 감싸기
+            with st.container():
+                # 삭제 버튼과 체크박스를 위한 작은 컬럼
+                ctrl_col1, ctrl_col2 = st.columns([1, 9])
+                with ctrl_col1:
+                    if st.checkbox("", key=f"select_{option}_{value}_{idx}", label_visibility="collapsed"):
+                        selected_indices.append(idx)
+                with ctrl_col2:
+                    if st.button("×", key=f"delete_{option}_{value}_{idx}", help="Remove image"):
+                        remove_image(option, value, idx)
+                        st.rerun()
+                
+                # 이미지 표시 (클릭 확대 없이)
+                st.image(img, use_column_width=True)
             
             # 5개 이미지마다 새로운 행 시작
             if (idx + 1) % 5 == 0:
                 st.write("")
     
-    # 이동 컨트롤
-    if selected_indices:
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            move_to = st.selectbox(
-                "Move to:",
-                other_options,
-                key=f"move_to_{option}_{value}"
-            )
-        with col2:
-            if st.button("Move", key=f"move_btn_{option}_{value}"):
-                if move_selected_images(option, value, move_to, selected_indices):
-                    st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
+    # 이동 버튼 동작 처리
+    if move_button and selected_indices:
+        if move_selected_images(option, value, move_to, selected_indices):
+            st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
+            st.rerun()
 
 # Modified main app logic (image list part)
 def main():
@@ -695,6 +713,52 @@ st.markdown("""
         padding: 0.5rem 1rem;
         border-radius: 5px;
         width: auto;
+    }
+    
+    /* 체크박스와 삭제 버튼 컨테이너 */
+    .stButton > button {
+        padding: 0px 8px;
+        height: 24px;
+        line-height: 24px;
+        font-size: 14px;
+        border-radius: 4px;
+        margin: 0;
+    }
+    
+    /* 삭제 버튼 스타일 */
+    .delete-button {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(255, 255, 255, 0.8);
+        border: none;
+        border-radius: 3px;
+        padding: 2px 6px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    
+    /* 이미지 컨테이너 스타일 */
+    .image-container {
+        position: relative;
+        margin-bottom: 10px;
+    }
+    
+    /* Move 컨트롤 정렬 */
+    .move-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    /* 선택박스와 버튼 정렬 */
+    .stSelectbox {
+        margin-bottom: 0 !important;
+    }
+    
+    .stButton.move-button {
+        margin-top: 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
