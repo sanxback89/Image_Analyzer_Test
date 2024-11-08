@@ -499,12 +499,13 @@ def display_images_with_controls(option, value, images, category):
     for idx, img in enumerate(images):
         with cols[idx % 5]:
             # 컨테이너로 이미지와 체크박스를 감싸기
-            with st.container():
-                # 체크박스와 이미지를 포함하는 div
+            container = st.container()
+            with container:
+                # 체크박스와 이미지를 포함할 div 생성
                 st.markdown(
-                    """
-                    <div style="position: relative; padding: 10px 0 0 10px;">
-                        <div style="position: absolute; top: 10px; left: 10px; z-index: 1;">
+                    f"""
+                    <div class="image-checkbox-container">
+                        <div class="checkbox-overlay">
                     """,
                     unsafe_allow_html=True
                 )
@@ -887,6 +888,45 @@ st.markdown("""
     .row-widget {
         margin-top: 0 !important;
         margin-bottom: 0 !important;
+    }
+
+    /* 이미지와 체크박스 컨테이너 스타일 */
+    .image-checkbox-container {
+        position: relative;
+        width: 100%;
+    }
+    
+    /* 체크박스 오버레이 스타일 */
+    .checkbox-overlay {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 10;
+    }
+    
+    /* 체크박스 스타일 수정 */
+    .stCheckbox {
+        position: relative;
+        margin: 0;
+        padding: 0;
+    }
+    
+    /* 체크박스 배경 스타일 */
+    .stCheckbox > label {
+        background-color: rgba(255, 255, 255, 0.8);
+        border-radius: 4px;
+        padding: 2px;
+    }
+    
+    /* 체크박스 크기 조정 */
+    .stCheckbox > label > div {
+        transform: scale(0.8);
+    }
+    
+    /* 이미지 컨테이너 여백 조정 */
+    .stImage {
+        margin-top: 0;
+        padding: 0;
     }
 </style>
 """, unsafe_allow_html=True)
