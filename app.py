@@ -147,27 +147,15 @@ analysis_options = {
     }
 }
 
-# 배치 처리를 위한 헬퍼 함수 수정
+# 배치 처리를 위한 헬퍼 함수
 def batch_images(iterable, batch_size):
     iterator = iter(iterable)
     return iter(lambda: list(islice(iterator, batch_size)), [])
 
-# 병렬 처리를 위한 분석 함수 수정
-def analyze_image_batch(images_batch, selected_category, selected_options):
-    results = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-        futures = [
-            executor.submit(analyze_single_image, img, selected_category, selected_options)
-            for img in images_batch
-        ]
-        for future in concurrent.futures.as_completed(futures):
-            try:
-                result = future.result()
-                results.append(result)
-            except Exception as e:
-                st.error(f"Error in batch analysis: {e}")
-                results.append({})
-    return results
+# 병렬 처리를 위한 분석 함수
+def analyze_image_batch(batch_data):
+    image, category, options = batch_data
+    return analyze_single_image(image, category, options)
 
 # 이미지 해시 함수 추가
 def get_image_hash(image):
@@ -558,7 +546,7 @@ def display_images_with_controls(option, value, images, category):
     cols = st.columns(5)
     selected_indices = []
     
-    # 이미지 ���기 계산
+    # 이미지 크기 계산
     image_width = 150
     new_image_width = int(image_width * 1.5)
     
