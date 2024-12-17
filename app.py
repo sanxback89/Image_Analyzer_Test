@@ -473,7 +473,7 @@ def remove_image(option, value, image_index):
         # 세션 상태 업데이트 트리거
         st.session_state.needs_rerun = True
 
-# 이미지 이동을 위한 새로운 함수
+# 이미지 ��동을 위한 새로운 함수
 def move_selected_images(from_option, from_value, to_value, selected_indices):
     """
     선택된 이미지들을 한 카테고리에서 다른 카테고리로 이동
@@ -529,9 +529,8 @@ def display_images_with_controls(option, value, images, category):
     cols = st.columns(5)
     selected_indices = []
     
-    # 이미지 크기 계산
-    image_width = 150
-    new_image_width = int(image_width * 1.5)
+    # 이미지 크기 계산 (더 작은 크기로 조정)
+    image_width = 120  # 더 작은 기본 너비
     
     # 체크박스 상태를 저장할 고유한 키 생성
     checkbox_key = f"checkbox_state_{option}_{value}"
@@ -559,17 +558,22 @@ def display_images_with_controls(option, value, images, category):
                     # 이미지 표시
                     try:
                         if isinstance(img, Image.Image):
-                            img_resized = img.resize((new_image_width, int(new_image_width * img.size[1] / img.size[0])))
-                            st.image(img_resized, use_column_width=True)
+                            # 이미지 크기 조정
+                            aspect_ratio = img.size[1] / img.size[0]
+                            new_height = int(image_width * aspect_ratio)
+                            img_resized = img.resize((image_width, new_height), Image.Resampling.LANCZOS)
+                            # use_column_width 대신 width 파라미터 사용
+                            st.image(img_resized, width=image_width)
                         else:
                             st.error(f"Invalid image format at index {idx}")
                     except Exception as e:
                         st.error(f"Error displaying image at index {idx}: {str(e)}")
                         continue
+                        
     except Exception as e:
         st.error(f"Error in display_images_with_controls: {str(e)}")
         return
-    
+        
     # 컨트롤 버튼들을 하단에 배치
     col1, col2, col3 = st.columns([4, 1, 1])
     
@@ -818,7 +822,7 @@ st.markdown("""
         border-radius: 5px;
     }
     
-    /* 이동 버튼 스��일 */
+    /* 이동 버튼 스일 */
     .stButton.move-button > button {
         background-color: #007AFF;
         color: white;
@@ -873,7 +877,7 @@ st.markdown("""
         margin-top: 0 !important;
     }
     
-    /* 컨트롤 버튼 컨테이너 스타일 */
+    /* 컨트롤 버튼 컨테이너 ��타일 */
     .control-container {
         display: flex;
         align-items: center;
