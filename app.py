@@ -536,59 +536,59 @@ def display_images_with_controls(option, value, images, category):
     # 체크박스 상태를 저장할 고유한 키 생성
     checkbox_key = f"checkbox_state_{option}_{value}"
     
-    # 체크박스 상태 초기화 또는 업데이트
-    if checkbox_key not in st.session_state or len(st.session_state[checkbox_key]) != len(images):
+    # 체크박스 상태 초기화
+    if checkbox_key not in st.session_state:
+        st.session_state[checkbox_key] = [False] * len(images)
+    elif len(st.session_state[checkbox_key]) != len(images):
         st.session_state[checkbox_key] = [False] * len(images)
     
-    for idx, img in enumerate(images):
-        with cols[idx % 5]:
-            with st.container():
-                st.markdown(
-                    """
-                    <div style="position: relative; padding: 10px 0 0 10px;">
-                        <div style="position: absolute; top: 10px; left: 10px; z-index: 1;">
-                    """,
-                    unsafe_allow_html=True
-                )
-                
-                # 체크박스 상태 관리
-                checkbox_unique_key = f"select_{option}_{value}_{idx}_{hash(str(img))}"
-                if st.checkbox("", key=checkbox_unique_key,
-                             value=st.session_state[checkbox_key][idx],
-                             label_visibility="collapsed"):
-                    selected_indices.append(idx)
-                    st.session_state[checkbox_key][idx] = True
-                else:
-                    st.session_state[checkbox_key][idx] = False
-                
-                st.markdown("</div>", unsafe_allow_html=True)
-                
-                # 이미지 표시
-                img_resized = img.resize((new_image_width, int(new_image_width * img.size[1] / img.size[0])))
-                st.image(img_resized, use_column_width=True)
+    try:
+        for idx, img in enumerate(images):
+            with cols[idx % 5]:
+                with st.container():
+                    # 체크박스 상태 관리
+                    checkbox_unique_key = f"select_{option}_{value}_{idx}"
+                    if st.checkbox("", key=checkbox_unique_key,
+                                 value=st.session_state[checkbox_key][idx],
+                                 label_visibility="collapsed"):
+                        selected_indices.append(idx)
+                        st.session_state[checkbox_key][idx] = True
+                    else:
+                        st.session_state[checkbox_key][idx] = False
+                    
+                    # 이미지 표시
+                    try:
+                        if isinstance(img, Image.Image):
+                            img_resized = img.resize((new_image_width, int(new_image_width * img.size[1] / img.size[0])))
+                            st.image(img_resized, use_column_width=True)
+                        else:
+                            st.error(f"Invalid image format at index {idx}")
+                    except Exception as e:
+                        st.error(f"Error displaying image at index {idx}: {str(e)}")
+                        continue
+    except Exception as e:
+        st.error(f"Error in display_images_with_controls: {str(e)}")
+        return
     
     # 컨트롤 버튼들을 하단에 배치
-    st.markdown("<div style='margin-top: 15px;'>", unsafe_allow_html=True)
-    
-    # Move와 Remove 컨트롤을 같은 행에 배치
     col1, col2, col3 = st.columns([4, 1, 1])
+    
     with col1:
         other_options = ["Select Category"] + [opt for opt in analysis_options[category][option] 
                                              if opt != value]
         move_to = st.selectbox(
             "Move to:",
             other_options,
-            key=f"move_to_{option}_{value}_{hash(str(images))}",  # 고유한 키 추가
+            key=f"move_to_{option}_{value}",
             label_visibility="collapsed"
         )
     
     with col2:
-        if st.button("Move", key=f"move_btn_{option}_{value}_{hash(str(images))}", use_container_width=True):
+        if st.button("Move", key=f"move_btn_{option}_{value}", use_container_width=True):
             if move_to == "Select Category":
                 st.warning("Please select a category to move to")
             elif selected_indices:
                 if move_selected_images(option, value, move_to, selected_indices):
-                    # 체크박스 상태 초기화
                     st.session_state[checkbox_key] = [False] * len(images)
                     st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
                     st.rerun()
@@ -596,18 +596,15 @@ def display_images_with_controls(option, value, images, category):
                 st.warning("Please select images to move")
     
     with col3:
-        if st.button("Remove", key=f"remove_btn_{option}_{value}_{hash(str(images))}", use_container_width=True):
+        if st.button("Remove", key=f"remove_btn_{option}_{value}", use_container_width=True):
             if selected_indices:
                 for idx in sorted(selected_indices, reverse=True):
                     remove_image(option, value, idx)
-                # 체크박스 상태 초기화
                 st.session_state[checkbox_key] = [False] * len(images)
                 st.success(f"Successfully removed {len(selected_indices)} images")
                 st.rerun()
             else:
                 st.warning("Please select images to remove")
-    
-    st.markdown("</div>", unsafe_allow_html=True)
 
 # Modified main app logic (image list part)
 def main():
@@ -821,7 +818,7 @@ st.markdown("""
         border-radius: 5px;
     }
     
-    /* 이동 버튼 스타일 */
+    /* 이동 버튼 스��일 */
     .stButton.move-button > button {
         background-color: #007AFF;
         color: white;
