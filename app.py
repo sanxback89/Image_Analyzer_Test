@@ -260,7 +260,7 @@ def is_valid_image(image):
             return len(unique_pixels) > 2  # 2개 이하의 고유한 픽셀 값은 제외
         else:  # 컬러 이미지
             unique_pixels = np.unique(img_array.reshape(-1, img_array.shape[-1]), axis=0)
-            return len(unique_pixels) > 2  # 2개 이하의 고���한 색상은 제외
+            return len(unique_pixels) > 2  # 2개 이하의 고유한 색상은 제외
             
     except Exception as e:
         print(f"Image validation error: {e}")
@@ -473,7 +473,7 @@ def remove_image(option, value, image_index):
         # 세션 상태 업데이트 트리거
         st.session_state.needs_rerun = True
 
-# 이미지 이동을 위한 새로운 함수
+# 이미지 ��동을 위한 새로운 함수
 def move_selected_images(from_option, from_value, to_value, selected_indices):
     """
     선택된 이미지들을 한 카테고리에서 다른 카테고리로 이동
@@ -562,7 +562,7 @@ def display_images_with_controls(option, value, images, category):
                             aspect_ratio = img.size[1] / img.size[0]
                             new_height = int(image_width * aspect_ratio)
                             img_resized = img.resize((image_width, new_height), Image.Resampling.LANCZOS)
-                            # use_column_width 대신 width 파라미��� 사용
+                            # use_column_width 대신 width 파라미터 사용
                             st.image(img_resized, width=image_width)
                         else:
                             st.error(f"Invalid image format at index {idx}")
@@ -722,21 +722,20 @@ def main():
                         analysis_progress.progress(progress)
                         analysis_status.text(f"Analyzing images... ({min(i + batch_size, total_images)}/{total_images})")
                     
-                    # 분석 완료 ��� progress bar와 상태 텍스트 제거
+                    # 분석 완료 후 progress bar와 상태 텍스트 제거
                     analysis_progress.empty()
                     analysis_status.empty()
                 
                 st.session_state.previous_files = uploaded_files
             
-            # 고정된 큰 수의 색상 세트 생성
-            color_sets = list(generate_unique_color_sets(20, 20))  # 항상 20개의 색상 세트 생성
+            # 색상 세트 생성 (차트용)
+            color_sets = list(generate_unique_color_sets(len(selected_options), 20))
             
             # 결과 표시
             for i, (option, results) in enumerate(st.session_state.analysis_results.items()):
                 if results:
                     st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
-                    color_set = color_sets[i % len(color_sets)]  # 순환적으로 색상 세트 사용
-                    fig = create_donut_chart(results, option, color_set)
+                    fig = create_donut_chart(results, option, color_sets[i])
                     st.plotly_chart(fig, use_container_width=True)
                     
                     with st.expander(f"{option} Details"):
@@ -878,7 +877,7 @@ st.markdown("""
         margin-top: 0 !important;
     }
     
-    /* 컨트롤 버튼 컨테���너 타일 */
+    /* 컨트롤 버튼 컨테이너 ��타일 */
     .control-container {
         display: flex;
         align-items: center;
