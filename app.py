@@ -1,900 +1,987 @@
 import streamlit as st
-import pandas as pd
-import openai
-import io
-import fitz  # PyMuPDF
+from openai import OpenAI
 import base64
-from PIL import Image, ImageOps
+from PIL import Image
+import plotly.graph_objects as go
+import io
 import json
+from collections import Counter, defaultdict
 import re
-from io import BytesIO
+import random
+import zipfile
+import pandas as pd
 import openpyxl
-from collections import Counter
+from openpyxl_image_loader import SheetImageLoader
+import cv2
+import numpy as np
 import time
+import colorsys
+import concurrent.futures
+from itertools import islice
 
-# =============================================================================
-# 2023-04-15 기능 개선 사항 (다중 분석 시스템 강화)
-# - 다중 분석 시 데이터 완전성 평가, 결과 합성, 인터페이스 개선 등이 포함됨.
-#
-# 2023-04-17 UPC 매칭 및 결과 선택 로직 개선
-# - Excel 데이터와 비교하여 UPC 일치도 평가 및 보정
-# =============================================================================
+# OpenAI API key setup (fetched from Streamlit Cloud secrets)
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# 페이지 레이아웃 설정 - 가로 넓이 확장
-st.set_page_config(
-    layout="centered",  # 배포 환경에 따라 필요시 "wide"로 변경 가능
-    page_title="YAKJIN",
-    page_icon="🔍"
-)
+# Global variables for progress bar and status message
+progress_bar = None
+status_text = None
 
-# CSS를 사용하여 컨테이너 넓이 및 테이블 스타일 조정
+# Sleeve length guide definition
+sleeve_length_guide = """
+For Sleeve Length analysis, please consider these important factors:
+
+1. Look for design intention and original garment construction:
+- Check for cuffs, hem finishing, or design details that indicate the intended sleeve length
+- Observe if there are buttons or tabs designed for rolling up sleeves
+- Look for permanent design elements like elastic bands or fixed cuffs
+
+2. Important: Distinguish between designed length vs. styled wearing:
+- If sleeves appear rolled up or pushed up, analyze the original intended length
+- Look for fabric bunching or gathering that suggests rolled-up long sleeves
+- Consider the overall garment style and category to determine original design
+
+3. Length definitions:
+- Long Sleeves: Full arm length to wrist, even if currently rolled up
+- Three-Quarter Sleeves: Designed to end between elbow and wrist
+- Short Sleeves: Designed to end at or above elbow
+- Cap Sleeves: Very short, just covering shoulder
+- Sleeveless: No sleeve coverage
+
+4. Key indicators of rolled-up long sleeves:
+- Visible fabric bunching or folding
+- Uneven or casual sleeve ending
+- Presence of cuffs or buttons above current sleeve end
+- Wrinkles or creases indicating temporary folding
+
+Please analyze the ORIGINAL designed sleeve length, not how it's currently styled or worn.
+"""
+
+# Mixed Media guide definition
+mixed_media_guide = """
+Analyze the garment to identify any mixed media characteristics, focusing strictly on the use of distinct materials and textures. Follow these guidelines to ensure accurate classification:
+
+1. Distinct Textures and Materials: Identify garments that use two or more different textures or materials within the same piece. Look for fabric variations between sections, such as smooth material on the body with contrasting knit, lace, mesh, or textured fabric on the sleeves. Mixed media garments typically showcase an intentional contrast in fabric types.
+2. Clear Physical Differences: Observe the garment for obvious physical differences in thickness or texture between different parts. This could include combinations such as cotton paired with wool, knit mixed with woven fabric, or mesh alongside velvet. The presence of varied textures signals a mixed media approach.
+3. Exclude Color Variations Alone: Do not classify the garment as mixed media if the sections differ only in color without a change in texture or material. Mixed media requires a physical contrast in fabric or material, not just color blocking or decorative stitching.
+4. Layered or Separate Materials: Recognize cases where multiple materials are layered or independently used in distinct garment sections, like a body of one fabric type and sleeves of another. This deliberate use of contrasting materials qualifies as mixed media.
+5. Exclude Designs with Single Fabric: If the garment uses one consistent material with no layered or contrasting segments, do not classify it as mixed media, even if the appearance changes due to design or draping.
+Key Reminder: Classify as mixed media only if there are differences in material or texture. Do not include garments that have variations only in color or decorative elements without a true change in fabric type or physical texture. Color blocking, contrast binding, or differently colored sections of the same fabric do not meet the criteria for mixed media
+"""
+
+# 허용된 사용자 딕셔너리 (이메일: 비밀번호)
+ALLOWED_USERS = {
+    "doosan.back@yakjin.com": "Yakjin135#",
+    "jenna.lee@yakjin.com": "Yakjin135#",
+    "cielito@yakjin.com": "Yakjin135#",
+    "jesssieyun@yakjin.com": "Yakjin135#",
+    "jake@yakjin.com": "Yakjin135#",
+    "zoe.choi@yakjin.com": "Yakjin135#",
+    "silvia@yakjin.com": "Yakjin135#",
+    "jiwoo.shin@yakjin.com": "Yakjin135#",
+    "elena.lee@yakjin.com": "Yakjin135#",
+    "eunh.choi@yakjin.com": "Yakjin135#"
+}
+
+# User authentication and usage tracking
+def authenticate_user():
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+    
+    if not st.session_state.authenticated:
+        email = st.text_input("Enter your email address")
+        password = st.text_input("Enter your password", type="password")
+        if st.button("Authentication"):
+            if email in ALLOWED_USERS and ALLOWED_USERS[email] == password:
+                st.session_state.authenticated = True
+                st.session_state.email = email
+                st.success("Authentication succeeded.")
+                return True
+            else:
+                st.error("This is an unverified email address or incorrect password. Access denied.")
+                return False
+    return st.session_state.authenticated
+
+# Analysis options definition (modified)
+analysis_options = {
+    "Top": {
+        "Fit": ["Slim Fit", "Loose Fit", "Oversized"],
+        "Neckline": ["Crew Neck", "V-Neck", "Square Neck", "Scoop Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
+        "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Half Sleeves", "Puff Sleeves"],
+        "Sleeves Construction": ["Set-In", "Raglan", "Dolman", "Drop Shoulder", "Unspecified"],
+        "Length": ["Crop", "Regular", "Long"],
+        "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
+        "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
+        "Material": ["Cotton", "Polyester", "Silk", "Wool", "Linen"],
+        "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading", "Appliqué",
+                   "Shirring", "Wrap", "Twist", "Knot", "mixed_media", "Seam detail", "Cut out", "Seamless", "Contrast Binding"]
+    },
+    "Bottom": {
+        "Fit": ["Slim Fit", "Regular Fit", "Loose Fit", "Skinny", "Straight", "Bootcut", "Flare", "Wide Leg"],
+        "Length": ["Short", "Knee Length", "Ankle Length", "Full Length"],
+        "Rise": ["Low Rise", "Mid Rise", "High Rise"],
+        "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
+        "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
+        "Material": ["Denim", "Cotton", "Polyester", "Wool", "Leather"],
+        "Details": ["Distressed", "Ripped", "Embroidery", "Pockets", "Belt Loops", "Pleats"]
+    },
+    "Dress": {
+        "Fit": ["Bodycon", "A-Line", "Fit&Flare", "Shift", "Sheath", "Empire Waist"],
+        "Neckline": ["Crew Neck", "V-Neck", "Square Neck", "Scoop Neck", "Henley Neck", "Turtleneck", "Cowl Neck", "Boat Neck", "Halter Neck", "Off-Shoulder", "Sweetheart", "Polo Collar", "Shirt Collar"],
+        "Sleeves": ["Short Sleeves", "Long Sleeves", "Three-Quarter Sleeves", "Cap Sleeves", "Sleeveless", "Half Sleeves", "Puff Sleeves"],
+        "Sleeves Construction": ["Set-In", "Raglan", "Dolman", "Drop Shoulder", "Unspecified"],
+        "Length": ["Mini", "Midi", "Maxi", "Above Knee", "Knee Length", "Below Knee"],
+        "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
+        "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"],
+        "Material": ["Cotton", "Silk", "Polyester", "Chiffon", "Lace"],
+        "Details": ["Ruffles", "Pleats", "Embroidery", "Sequins", "Beading",  
+                   "Shirring", "Wrap", "Twist", "Knot", "mixed_media", "Seam detail", "Cut out", "Seamless", "Contrast Binding"]
+    },
+    "Outerwear": {
+        "Type": ["Jacket", "Coat", "Blazer", "Cardigan", "Vest"],
+        "Fit": ["Slim Fit", "Regular Fit", "Oversized"],
+        "Length": ["Cropped", "Hip Length", "Knee Length", "Long"],
+        "Color": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White", "Gray", "Multicolor"],
+        "Material": ["Leather", "Denim", "Wool", "Cotton", "Polyester"],
+        "Details": ["Pockets", "Buttons", "Zippers", "Hood", "Fur Trim", "Quilted"],
+        "Pattern": ["Floral", "Animal print", "Tropical", "Camouflage", "Geometric Print", "Abstract Print", "Heart/Dot/Star", "Bandana/Paisley", "Conversational Print", "Logo", "Lettering", "Dyeing Effect", "Ethnic/Tribal", "Stripes", "Plaid/Checks", "Christmas", "Shine", "Unspecified"]
+    }
+}
+
+# 배치 처리를 위한 헬퍼 함수
+def batch_images(iterable, batch_size):
+    iterator = iter(iterable)
+    return iter(lambda: list(islice(iterator, batch_size)), [])
+
+# 병렬 처리를 위한 분석 함수
+def analyze_image_batch(batch_data):
+    image, category, options = batch_data
+    return analyze_single_image(image, category, options)
+
+# 이미지 해시 함수 추가
+def get_image_hash(image):
+    if isinstance(image, Image.Image):
+        # PIL 이미지를 numpy 배열로 변환
+        img_array = np.array(image)
+    else:
+        # 이미 numpy 배열인 경우
+        img_array = image
+    
+    # 이미지를 32x32로 리이즈하고 평균 해시 계산
+    resized = cv2.resize(img_array, (32, 32))
+    gray = cv2.cvtColor(resized, cv2.COLOR_RGB2GRAY)
+    avg = gray.mean()
+    hash_str = ''.join(['1' if pixel > avg else '0' for pixel in gray.flatten()])
+    return hash_str
+
+# 수정된 분석 함수
+@st.cache_data(ttl=24*3600, show_spinner=False, hash_funcs={Image.Image: get_image_hash})
+def analyze_single_image(image, category, options):
+    base64_image = encode_image(image)
+    
+    prompt = f"Analyze the {category} clothing item in the image and provide information on the following aspects:\n\n"
+    
+    for option in options:
+        if option == "Sleeves":
+            prompt += f"\n{sleeve_length_guide}\n"
+        elif option == "Details" and "mixed_media" in analysis_options[category]["Details"]:
+            prompt += f"\n{mixed_media_guide}\n"
+        
+        if option == "Details":
+            prompt += f"{option}: Select ALL that apply from [{', '.join(analysis_options[category][option])}]\n"
+        else:
+            prompt += f"{option}: Select ONE from [{', '.join(analysis_options[category][option])}]\n"
+    
+    prompt += "\nProvide the result as a JSON object with the selected aspects as keys and the detected options as values. For 'Details', provide an array of all applicable options. For other aspects, provide a single value."
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                    ]
+                }
+            ],
+            max_tokens=300,
+            temperature=0.0,
+            seed=42
+        )
+        
+        result = response.choices[0].message.content.strip()
+        processed_result = preprocess_response(result)
+        
+        try:
+            return json.loads(processed_result)
+        except json.JSONDecodeError:
+            st.error(f"JSON Parsing Error: {processed_result}")
+            return {}
+            
+    except Exception as e:
+        st.error(f"Error During Image Analysis: {e}")
+        return {}
+
+# Image encoding function
+def encode_image(image):
+    if isinstance(image, Image.Image):
+        # If it's a PIL Image object
+        buffered = io.BytesIO()
+        image.save(buffered, format="PNG")
+        return base64.b64encode(buffered.getvalue()).decode('utf-8')
+    elif hasattr(image, 'getvalue'):
+        # If it's a BytesIO or file object
+        return base64.b64encode(image.getvalue()).decode('utf-8')
+    else:
+        raise ValueError("Unsupported Image Type")
+
+# Response preprocessing function
+def preprocess_response(response):
+    json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
+    if json_match:
+        return json_match.group(1)
+    return response
+
+# Function to extract images from Excel
+def is_valid_image(image):
+    """
+    이미지가 유효한지 검사하는 함수
+    """
+    try:
+        # 이미지 크기가 너무 작은 경우 제외
+        if image.size[0] < 10 or image.size[1] < 10:
+            return False
+            
+        # 이미지가 단색인지 확인
+        img_array = np.array(image)
+        if len(img_array.shape) < 3:  # 흑백 이미지
+            unique_pixels = np.unique(img_array)
+            return len(unique_pixels) > 2  # 2개 이하의 고유한 픽셀 값은 제외
+        else:  # 컬러 이미지
+            unique_pixels = np.unique(img_array.reshape(-1, img_array.shape[-1]), axis=0)
+            return len(unique_pixels) > 2  # 2개 이하의 고���한 색상은 제외
+            
+    except Exception as e:
+        print(f"Image validation error: {e}")
+        return False
+
+def extract_images_from_excel(uploaded_file):
+    wb = openpyxl.load_workbook(io.BytesIO(uploaded_file.getvalue()))
+    sheet = wb.active
+    image_loader = SheetImageLoader(sheet)
+    
+    images = []
+    for row in sheet.iter_rows():
+        for cell in row:
+            try:
+                if image_loader.image_in(cell.coordinate):
+                    image = image_loader.get(cell.coordinate)
+                    # 이미지 유효성 검사 추가
+                    if is_valid_image(image):
+                        images.append(image)
+            except Exception as e:
+                if "I/O operation on closed file" not in str(e):
+                    st.warning(f"Error Extracting Image from Cell {cell.coordinate}: {str(e)}")
+                continue
+    
+    # 첫 번째 이미지 제외 (보통 헤더나 장식용 이미지)
+    return images[1:] if images else []
+
+# ZIP file processing function
+def process_zip_file(uploaded_file):
+    with zipfile.ZipFile(io.BytesIO(uploaded_file.getvalue()), 'r') as zip_ref:
+        for file_name in zip_ref.namelist():
+            if file_name.lower().endswith(('.png', '.jpg', '.jpeg')):
+                with zip_ref.open(file_name) as file:
+                    yield file_name, file.read()
+
+# Image processing
+def process_images(images):
+    processed_images = []
+    total_images = len(images)
+    
+    # Create progress indicators
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    status_text.text("Processing images...")
+    
+    for i, img in enumerate(images):
+        processed_img = enhance_image(img)
+        processed_images.append(processed_img)
+        
+        # Update progress
+        progress = (i + 1) / total_images
+        progress_bar.progress(progress)
+        status_text.text(f"Processing images... ({i+1}/{total_images})")
+    
+    status_text.text("Image processing complete!")
+    time.sleep(1)
+    progress_bar.empty()
+    status_text.empty()
+    
+    return processed_images
+
+# Image enhancement function
+def enhance_image(image, scale_factor=1):
+    # PIL 이미지를 OpenCV 형식으로 변환
+    cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    
+    # 1. 이미지 크기를 더 작게 조정 (속도 개선)
+    target_size = 400  # 최대 크기를 400px로 제한
+    height, width = cv_image.shape[:2]
+    
+    if max(height, width) > target_size:
+        scale = target_size / max(height, width)
+        new_width = int(width * scale)
+        new_height = int(height * scale)
+        cv_image = cv2.resize(cv_image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    
+    # 2. 노이즈 제거 단순화 (속도 개선)
+    denoised = cv2.fastNlMeansDenoisingColored(cv_image, None, 5, 5, 3, 9)
+    
+    return Image.fromarray(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
+
+# 고유한 색상 세트를 생성하는 함수
+def generate_unique_color_sets(num_sets, colors_per_set):
+    all_colors = []
+    for _ in range(num_sets):
+        set_colors = []
+        for _ in range(colors_per_set):
+            while True:
+                hue = random.random()
+                saturation = 0.5 + random.random() * 0.5
+                lightness = 0.4 + random.random() * 0.2
+                rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
+                hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
+                if hex_color not in all_colors:
+                    set_colors.append(hex_color)
+                    all_colors.append(hex_color)
+                    break
+        yield set_colors
+
+# 수정된 create_donut_chart 함수
+def create_donut_chart(data, title, color_set):
+    labels = list(data.keys())
+    values = list(data.values())
+    
+    if title.lower() == 'color':
+        colors = [get_color(label) for label in labels]
+        colors = ['#F0F0F0' if color == '#FFFFFF' else color for color in colors]
+    else:
+        colors = color_set[:len(labels)]
+    
+    def get_text_color(background_color):
+        r, g, b = int(background_color[1:3], 16), int(background_color[3:5], 16), int(background_color[5:7], 16)
+        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        return '#000000' if luminance > 0.5 else '#FFFFFF'
+    
+    text_colors = [get_text_color(color) for color in colors]
+    
+    fig = go.Figure(data=[go.Pie(
+        labels=labels,
+        values=values,
+        hole=.3,
+        marker_colors=colors,
+        textinfo='percent',
+        textfont=dict(size=14, color=text_colors),
+        hoverinfo='label+percent+text',
+        text=[f'Count: {v}' for v in values],
+        hovertemplate='%{label}<br>%{percent}<br>%{text}<extra></extra>'
+    )])
+    
+    # 이아웃 설정 (이전과 동일)
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=-0.3,
+            xanchor='center',
+            x=0.5,
+            font=dict(size=15),
+            itemsizing='constant',
+            itemwidth=30
+        ),
+        width=500,
+        height=450,
+        margin=dict(t=70, b=90, l=20, r=20),
+        annotations=[
+            dict(
+                text=f'<b>{title}</b>',
+                x=0.5,
+                y=1.2,
+                xref='paper',
+                yref='paper',
+                showarrow=False,
+                font=dict(size=32, color='black'),
+                align='center'
+            )
+        ]
+    )
+    
+    return fig
+
+# Modified color mapping function
+def get_color(label):
+    color_map = {
+        'Red': '#FF0000', 'Blue': '#0000FF', 'Green': '#00FF00',
+        'Yellow': '#FFFF00', 'Purple': '#800080', 'Orange': '#FFA500',
+        'Pink': '#FFC0CB', 'Brown': '#A52A2A', 'Black': '#000000',
+        'White': '#FFFFFF', 'Gray': '#808080', 'Multicolor': '#FFFFFF'
+    }
+    return color_map.get(label, '#000000')
+
+# Color generation function
+def generate_colors(n):
+    colors = []
+    for _ in range(n):
+        hue = random.random()
+        saturation = 0.5 + random.random() * 0.5
+        lightness = 0.4 + random.random() * 0.2
+        rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
+        hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
+        colors.append(hex_color)
+    return colors
+
+# 세션 상태에 분석 결과 저장을 위한 초기화 함수 추가
+def initialize_session_state():
+    if 'analysis_results' not in st.session_state:
+        st.session_state.analysis_results = {}
+    if 'image_categories' not in st.session_state:
+        st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
+    if 'needs_rerun' not in st.session_state:
+        st.session_state.needs_rerun = False
+
+# 이미지 삭제 함수 추가
+def remove_image(option, value, image_index):
+    """
+    특정 카테고리서 이미지를 삭제 트 데이터 업데이트
+    """
+    if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
+        # 이미지 리스트에서 제거
+        st.session_state.image_categories[option][value].pop(image_index)
+        
+        # 카운터 업데이트
+        if option == "Details":
+            st.session_state.analysis_results[option][value] -= 1
+            if st.session_state.analysis_results[option][value] == 0:
+                del st.session_state.analysis_results[option][value]
+        else:
+            st.session_state.analysis_results[option][value] -= 1
+        
+        # 세션 상태 업데이트 트리거
+        st.session_state.needs_rerun = True
+
+# 이미지 이동을 위한 새로운 함수
+def move_selected_images(from_option, from_value, to_value, selected_indices):
+    """
+    선택된 이미지들을 한 카테고리에서 다른 카테고리로 이동
+    """
+    if not selected_indices:
+        return False
+    
+    # 인덱스를 내림차순으로 정렬 (높은 인덱스부터 제거)
+    selected_indices.sort(reverse=True)
+    
+    moved_images = []
+    for idx in selected_indices:
+        if (from_option in st.session_state.image_categories and 
+            from_value in st.session_state.image_categories[from_option] and
+            idx < len(st.session_state.image_categories[from_option][from_value])):
+            
+            # 이미지 가져오기
+            image = st.session_state.image_categories[from_option][from_value][idx]
+            moved_images.append(image)
+            
+            # 원래 카테고리에서 이미지 제거
+            st.session_state.image_categories[from_option][from_value].pop(idx)
+            st.session_state.analysis_results[from_option][from_value] -= 1
+            
+            # 카운트가 0이 되면 카테고리 제거
+            if st.session_state.analysis_results[from_option][from_value] == 0:
+                del st.session_state.analysis_results[from_option][from_value]
+                del st.session_state.image_categories[from_option][from_value]
+    
+    # 새 카테고리에 이미지들 추가
+    if moved_images:
+        st.session_state.image_categories[from_option][to_value].extend(moved_images)
+        st.session_state.analysis_results[from_option][to_value] = (
+            st.session_state.analysis_results[from_option].get(to_value, 0) + len(moved_images)
+        )
+        st.session_state.needs_rerun = True
+        return True
+    
+    return False
+
+# main 함수 내의 결과 표시 부분 정
+def display_images_with_controls(option, value, images, category):
+    """
+    체크박스와 이동 컨트롤이 있는 이미지 그리드 표시
+    """
+    st.markdown(f"""
+        <div style="margin-bottom: 5px;">
+            <strong>{value}</strong> (Count: {len(images)})
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # 이미지 그리드 생성
+    cols = st.columns(5)
+    selected_indices = []
+    
+    # 이미지 크기 계산 (더 작은 크기로 조정)
+    image_width = 120  # 더 작은 기본 너비
+    
+    # 체크박스 상태를 저장할 고유한 키 생성
+    checkbox_key = f"checkbox_state_{option}_{value}"
+    
+    # 체크박스 상태 초기화
+    if checkbox_key not in st.session_state:
+        st.session_state[checkbox_key] = [False] * len(images)
+    elif len(st.session_state[checkbox_key]) != len(images):
+        st.session_state[checkbox_key] = [False] * len(images)
+    
+    try:
+        for idx, img in enumerate(images):
+            with cols[idx % 5]:
+                with st.container():
+                    # 체크박스 상태 관리
+                    checkbox_unique_key = f"select_{option}_{value}_{idx}"
+                    if st.checkbox("", key=checkbox_unique_key,
+                                 value=st.session_state[checkbox_key][idx],
+                                 label_visibility="collapsed"):
+                        selected_indices.append(idx)
+                        st.session_state[checkbox_key][idx] = True
+                    else:
+                        st.session_state[checkbox_key][idx] = False
+                    
+                    # 이미지 표시
+                    try:
+                        if isinstance(img, Image.Image):
+                            # 이미지 크기 조정
+                            aspect_ratio = img.size[1] / img.size[0]
+                            new_height = int(image_width * aspect_ratio)
+                            img_resized = img.resize((image_width, new_height), Image.Resampling.LANCZOS)
+                            # use_column_width 대신 width 파라미��� 사용
+                            st.image(img_resized, width=image_width)
+                        else:
+                            st.error(f"Invalid image format at index {idx}")
+                    except Exception as e:
+                        st.error(f"Error displaying image at index {idx}: {str(e)}")
+                        continue
+                        
+    except Exception as e:
+        st.error(f"Error in display_images_with_controls: {str(e)}")
+        return
+        
+    # 컨트롤 버튼들을 하단에 배치
+    col1, col2, col3 = st.columns([4, 1, 1])
+    
+    with col1:
+        other_options = ["Select Category"] + [opt for opt in analysis_options[category][option] 
+                                             if opt != value]
+        move_to = st.selectbox(
+            "Move to:",
+            other_options,
+            key=f"move_to_{option}_{value}",
+            label_visibility="collapsed"
+        )
+    
+    with col2:
+        if st.button("Move", key=f"move_btn_{option}_{value}", use_container_width=True):
+            if move_to == "Select Category":
+                st.warning("Please select a category to move to")
+            elif selected_indices:
+                if move_selected_images(option, value, move_to, selected_indices):
+                    st.session_state[checkbox_key] = [False] * len(images)
+                    st.success(f"Successfully moved {len(selected_indices)} images to {move_to}")
+                    st.rerun()
+            else:
+                st.warning("Please select images to move")
+    
+    with col3:
+        if st.button("Remove", key=f"remove_btn_{option}_{value}", use_container_width=True):
+            if selected_indices:
+                for idx in sorted(selected_indices, reverse=True):
+                    remove_image(option, value, idx)
+                st.session_state[checkbox_key] = [False] * len(images)
+                st.success(f"Successfully removed {len(selected_indices)} images")
+                st.rerun()
+            else:
+                st.warning("Please select images to remove")
+
+# Modified main app logic (image list part)
+def main():
+    initialize_session_state()
+    
+    st.set_page_config(layout="centered")
+    
+    st.markdown("""
+    <style>
+    .emoji-title { 
+        font-size: 2.4em; 
+        text-align: center;
+    }
+    .emoji { font-size: 0.8em; }
+    .results-container { display: flex; flex-wrap: wrap; justify-content: space-between; }
+    .chart-container { width: 48%; margin-bottom: 20px; }
+    .fullwidth { width: 100vw; position: relative; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("<h1 class='emoji-title'>Yakjin Fashion Image Analyzer</h1>", unsafe_allow_html=True)
+    
+    if authenticate_user():
+        st.markdown("<h3><span class='emoji'>👚</span> Step 1: Select Clothing Category</h3>", unsafe_allow_html=True)
+        selected_category = st.selectbox(
+            "Choose a Clothing Category",
+            options=list(analysis_options.keys())
+        )
+        
+        st.markdown("<h3><span class='emoji'>🔍</span> Step 2: Select Analysis Items</h3>", unsafe_allow_html=True)
+        selected_options = st.multiselect(
+            label="Choose Analysis Items",
+            options=list(analysis_options[selected_category].keys()),
+            key="analysis_options"
+        )
+        
+        st.markdown("<h3><span class='emoji'>📁</span> Step 3: Upload and Analyze</h3>", unsafe_allow_html=True)
+        uploaded_files = st.file_uploader("Choose File(s)", 
+                                        type=["xlsx", "xls", "png", "jpg", "jpeg", "zip"], 
+                                        accept_multiple_files=True)
+        
+        if uploaded_files and selected_options:
+            if 'previous_files' not in st.session_state or st.session_state.previous_files != uploaded_files:
+                images = []
+                
+                # 파일 업로드 진행률 표시
+                upload_progress = st.progress(0)
+                upload_status = st.empty()
+                upload_status.text("Uploading files...")
+                
+                # 병렬 처리를 위한 ThreadPoolExecutor 설정
+                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                    total_files = len(uploaded_files)
+                    futures = []
+                    
+                    for i, uploaded_file in enumerate(uploaded_files):
+                        if uploaded_file.name.lower().endswith(('.xlsx', '.xls')):
+                            images.extend(extract_images_from_excel(uploaded_file))
+                        elif uploaded_file.name.lower().endswith('.zip'):
+                            for file_name, file_content in process_zip_file(uploaded_file):
+                                img = Image.open(io.BytesIO(file_content))
+                                images.append(img)
+                        else:
+                            img = Image.open(uploaded_file)
+                            images.append(img)
+                        
+                        upload_progress.progress((i + 1) / total_files)
+                        upload_status.text(f"Uploading files... ({i+1}/{total_files})")
+                    
+                    # 업로드 완료 후 progress bar와 상태 텍스트 제거
+                    upload_progress.empty()
+                    upload_status.empty()
+                    
+                    # 이미지 전처리 병렬 처리
+                    processed_images = list(executor.map(enhance_image, images))
+                    
+                    # 분석 결과 초기화
+                    st.session_state.analysis_results = defaultdict(lambda: defaultdict(int))
+                    st.session_state.image_categories = defaultdict(lambda: defaultdict(list))
+                    
+                    # 이미지 분석 진행률
+                    analysis_progress = st.progress(0)
+                    analysis_status = st.empty()
+                    analysis_status.text("Analyzing images...")
+                    
+                    # 배치 처리로 이미지 분석
+                    total_images = len(processed_images)
+                    batch_size = 10
+                    for i in range(0, total_images, batch_size):
+                        batch = processed_images[i:i + batch_size]
+                        batch_data = [(img, selected_category, selected_options) for img in batch]
+                        
+                        # 배치 분석 실행
+                        batch_results = list(executor.map(lambda x: analyze_single_image(*x), batch_data))
+                        
+                        # 결과 처리
+                        for j, results in enumerate(batch_results):
+                            img_index = i + j
+                            if img_index < total_images:
+                                for option, value in results.items():
+                                    if isinstance(value, list):
+                                        for v in value:
+                                            st.session_state.analysis_results[option][v] += 1
+                                            st.session_state.image_categories[option][v].append(processed_images[img_index])
+                                    else:
+                                        st.session_state.analysis_results[option][value] += 1
+                                        st.session_state.image_categories[option][value].append(processed_images[img_index])
+                        
+                        # 진행률 업데이트
+                        progress = min((i + batch_size) / total_images, 1.0)
+                        analysis_progress.progress(progress)
+                        analysis_status.text(f"Analyzing images... ({min(i + batch_size, total_images)}/{total_images})")
+                    
+                    # 분석 완료 ��� progress bar와 상태 텍스트 제거
+                    analysis_progress.empty()
+                    analysis_status.empty()
+                
+                st.session_state.previous_files = uploaded_files
+            
+            # 고정된 큰 수의 색상 세트 생성
+            color_sets = list(generate_unique_color_sets(20, 20))  # 항상 20개의 색상 세트 생성
+            
+            # 결과 표시
+            for i, (option, results) in enumerate(st.session_state.analysis_results.items()):
+                if results:
+                    st.markdown(f"<div class='chart-container'>", unsafe_allow_html=True)
+                    color_set = color_sets[i % len(color_sets)]  # 순환적으로 색상 세트 사용
+                    fig = create_donut_chart(results, option, color_set)
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    with st.expander(f"{option} Details"):
+                        for value, count in results.items():
+                            if option in st.session_state.image_categories and value in st.session_state.image_categories[option]:
+                                display_images_with_controls(option, value, st.session_state.image_categories[option][value], selected_category)
+                            else:
+                                st.write("No Matching Images Found.")
+                            st.write("---")
+            
+            # 페이지 리로드가 필요한 경우에만 rerun
+            if st.session_state.needs_rerun:
+                st.session_state.needs_rerun = False
+                st.rerun()
+    else:
+        st.info("로그인이 필요합니다. 위의 인증 정보를 입력해주세요.")
+
+if __name__ == "__main__":
+    main()
+
+# CSS for Streamlit theme settings
 st.markdown("""
 <style>
-    .reportview-container .main .block-container {
-        max-width: 800px;
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-        padding-left: 10rem;
-        padding-right: 10rem;
+    .stMultiSelect [data-baseweb="tag"] {
+        background-color: #007AFF !important;
     }
-    .stDataFrame, .dataframe, .stTable, div[data-testid="stHorizontalBlock"] {
+    .stMultiSelect [data-baseweb="tag"] span {
+        color: white !important;
+    }
+    .stProgress .st-bo {
+        background-color: #4CD964;
+    }
+    .stProgress .st-bp {
+        background-color: #E5E5EA;
+    }
+    .stSelectbox label, .stMultiSelect label, .stFileUploader label {
+        font-size: 16px !important;
+        color: rgba(49, 51, 63, 0.6) !important;
+    }
+    .stExpander {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .stExpander > div:first-child {
+        border-radius: 0 !important;
+        background-color: transparent !important;
+    }
+    .stExpander > div:first-child > div:first-child > p {
+        font-size: 25px !important;
+        font-weight: bold;
+    }
+    .stButton > button {
         width: 100%;
+        text-align: left;
+        padding: 0.5rem;
+        background-color: #f0f2f6;
+        border: none;
+        border-radius: 0.3rem;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
     }
-    .stDataFrame > div {
-        overflow-x: auto !important;
+    .stButton > button:hover {
+        background-color: #e0e2e6;
     }
-    .dataframe td, .dataframe th {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 350px;
+    /* 체크박스 스타일 */
+    .stCheckbox {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        z-index: 1;
     }
-    [data-testid="stDataFrame"] > div {
-        width: 100% !important;
-        max-width: 100% !important;
+    
+    /* 이지 컨테이너 스타일 */
+    .image-container {
+        position: relative;
+        margin-bottom: 10px;
+    }
+    
+    /* 이동 컨트롤 스타일 */
+    .move-controls {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    /* 이동 버튼 스일 */
+    .stButton.move-button > button {
+        background-color: #007AFF;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        width: auto;
+    }
+    
+    /* 체크박스와 삭제 버튼 컨테이너 */
+    .stButton > button {
+        padding: 0px 8px;
+        height: 24px;
+        line-height: 24px;
+        font-size: 14px;
+        border-radius: 4px;
+        margin: 0;
+    }
+    
+    /* 삭제 버튼 스타일 */
+    .delete-button {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(255, 255, 255, 0.8);
+        border: none;
+        border-radius: 3px;
+        padding: 2px 6px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    
+    /* 이미지 컨테이너 스타일 */
+    .image-container {
+        position: relative;
+        margin-bottom: 10px;
+    }
+    
+    /* Move 컨트롤 정렬 */
+    .move-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    /* 선택스와 버튼 정렬 */
+    .stSelectbox {
+        margin-bottom: 0 !important;
+    }
+    
+    .stButton.move-button {
+        margin-top: 0 !important;
+    }
+    
+    /* 컨트롤 버튼 컨테���너 타일 */
+    .control-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+    
+    /* 선택박스와 버튼 정렬 */
+    .stSelectbox {
+        margin-bottom: 0 !important;
+    }
+    
+    /* 버튼 스타일 통일 */
+    .stButton > button {
+        height: 38px;
+        margin-top: 0 !important;
+        border-radius: 4px;
+    }
+    
+    /* Move 버튼 스타일 */
+    [data-testid="stButton"] button:first-child {
+        background-color: #007AFF;
+        color: white;
+    }
+    
+    /* Remove 버튼 스타일 */
+    [data-testid="stButton"] button:last-child {
+        background-color: #FF3B30;
+        color: white;
+    }
+    
+    /* 체크박스 스타일 */
+    .stCheckbox {
+        margin-bottom: 5px;
+    }
+    
+    /* 이미지 컨테이너 스타일 */
+    .stImage {
+        margin-top: 5px;
+    }
+    
+    /* Move와 Remove 버튼 스타일을 특정 클래스나 ID로 제한 */
+    [data-testid="stButton"] button[key*="move_btn"] {
+        background-color: #007AFF;
+        color: white;
+    }
+    
+    [data-testid="stButton"] button[key*="remove_btn"] {
+        background-color: #FF3B30;
+        color: white;
+    }
+    
+    /* Authentication 버튼 스타일 복원 */
+    [data-testid="stButton"] button:not([key*="move_btn"]):not([key*="remove_btn"]) {
+        background-color: #ffffff;
+        color: #000000;
+    }
+
+    /* View fullscreen 버튼 숨기기 */
+    button[title="View fullscreen"] {
+        display: none !important;
+    }
+    
+    /* 체크박스 테이너 스타일 */
+    .stCheckbox {
+        margin: 0;
+        padding: 0;
+    }
+    
+    /* 버튼 스타일 통일 */
+    .stButton > button {
+        height: 38px;
+        margin-top: 0 !important;
+        border-radius: 4px;
+        background-color: #f0f2f6 !important;
+        color: #000000 !important;
+    }
+    
+    /* 카테고리 제목과 컨텐츠 사이 간격 조정 */
+    .element-container {
+        margin-bottom: 0 !important;
+    }
+    
+    /* View fullscreen 버튼 숨기기 */
+    button[title="View fullscreen"] {
+        display: none !important;
+    }
+    
+    /* 이미지 컨테이너 패딩 */
+    .stImage {
+        padding: 5px;
+    }
+
+    /* 새로 추가: 마진 관련 스타일 */
+    .stMarkdown {
+        margin-bottom: 0 !important;
+    }
+    
+    .row-widget {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# =============================================================================
-# OpenAI API 키 설정 (수정됨)
-# 기존에 하드코딩된 API 키 대신 st.secrets를 사용하여 보안을 강화함.
-try:
-    openai.api_key = st.secrets["OPENAI_API_KEY"]
-except KeyError:
-    st.error("OpenAI API 키가 설정되지 않았습니다. Streamlit Cloud의 st.secrets에 API 키를 추가하세요.")
-
-# =============================================================================
-# 사이드바 네비게이션
-st.sidebar.title("분석 유형 선택")
-analysis_type = st.sidebar.radio(
-    "분석 유형을 선택하세요:",
-    ["Label Analysis", "Size Strip Analysis"]
-)
-
-# =============================================================================
-# 사이즈 정렬용 딕셔너리
-size_order_dict = {
-    "XS": 0, "S": 1, "M": 2, "L": 3, "XL": 4, "XXL": 5, "XXXL": 6,
-    "XST": 10, "ST": 11, "MT": 12, "LT": 13, "XLT": 14, "XXLT": 15, "3XLT": 16,
-    "2XB": 20, "3XB": 21, "4XB": 22, "5XB": 23
-}
-
-# =============================================================================
-# PDF 관련 함수
-def is_text_pdf(pdf_bytes):
-    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-    for page in doc:
-        if page.get_text().strip():
-            return True
-    return False
-
-def extract_text_from_pdf(pdf_bytes):
-    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-    texts = [page.get_text() for page in doc]
-    doc.close()
-    return "\n".join(texts)
-
-def convert_pdf_to_images(pdf_bytes, dpi=300):
-    images = []
-    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-    for page in doc:
-        pix = page.get_pixmap(matrix=fitz.Matrix(dpi/72, dpi/72))
-        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-        img = ImageOps.grayscale(img)
-        img = ImageOps.autocontrast(img)
-        img = img.convert("RGB")
-        buf = io.BytesIO()
-        img.save(buf, format='PNG')
-        img_base64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-        images.append(img_base64)
-    doc.close()
-    return images
-
-# =============================================================================
-# GPT 텍스트 분석 함수 (라벨 포맷 / 사이즈 스트립 포맷)
-def analyze_label_text_with_gpt(text):
-    prompt = f"""
-이 텍스트는 의류 라벨 PDF에서 추출된 전체 텍스트입니다.
-다음 정보를 표로 추출해주세요:
-- Style Number | Size | Color | UPC (12-digit)
-- 사이즈는 XS-S-M-L-XL-XXL 순으로 정렬
-- 값은 모두 대문자로 표시
-
-중요 정보:
-1) 스타일 넘버는 'WS' 또는 'MS'로 시작 (예: WS5FK004RS3, WS5FK004RH2). 단, RPI7은 내부 코드입니다.
-2) UPC 코드는 반드시 12자리이며, 항상 400으로 시작합니다. (4000이면 400으로, 11자리이면 앞에 4 추가, 8자리이면 앞에 400 붙이고 뒤에 00 추가)
-3) 사이즈에 P 또는 PETITE가 붙어있다면 P 제거.
-추가 정보: Fabric, Care Content, Factory Code (5~6자리, 보통 날짜 근처)
-텍스트:
-{text}
-결과는 아래 표 형식:
-Style Number | Size | Color | UPC Code
-그리고 추가 정보를 표 아래에 표시
-"""
-    response = openai.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "당신은 PDF 라벨 정보를 표로 정리하는 전문가입니다. UPC 코드는 반드시 400으로 시작해야 합니다."},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    return response.choices[0].message.content
-
-def analyze_size_strip_text_with_gpt(text):
-    prompt = f"""
-이 텍스트는 의류 사이즈 스트립 PDF에서 추출된 전체 텍스트입니다.
-다음 정보를 표로 추출해주세요:
-- Style Number | Size | Color | UPC (12-digit)
-- 사이즈는 XS-S-M-L-XL-XXL 순으로 정렬
-- 값은 모두 대문자로 표시
-텍스트:
-{text}
-결과는 아래 표 형식으로:
-Style Number | Size | Color | UPC Code
-"""
-    response = openai.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "당신은 PDF 사이즈 스트립 정보를 표로 정리하는 전문가입니다. UPC 코드는 반드시 400으로 시작해야 합니다."},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    return response.choices[0].message.content
-
-# =============================================================================
-# GPT Vision 이미지 분석 함수 (라벨 / 사이즈 스트립)
-def analyze_label_image_with_vision(image_base64):
-    vision_prompt = (
-        "의류 라벨 이미지에서 Style Number, Size, Color, 정확한 12자리 UPC를 추출해주세요.\n\n"
-        "중요: 스타일 넘버는 'WS' 또는 'MS'로 시작, UPC 코드는 반드시 400으로 시작 (4000이면 400으로 수정)."
-        "\nFabric, Care Content, Factory Code도 함께 추출해주세요."
-    )
-    response = openai.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "의류 라벨 이미지를 분석하는 전문가입니다. 스타일 넘버는 'WS' 또는 'MS'로 시작하고, UPC 코드는 반드시 400으로 시작해야 합니다."},
-            {"role": "user", "content": [
-                {"type": "text", "text": vision_prompt},
-                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_base64}"}}
-            ]}
-        ]
-    )
-    return response.choices[0].message.content
-
-def analyze_size_strip_image_with_vision(image_base64):
-    vision_prompt = (
-        "의류 사이즈 스트립 이미지에서 Style Number, Size, Color, 정확한 12자리 UPC를 추출해주세요.\n\n"
-        "중요: 스타일 넘버는 'WS' 또는 'MS'로 시작, UPC 코드는 반드시 400으로 시작."
-    )
-    response = openai.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "의류 사이즈 스트립 이미지를 분석하는 전문가입니다. 스타일 넘버는 'WS' 또는 'MS'로 시작하고, UPC 코드는 반드시 400으로 시작해야 합니다."},
-            {"role": "user", "content": [
-                {"type": "text", "text": vision_prompt},
-                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_base64}"}}
-            ]}
-        ]
-    )
-    return response.choices[0].message.content
-
-# =============================================================================
-# 스타일 넘버, 사이즈, UPC 코드 관련 함수
-def validate_style_number(style_number):
-    style = style_number.strip().upper()
-    if style.startswith('WS') or style.startswith('MS'):
-        return style
-    if style == 'RPI7' or style.startswith('RP'):
-        return None
-    return style
-
-def normalize_size(size_text):
-    size = size_text.strip().upper()
-    if size.endswith('P') and len(size) > 1:
-        size = size[:-1]
-    return size
-
-def normalize_upc(upc_text):
-    digits = ''.join(filter(str.isdigit, upc_text))
-    if digits.startswith('4000'):
-        digits = '400' + digits[4:]
-    if digits.startswith('400021041'):
-        digits = '400210419' + digits[9:]
-    if len(digits) > 12:
-        return digits[:12]
-    elif len(digits) < 12:
-        if len(digits) == 11 and digits.startswith('400'):
-            check_digit = calculate_upc_check_digit(digits)
-            return digits + check_digit
-        elif len(digits) == 8:
-            digits = '400' + digits + '0'
-        else:
-            digits = '400' + digits + '0' * (12 - len(digits) - 3)
-    if not digits.startswith('400'):
-        digits = '400' + digits[3:]
-    if len(digits) != 12:
-        if len(digits) == 11:
-            check_digit = calculate_upc_check_digit(digits)
-            digits = digits + check_digit
-        else:
-            digits = digits + '0' * (12 - len(digits))
-    return digits
-
-def calculate_upc_check_digit(upc_11_digits):
-    if len(upc_11_digits) != 11:
-        return "0"
-    odd_sum = sum(int(upc_11_digits[i]) for i in range(0, 11, 2))
-    even_sum = sum(int(upc_11_digits[i]) for i in range(1, 11, 2))
-    total = odd_sum * 3 + even_sum
-    check_digit = (10 - (total % 10)) % 10
-    return str(check_digit)
-
-# =============================================================================
-# Excel/CSV 데이터 처리 함수
-def process_excel_data(excel_file):
-    try:
-        if excel_file.name.endswith('.csv'):
-            df = pd.read_csv(excel_file)
-        else:
-            excel_bytes = excel_file.read()
-            excel_file.seek(0)
-            wb = openpyxl.load_workbook(io.BytesIO(excel_bytes), data_only=True)
-            sheet = wb.active
-            has_filter = False
-            if sheet.auto_filter.ref:
-                has_filter = True
-                st.info(f"'{excel_file.name}' 파일에 필터 설정이 감지되었습니다. 필터를 해제하고 분석합니다.")
-            df = pd.read_excel(excel_file, header=None)
-            df = df.iloc[1:].reset_index(drop=True)
-            df.columns = df.iloc[0]
-            df = df.iloc[1:].reset_index(drop=True)
-            if has_filter:
-                orig_row_count = len(df)
-                df_cleaned = df.dropna(how='all')
-                cleaned_row_count = len(df_cleaned)
-                if orig_row_count > cleaned_row_count:
-                    st.warning(f"필터로 인해 {orig_row_count - cleaned_row_count}개의 빈 행이 제거되었습니다.")
-                df = df_cleaned.reset_index(drop=True)
-        for col in df.columns:
-            if df[col].dtype == object:
-                df[col] = df[col].astype(str).str.strip()
-        required_columns = ["Vendor Style Number", "UPCs", "Display Color Description", "Kohls Size Description"]
-        optional_columns = ["Vendor Color Description"]
-        df.columns = df.columns.str.strip()
-        missing_columns = [col for col in required_columns if col not in df.columns]
-        if missing_columns:
-            st.error(f"엑셀 파일 '{excel_file.name}'에 필수 컬럼이 없습니다: {', '.join(missing_columns)}")
-            return None
-        has_vendor_color = "Vendor Color Description" in df.columns
-        select_columns = required_columns.copy()
-        if has_vendor_color:
-            select_columns.append("Vendor Color Description")
-        df = df[select_columns].copy()
-        df["UPCs"] = df["UPCs"].astype(str).str.replace("^000", "", regex=True)
-        size_map = {"x small": "XS", "small": "S", "medium": "M", "large": "L", "x large": "XL", "xx large": "XXL"}
-        def simplify_size(size_text):
-            if not isinstance(size_text, str):
-                return size_text
-            size_text = size_text.lower().strip()
-            if " tall" in size_text:
-                size_part = size_text.replace(" tall", "")
-                base_size = size_map.get(size_part, size_part.upper())
-                return f"{base_size}T"
-            size_text = re.sub(r'\s*petite\s*', '', size_text)
-            if len(size_text) > 1 and size_text.endswith('p'):
-                size_text = size_text[:-1]
-            if re.match(r'^[2-9]xb$', size_text):
-                return size_text.upper()
-            return size_map.get(size_text, size_text.upper())
-        df["Kohls Size Description"] = df["Kohls Size Description"].apply(simplify_size)
-        df["Display Color Description"] = df["Display Color Description"].apply(lambda x: re.sub(r'\s*PETITE\s*|\s*PETIT\s*', '', x, flags=re.IGNORECASE).strip() if isinstance(x, str) else x)
-        if has_vendor_color:
-            df["Vendor Color Description"] = df["Vendor Color Description"].apply(lambda x: re.sub(r'\s*PETITE\s*|\s*PETIT\s*', '', x, flags=re.IGNORECASE).strip() if isinstance(x, str) else x)
-        for col in df.columns:
-            if df[col].dtype == object:
-                df[col] = df[col].str.upper()
-        size_order_dict_extended = {
-            "XS": 0, "S": 1, "M": 2, "L": 3, "XL": 4, "XXL": 5, "XXXL": 6,
-            "XST": 10, "ST": 11, "MT": 12, "LT": 13, "XLT": 14, "XXLT": 15, "3XLT": 16,
-            "2XB": 20, "3XB": 21, "4XB": 22, "5XB": 23
-        }
-        df["Size Order"] = df["Kohls Size Description"].map(lambda x: size_order_dict_extended.get(x, 99))
-        df = df.sort_values(["Vendor Style Number", "Display Color Description", "Size Order"])
-        df = df.drop("Size Order", axis=1)
-        rename_dict = {
-            "Vendor Style Number": "Style Number",
-            "UPCs": "UPC Code",
-            "Display Color Description": "Display Color",
-            "Kohls Size Description": "Size"
-        }
-        if has_vendor_color:
-            rename_dict["Vendor Color Description"] = "Vendor Color"
-        df = df.rename(columns=rename_dict)
-        df["Excel Source"] = excel_file.name
-        st.info(f"'{excel_file.name}' 파일에서 {len(df)}개 레코드 정제 완료")
-        return df
-    except Exception as e:
-        st.error(f"Excel/CSV 파일 '{excel_file.name}' 처리 중 오류: {str(e)}")
-        import traceback
-        st.error(f"스택 트레이스: {traceback.format_exc()}")
-        return None
-
-# =============================================================================
-# 색상명 정규화 함수
-def normalize_color_name(color_text):
-    if not isinstance(color_text, str):
-        return ""
-    normalized = color_text.upper().replace(" ", "")
-    normalized = re.sub(r'[-&\.,/\(\)\[\]]', '', normalized)
-    normalized = normalized.replace("GREY", "GRAY")
-    normalized = normalized.replace("MELANGE", "MLG")
-    return normalized
-
-# =============================================================================
-# 일치 여부 확인 함수
-def check_match(pdf_df, all_excel_df):
-    pdf_df["Normalized Color"] = pdf_df["Color"].apply(normalize_color_name)
-    all_excel_df["Normalized Display Color"] = all_excel_df["Display Color"].apply(normalize_color_name)
-    if "Vendor Color" in all_excel_df.columns:
-        all_excel_df["Normalized Vendor Color"] = all_excel_df["Vendor Color"].apply(normalize_color_name)
-    pdf_df["Match"] = "❌"
-    pdf_df["Match Detail"] = ""
-    for idx, pdf_row in pdf_df.iterrows():
-        style_size_match = (all_excel_df["Style Number"] == pdf_row["Style Number"]) & (all_excel_df["Size"] == pdf_row["Size"])
-        original_upc = pdf_row["Original UPC"] if "Original UPC" in pdf_row else pdf_row["UPC Code"]
-        upc_match = all_excel_df["UPC Code"] == original_upc
-        corrected_upc_match = all_excel_df["UPC Code"] == pdf_row["UPC Code"]
-        if "Normalized Vendor Color" in all_excel_df.columns:
-            color_match = (all_excel_df["Normalized Display Color"] == pdf_row["Normalized Color"]) | (all_excel_df["Normalized Vendor Color"] == pdf_row["Normalized Color"])
-        else:
-            color_match = (all_excel_df["Normalized Display Color"] == pdf_row["Normalized Color"])
-        if not any(color_match) and any(upc_match):
-            pdf_excel_color = pdf_row["Color"]
-            excel_colors = all_excel_df[upc_match]["Display Color"].iloc[0] if not all_excel_df[upc_match].empty else "없음"
-            norm_pdf_color = pdf_row["Normalized Color"]
-            norm_excel_color = all_excel_df[upc_match]["Normalized Display Color"].iloc[0] if not all_excel_df[upc_match].empty else "없음"
-            pdf_df.at[idx, "Color Debug"] = f"PDF: '{pdf_excel_color}' ({norm_pdf_color}) vs Excel: '{excel_colors}' ({norm_excel_color})"
-        full_match = style_size_match & color_match & upc_match
-        corrected_match = style_size_match & color_match & corrected_upc_match & ~upc_match
-        potential_matches = all_excel_df[style_size_match & color_match & ~upc_match & ~corrected_upc_match]
-        upc_match_color_mismatch = all_excel_df[style_size_match & ~color_match & upc_match]
-        matching_excel_rows = all_excel_df[full_match]
-        upc_exact_match = all_excel_df[all_excel_df["UPC Code"] == original_upc]
-        if not matching_excel_rows.empty:
-            pdf_df.at[idx, "Match"] = "✅"
-            pdf_df.at[idx, "Match Detail"] = "원본 UPC 정확히 일치"
-            pdf_df.at[idx, "Excel Source"] = ", ".join(sorted(set(matching_excel_rows["Excel Source"])))
-            matched_colors = []
-            if any(matching_excel_rows["Display Color"] == pdf_row["Color"]):
-                matched_colors.append("Display")
-            if "Vendor Color" in matching_excel_rows.columns and any(matching_excel_rows["Vendor Color"] == pdf_row["Color"]):
-                matched_colors.append("Vendor")
-            pdf_df.at[idx, "Matched Color Type"] = ", ".join(matched_colors)
-        elif any(corrected_match):
-            corrected_rows = all_excel_df[corrected_match]
-            pdf_df.at[idx, "Match"] = "⚠️"
-            pdf_df.at[idx, "Match Detail"] = "교정된 UPC로 일치"
-            pdf_df.at[idx, "Excel Source"] = ", ".join(sorted(set(corrected_rows["Excel Source"])))
-            matched_colors = []
-            if any(corrected_rows["Display Color"] == pdf_row["Color"]):
-                matched_colors.append("Display")
-            if "Vendor Color" in corrected_rows.columns and any(corrected_rows["Vendor Color"] == pdf_row["Color"]):
-                matched_colors.append("Vendor")
-            pdf_df.at[idx, "Matched Color Type"] = ", ".join(matched_colors)
-        elif not upc_exact_match.empty:
-            excel_normalized_color = upc_exact_match.iloc[0]["Normalized Display Color"]
-            pdf_normalized_color = pdf_row["Normalized Color"]
-            excel_original_color = upc_exact_match.iloc[0]["Display Color"]
-            pdf_original_color = pdf_row["Color"]
-            if pdf_normalized_color == excel_normalized_color:
-                pdf_df.at[idx, "Match"] = "✅"
-                pdf_df.at[idx, "Match Detail"] = f"UPC 일치, 색상 실질적 일치 (형식만 다름: {pdf_original_color} vs {excel_original_color})"
-                pdf_df.at[idx, "Excel Source"] = ", ".join(sorted(set(upc_exact_match["Excel Source"])))
-            elif pdf_original_color.upper() == excel_original_color.upper():
-                pdf_df.at[idx, "Match"] = "✅"
-                pdf_df.at[idx, "Match Detail"] = f"UPC 일치, 색상 대소문자만 다름: {pdf_original_color} vs {excel_original_color}"
-                pdf_df.at[idx, "Excel Source"] = ", ".join(sorted(set(upc_exact_match["Excel Source"])))
-            elif ('HEATHER' in pdf_original_color.upper() and 'HTHR' in excel_original_color.upper()) or ('HTHR' in pdf_original_color.upper() and 'HEATHER' in excel_original_color.upper()):
-                pdf_df.at[idx, "Match"] = "✅"
-                pdf_df.at[idx, "Match Detail"] = f"UPC 일치, HEATHER/HTHR 형식만 다름: {pdf_original_color} vs {excel_original_color}"
-                pdf_df.at[idx, "Excel Source"] = ", ".join(sorted(set(upc_exact_match["Excel Source"])))
-            elif ('STRIPE' in pdf_original_color.upper() and 'STRIPE' in excel_original_color.upper()):
-                pdf_no_space = pdf_original_color.upper().replace(" ", "")
-                excel_no_space = excel_original_color.upper().replace(" ", "")
-                if pdf_no_space == excel_no_space:
-                    pdf_df.at[idx, "Match"] = "✅"
-                    pdf_df.at[idx, "Match Detail"] = f"UPC 일치, 공백 차이만 있음: {pdf_original_color} vs {excel_original_color}"
-                    pdf_df.at[idx, "Excel Source"] = ", ".join(sorted(set(upc_exact_match["Excel Source"])))
-                else:
-                    pdf_df.at[idx, "Match"] = "❌"
-                    pdf_df.at[idx, "Match Detail"] = f"색상 불일치: PDF({pdf_original_color}) ≠ Excel({excel_original_color})"
-                    pdf_df.at[idx, "Excel Source"] = ", ".join(sorted(set(upc_exact_match["Excel Source"])))
-                    pdf_df.at[idx, "Excel Color"] = ", ".join(sorted(set(upc_exact_match["Display Color"])))
-                    pdf_df.at[idx, "Excel Style"] = ", ".join(sorted(set(upc_exact_match["Style Number"])))
-                    pdf_df.at[idx, "Excel Size"] = ", ".join(sorted(set(upc_exact_match["Size"])))
-                    pdf_df.at[idx, "Excel UPC"] = upc_exact_match.iloc[0]["UPC Code"]
-            else:
-                pdf_df.at[idx, "Match"] = "❌"
-                pdf_df.at[idx, "Match Detail"] = f"색상 불일치: PDF({pdf_original_color}) ≠ Excel({excel_original_color})"
-                pdf_df.at[idx, "Excel Source"] = ", ".join(sorted(set(upc_exact_match["Excel Source"])))
-                pdf_df.at[idx, "Excel Color"] = ", ".join(sorted(set(upc_exact_match["Display Color"])))
-                pdf_df.at[idx, "Excel Style"] = ", ".join(sorted(set(upc_exact_match["Style Number"])))
-                pdf_df.at[idx, "Excel Size"] = ", ".join(sorted(set(upc_exact_match["Size"])))
-                pdf_df.at[idx, "Excel UPC"] = upc_exact_match.iloc[0]["UPC Code"]
-        elif not potential_matches.empty:
-            excel_upc = potential_matches.iloc[0]["UPC Code"]
-            if is_last_digits_different(original_upc, excel_upc, max_diff=2):
-                pdf_df.at[idx, "Match"] = "❌"
-                pdf_df.at[idx, "Match Detail"] = f"UPC 마지막 자리 차이: {original_upc[-2:]} vs {excel_upc[-2:]}"
-                pdf_df.at[idx, "Excel UPC"] = excel_upc
-                pdf_df.at[idx, "Excel Source"] = ", ".join(sorted(set(potential_matches["Excel Source"])))
-            else:
-                pdf_df.at[idx, "Match"] = "❌"
-                if is_completely_different_upc(original_upc, excel_upc):
-                    pdf_df.at[idx, "Match Detail"] = "완전히 다른 UPC 패턴"
-                elif has_significant_middle_difference(original_upc, excel_upc):
-                    pdf_df.at[idx, "Match Detail"] = "UPC 중간 부분 차이 심각"
-                else:
-                    pdf_df.at[idx, "Match Detail"] = f"UPC 불일치: {original_upc} ≠ {excel_upc}"
-                pdf_df.at[idx, "Excel UPC"] = excel_upc
-                pdf_df.at[idx, "Excel Source"] = ", ".join(sorted(set(potential_matches["Excel Source"])))
-    return pdf_df
-
-# =============================================================================
-# Fabric, Care Content, Factory Code 추출 함수
-def extract_fabric_care_from_gpt_response(gpt_output):
-    fabric_info = None
-    care_info = None
-    factory_code = None
-    fabric_matches = re.findall(r'(?i)fabric:\s*(.*?)(?:\n|$|care)', gpt_output)
-    if fabric_matches:
-        fabric_info = fabric_matches[0].strip()
-        if fabric_info.lower() in ['(원단 정보)', 'none', '']:
-            fabric_info = None
-    care_matches = re.findall(r'(?i)care content:\s*(.*?)(?:\n|$)', gpt_output)
-    if care_matches:
-        care_info = care_matches[0].strip()
-        if care_info.lower() in ['(관리 방법)', 'none', '']:
-            care_info = None
-    factory_code_matches = re.findall(r'(?i)factory code:\s*(\d{5,6})(?:\n|$)', gpt_output)
-    if factory_code_matches:
-        factory_code = factory_code_matches[0].strip()
-    else:
-        date_factory_matches = re.findall(r'\d{2}/\d{2}\s+(\d{5,6})', gpt_output)
-        if date_factory_matches:
-            factory_code = date_factory_matches[0].strip()
-    return fabric_info, care_info, factory_code
-
-# =============================================================================
-# UPC 교정 함수 (Excel 데이터 활용)
-def correct_upc_with_excel(pdf_upc, excel_df, style, size, color):
-    matching_rows = excel_df[(excel_df["Style Number"] == style) & 
-                             (excel_df["Size"] == size) &
-                             ((all_excel_df["Display Color"] == color) | 
-                              (all_excel_df["Vendor Color"] == color if "Vendor Color" in excel_df.columns else False))]
-    if matching_rows.empty:
-        return pdf_upc, "매칭되는 Excel 데이터 없음"
-    excel_upc = matching_rows.iloc[0]["UPC Code"]
-    if pdf_upc == excel_upc:
-        return pdf_upc, "정확히 일치"
-    if len(pdf_upc) != len(excel_upc):
-        return excel_upc, f"길이 불일치 (PDF: {len(pdf_upc)}자리, Excel: {len(excel_upc)}자리)"
-    diff_positions = [i for i in range(len(pdf_upc)) if pdf_upc[i] != excel_upc[i]]
-    if pdf_upc.startswith('400021041') and excel_upc.startswith('400210419'):
-        return excel_upc, "확인된 오류 패턴 (400021041xxx → 400210419xxx)"
-    if len(diff_positions) <= 3:
-        return excel_upc, f"{len(diff_positions)}개 자리 불일치"
-    return pdf_upc, f"심각한 불일치 ({len(diff_positions)}개 자리)"
-
-# =============================================================================
-# UPC 유효성 검사 함수
-def validate_upc_code(upc):
-    if not upc.isdigit():
-        return False, "UPC 코드는 숫자만 포함해야 함"
-    if len(upc) != 12:
-        return False, f"UPC 코드는 12자리여야 함 (현재: {len(upc)}자리)"
-    if not (upc.startswith('400') or upc.startswith('4000')):
-        return False, "UPC 코드는 '400'으로 시작해야 함"
-    if upc.count('0') >= 9:
-        return False, "UPC 코드에 0이 너무 많음 (의심스러운 패턴)"
-    check_digit = calculate_upc_check_digit(upc[:11])
-    if check_digit != upc[11]:
-        return True, f"체크섬 불일치 경고: 계산된 체크섬({check_digit}) ≠ 현재({upc[11]})"
-    return True, "유효한 UPC 코드"
-
-# =============================================================================
-# OpenAI 분석 결과 캐싱 함수
-analysis_cache = {}
-def get_cached_analysis(cache_key, analysis_func, *args, **kwargs):
-    if cache_key in analysis_cache:
-        return analysis_cache[cache_key]
-    result = analysis_func(*args, **kwargs)
-    analysis_cache[cache_key] = result
-    return result
-
-# =============================================================================
-# 다중 호출을 통한 투표 시스템 (UPC 추출 안정성 향상)
-def multi_vision_analysis(image_base64, is_label=True, attempts=2, all_excel_df=None):
-    analysis_func = analyze_label_image_with_vision if is_label else analyze_size_strip_image_with_vision
-    all_results = []
-    all_styles = []
-    all_sizes = []
-    all_colors = []
-    all_upcs = []
-    confidence_scores = []
-    completeness_scores = []
-    individual_results = []
-    result1 = get_cached_analysis(f"vision_attempt1_{is_label}", analysis_func, image_base64)
-    all_results.append(result1)
-    style1, size1, color1, upc1 = extract_data_from_result(result1)
-    all_styles.append(style1)
-    all_sizes.append(size1)
-    all_colors.append(color1)
-    if upc1:
-        all_upcs.append(upc1)
-    confidence1 = calculate_confidence_score(result1, style1, size1, color1, upc1)
-    confidence_scores.append(confidence1)
-    completeness1 = calculate_completeness_score(result1)
-    completeness_scores.append(completeness1)
-    result_info1 = {
-        "시도": "첫 번째 시도",
-        "신뢰도": f"{confidence1:.2f}",
-        "완전성": f"{completeness1:.2f}",
-        "결과": result1
-    }
-    individual_results.append(result_info1)
-    if confidence1 < 0.99 or completeness1 < 0.99:
-        if attempts >= 2:
-            result2 = get_cached_analysis(f"vision_attempt2_{is_label}", analysis_func, image_base64)
-            all_results.append(result2)
-            style2, size2, color2, upc2 = extract_data_from_result(result2)
-            all_styles.append(style2)
-            all_sizes.append(size2)
-            all_colors.append(color2)
-            if upc2:
-                all_upcs.append(upc2)
-            confidence2 = calculate_confidence_score(result2, style2, size2, color2, upc2)
-            confidence_scores.append(confidence2)
-            completeness2 = calculate_completeness_score(result2)
-            completeness_scores.append(completeness2)
-            result_info2 = {
-                "시도": "두 번째 시도",
-                "신뢰도": f"{confidence2:.2f}",
-                "완전성": f"{completeness2:.2f}",
-                "결과": result2
-            }
-            individual_results.append(result_info2)
-        if attempts >= 3:
-            for i in range(3, attempts + 1):
-                result_i = get_cached_analysis(f"vision_attempt{i}_{is_label}", analysis_func, image_base64)
-                all_results.append(result_i)
-                style_i, size_i, color_i, upc_i = extract_data_from_result(result_i)
-                all_styles.append(style_i)
-                all_sizes.append(size_i)
-                all_colors.append(color_i)
-                if upc_i:
-                    all_upcs.append(upc_i)
-                confidence_i = calculate_confidence_score(result_i, style_i, size_i, color_i, upc_i)
-                confidence_scores.append(confidence_i)
-                completeness_i = calculate_completeness_score(result_i)
-                completeness_scores.append(completeness_i)
-                result_info_i = {
-                    "시도": f"{i}번째 시도",
-                    "신뢰도": f"{confidence_i:.2f}",
-                    "완전성": f"{completeness_i:.2f}",
-                    "결과": result_i
-                }
-                individual_results.append(result_info_i)
-    consistency_score = check_result_consistency(all_results)
-    if all_excel_df is not None and not all_excel_df.empty:
-        excel_match_scores = [0] * len(all_results)
-        for i, result in enumerate(all_results):
-            extracted_data = extract_data_from_result_table(result)
-            if not extracted_data:
-                individual_results[i]["엑셀 일치도"] = "0.00"
-                continue
-            match_score = 0
-            total_rows = 0
-            for row in extracted_data:
-                total_rows += 1
-                style = row.get('style')
-                size = row.get('size')
-                color = row.get('color')
-                upc = row.get('upc')
-                if style and size and color:
-                    filtered_df = all_excel_df[
-                        (all_excel_df["Style Number"].str.upper() == style.upper()) &
-                        (all_excel_df["Size"].str.upper() == size.upper()) &
-                        (all_excel_df["Display Color"].str.upper() == color.upper())
-                    ]
-                    if not filtered_df.empty and upc:
-                        exact_match = filtered_df[filtered_df["UPC Code"] == upc]
-                        if not exact_match.empty:
-                            match_score += 1
-                        else:
-                            for excel_upc in filtered_df["UPC Code"]:
-                                similarity = calculate_upc_similarity(upc, excel_upc)
-                                if similarity >= 0.9:
-                                    match_score += 0.8
-                                    break
-            if total_rows > 0:
-                excel_match_scores[i] = match_score / total_rows
-            individual_results[i]["엑셀 일치도"] = f"{excel_match_scores[i]:.2f}"
-    for i in range(len(individual_results)):
-        individual_results[i]["일관성"] = f"{consistency_score:.2f}"
-    final_result = determine_final_result_with_scores(
-        all_results, all_styles, all_sizes, all_colors, all_upcs,
-        confidence_scores, consistency_score, completeness_scores, all_excel_df
-    )
-    return final_result, individual_results
-
-def calculate_confidence_score(result, style, size, color, upc):
-    score = 0.0
-    if style and validate_style_number(style):
-        score += 0.3
-    if size and normalize_size(size):
-        score += 0.2
-    if color and normalize_color_name(color):
-        score += 0.2
-    if upc:
-        normalized_upc = normalize_upc(upc)
-        is_valid, _ = validate_upc_code(normalized_upc)
-        if is_valid:
-            score += 0.3
-    return score
-
-def check_result_consistency(results):
-    if not results:
-        return 0.0
-    consistency_scores = {'style': 0.0, 'size': 0.0, 'color': 0.0, 'upc': 0.0}
-    extracted_data = []
-    for result in results:
-        style, size, color, upc = extract_data_from_result(result)
-        extracted_data.append({'style': style, 'size': size, 'color': color, 'upc': upc})
-    for field in consistency_scores.keys():
-        values = [data[field] for data in extracted_data if data[field]]
-        if values:
-            most_common = max(set(values), key=values.count)
-            consistency_scores[field] = values.count(most_common) / len(values)
-    weights = {'style': 0.3, 'size': 0.2, 'color': 0.2, 'upc': 0.3}
-    total_score = sum(score * weights[field] for field, score in consistency_scores.items())
-    return total_score
-
-def determine_final_result_with_scores(results, all_styles, all_sizes, all_colors, all_upcs,
-                                         confidence_scores, consistency_score, completeness_scores, all_excel_df=None):
-    excel_match_scores = [0] * len(results)
-    if all_excel_df is not None and not all_excel_df.empty:
-        for i, result in enumerate(results):
-            extracted_data = extract_data_from_result_table(result)
-            if not extracted_data:
-                continue
-            match_score = 0
-            total_rows = 0
-            for row in extracted_data:
-                total_rows += 1
-                style = row.get('style')
-                size = row.get('size')
-                color = row.get('color')
-                upc = row.get('upc')
-                if style and size and color:
-                    filtered_df = all_excel_df[
-                        (all_excel_df["Style Number"].str.upper() == style.upper()) &
-                        (all_excel_df["Size"].str.upper() == size.upper()) &
-                        (all_excel_df["Display Color"].str.upper() == color.upper())
-                    ]
-                    if not filtered_df.empty and upc:
-                        exact_match = filtered_df[filtered_df["UPC Code"] == upc]
-                        if not exact_match.empty:
-                            match_score += 1
-                        else:
-                            for excel_upc in filtered_df["UPC Code"]:
-                                similarity = calculate_upc_similarity(upc, excel_upc)
-                                if similarity >= 0.9:
-                                    match_score += 0.8
-                                    break
-            if total_rows > 0:
-                excel_match_scores[i] = match_score / total_rows
-    CONFIDENCE_WEIGHT = 0.3
-    CONSISTENCY_WEIGHT = 0.1
-    COMPLETENESS_WEIGHT = 0.3
-    EXCEL_MATCH_WEIGHT = 0.3
-    result_scores = []
-    for i, result in enumerate(results):
-        combined_score = (
-            confidence_scores[i] * CONFIDENCE_WEIGHT +
-            consistency_score * CONSISTENCY_WEIGHT +
-            completeness_scores[i] * COMPLETENESS_WEIGHT +
-            excel_match_scores[i] * EXCEL_MATCH_WEIGHT
-        )
-        result_scores.append((result, combined_score))
-    best_result = max(result_scores, key=lambda x: x[1])[0]
-    best_score = max(result_scores, key=lambda x: x[1])[1]
-    if len(results) > 1 and excel_match_scores[-1] >= 0.8:
-        if excel_match_scores[-1] > excel_match_scores[0]:
-            best_result = results[-1]
-    if len(results) > 1:
-        second_best_idx = -1
-        for i, (result, score) in enumerate(result_scores):
-            if result != best_result and (completeness_scores[i] > completeness_scores[result_scores.index((best_result, best_score))] or
-                                           excel_match_scores[i] > excel_match_scores[result_scores.index((best_result, best_score))]):
-                second_best_idx = i
-                break
-        if second_best_idx != -1 and (completeness_scores[second_best_idx] > 0.8 or excel_match_scores[second_best_idx] > 0.8):
-            best_result = merge_results(best_result, results[second_best_idx])
-    if all_upcs:
-        if all_excel_df is not None and not all_excel_df.empty:
-            extracted_data = extract_data_from_result_table(best_result)
-            if extracted_data:
-                for row in extracted_data:
-                    style = row.get('style')
-                    size = row.get('size')
-                    color = row.get('color')
-                    if style and size and color:
-                        filtered_df = all_excel_df[
-                            (all_excel_df["Style Number"].str.upper() == style.upper()) &
-                            (all_excel_df["Size"].str.upper() == size.upper()) &
-                            (all_excel_df["Display Color"].str.upper() == color.upper())
-                        ]
-                        if not filtered_df.empty:
-                            excel_upc = filtered_df.iloc[0]["UPC Code"]
-                            for upc in all_upcs:
-                                if upc == excel_upc or calculate_upc_similarity(upc, excel_upc) >= 0.9:
-                                    best_result = inject_upc_to_result(best_result, excel_upc)
-                                    break
-        most_common_upc = max(set(all_upcs), key=all_upcs.count)
-        best_result = inject_upc_to_result(best_result, most_common_upc)
-    return best_result
-
-def determine_final_result(all_results, all_styles, all_sizes, all_colors, all_upcs):
-    for i, result in enumerate(all_results):
-        style, size, color, upc = extract_data_from_result(result)
-        matches = 0
-        for j, other_result in enumerate(all_results):
-            if i == j:
-                continue
-            other_style, other_size, other_color, other_upc = extract_data_from_result(other_result)
-            if style and other_style and style == other_style and size and other_size and size == other_size and color and other_color and color == other_color:
-                matches += 1
-        if matches >= len(all_results) // 2:
-            return result
-    style_counter = Counter(all_styles)
-    most_common_style = style_counter.most_common(1)[0][0] if style_counter else None
-    size_counter = Counter(all_sizes)
-    most_common_size = size_counter.most_common(1)[0][0] if size_counter else None
-    upc_counter = Counter(all_upcs)
-    most_common_upc = upc_counter.most_common(1)[0][0] if upc_counter else None
-    final_result = {"style": most_common_style, "size": most_common_size, "upc": most_common_upc}
-    return final_result
-
-# =============================================================================
-# (참고) merge_results, inject_upc_to_result, calculate_upc_similarity,
-# extract_data_from_result, extract_data_from_result_table, is_last_digits_different,
-# is_completely_different_upc, has_significant_middle_difference 등의 함수는
-# 원본 로직을 그대로 유지합니다.
-#
-# =============================================================================
-# Streamlit 파일 업로드 및 분석 UI
-
-col1, col2 = st.columns(2)
-with col1:
-    excel_files = st.file_uploader("📊 Excel/CSV 파일 업로드 (기준 데이터, 여러 개 가능)",
-                                   type=["xlsx", "xls", "csv"], accept_multiple_files=True, key="excel_upload")
-with col2:
-    pdf_files = st.file_uploader("📄 PDF 파일 업로드 (비교할 데이터, 여러 개 가능)",
-                                 type=["pdf"], accept_multiple_files=True, key="pdf_upload")
-
-if excel_files and pdf_files:
-    all_excel_dfs = []
-    for excel_file in excel_files:
-        st.subheader(f"📊 {excel_file.name} 처리 중")
-        excel_df = process_excel_data(excel_file)
-        if excel_df is not None:
-            all_excel_dfs.append(excel_df)
-            with st.expander(f"{excel_file.name} 데이터 보기"):
-                st.dataframe(excel_df)
-    if all_excel_dfs:
-        all_excel_df = pd.concat(all_excel_dfs, ignore_index=True)
-        all_excel_df = all_excel_df.drop_duplicates(subset=["Style Number", "Size", "Display Color", "UPC Code"])
-        st.subheader("📊 통합 Excel/CSV 기준 데이터")
-        st.dataframe(all_excel_df)
-    analysis_attempts = 2  # 기본 분석 시도 횟수
-    use_multi_analysis = True
-    use_enhanced_correction = True
-    check_fabric_care = True
-    is_label_analysis = (analysis_type == "Label Analysis")
-    for pdf_file in pdf_files:
-        st.subheader(f"📄 분석 중: {pdf_file.name}")
-        pdf_bytes = pdf_file.read()
-        normalized_detected_upcs = []
-        if is_text_pdf(pdf_bytes):
-            st.info(f"텍스트 기반 PDF 분석: {pdf_file.name}")
-            text = extract_text_from_pdf(pdf_bytes)
-            if is_label_analysis:
-                gpt_output = analyze_label_text_with_gpt(text)
-                extracted_upcs = []  # 추출 함수 호출 (예: extract_upcs_from_result)
-                normalized_detected_upcs.extend(extracted_upcs)
-                if check_fabric_care:
-                    additional_info = analyze_label_text_with_gpt(text)
-                    fabric_info, care_info, factory_code = extract_fabric_care_from_gpt_response(additional_info)
-            else:
-                gpt_output = analyze_size_strip_text_with_gpt(text)
-        else:
-            st.warning(f"이미지 기반 PDF Vision 분석: {pdf_file.name}")
-            images = convert_pdf_to_images(pdf_bytes)
-            progress_bar = st.progress(0)
-            gpt_output = ""
-            all_individual_results = []
-            for i, img_base64 in enumerate(images):
-                progress_bar.progress((i + 1) / len(images))
-                if use_multi_analysis and is_label_analysis:
-                    try:
-                        page_result, individual_results = multi_vision_analysis(
-                            img_base64, is_label=True, attempts=analysis_attempts, all_excel_df=all_excel_df
-                        )
-                        if individual_results and isinstance(individual_results, list):
-                            all_individual_results.extend(individual_results)
-                        if i == len(images) - 1:
-                            best_score = -1
-                            best_index = 0
-                            for j, result_info in enumerate(all_individual_results):
-                                confidence = float(result_info.get('신뢰도', 0))
-                                consistency = float(result_info.get('일관성', 0))
-                                completeness = float(result_info.get('완전성', 0))
-                                excel_match = float(result_info.get('엑셀 일치도', 0))
-                                combined_score = (confidence * 0.3 + consistency * 0.1 +
-                                                  completeness * 0.3 + excel_match * 0.3)
-                                if combined_score > best_score:
-                                    best_score = combined_score
-                                    best_index = j
-                    except Exception as e:
-                        st.error(f"다중 분석 중 오류: {str(e)}")
-                        page_result = analyze_label_image_with_vision(img_base64)
-                else:
-                    if is_label_analysis:
-                        page_result = analyze_label_image_with_vision(img_base64)
-                    else:
-                        page_result = analyze_size_strip_image_with_vision(img_base64)
-                page_upcs = []  # 추출 함수 호출 (예: extract_upcs_from_result)
-                normalized_detected_upcs.extend(page_upcs)
-                if is_label_analysis and check_fabric_care and i == 0:
-                    additional_info = analyze_label_image_with_vision(img_base64)
-                    page_fabric, page_care, page_factory = extract_fabric_care_from_gpt_response(additional_info)
-                    fabric_info = page_fabric if page_fabric else None
-                    care_info = page_care if page_care else None
-                    factory_code = page_factory if page_factory else None
-                gpt_output += page_result + "\n"
-            st.success(f"이미지 기반 PDF 분석 완료: {pdf_file.name}")
-        st.text_area("원본 출력", gpt_output, height=200)
-        if normalized_detected_upcs:
-            st.info(f"발견된 UPC 코드: {', '.join(normalized_detected_upcs)}")
-        if check_fabric_care and (fabric_info or care_info or factory_code):
-            with st.expander("Fabric & Care Content & Factory Code 정보"):
-                if fabric_info:
-                    st.info(f"Fabric: {fabric_info}")
-                if care_info:
-                    st.success(f"Care Content: {care_info}")
-                if factory_code:
-                    st.info(f"Factory Code: {factory_code}")
-else:
-    st.info("Excel/CSV 파일 및 PDF 파일을 업로드하세요.")
